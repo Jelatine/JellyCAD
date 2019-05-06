@@ -35,76 +35,45 @@ HEADERS += \
 FORMS += \
         cmainwindow.ui
 
-CASROOT = D:/OpenCascade/OpenCASCADE-7.3.0-vc14-64/opencascade-7.3.0
-compiler = vc14
-INCLUDEPATH +=  $$CASROOT/inc
-LIBS += -L$$CASROOT/win64/$$compiler/lib
+#Windows系统下编译
+win32 {
+    #包含路径
+    INCLUDEPATH += $$(CASROOT)/inc
+    #确定编译器
+    win32-msvc2010 {
+        compiler=vc10
+    }
+    win32-msvc2012 {
+        compiler=vc11
+    }
+    win32-msvc2013 {
+        compiler=vc12
+    }
+    win32-msvc2015 {
+        compiler=vc14
+    }
+    #确定64位或32位系统，增加库的路径
+    !contains(QMAKE_TARGET.arch, x86_64) {
+        CONFIG(debug, debug|release) {  #x86_64 debug
+            LIBS += -L$$(CASROOT)/win32/$$compiler/libd
+        }
+        else {  #x86_64 release
+            LIBS += -L$$(CASROOT)/win32/$$compiler/lib
+        }
+    }
+    else {
+        CONFIG(debug, debug|release) {  #x86 debug
+            LIBS += -L$$(CASROOT)/win64/$$compiler/libd
+        }
+        else {  #x86 release
+            LIBS += -L$$(CASROOT)/win64/$$compiler/lib
+        }
+    }
+}
+#添加OCC库
+LIBS += -lTKernel -lTKMath -lTKService -lTKV3d -lTKOpenGl \
+        -lTKBRep -lTKIGES -lTKSTL -lTKVRML -lTKSTEP -lTKSTEPAttr -lTKSTEP209 \
+        -lTKSTEPBase -lTKGeomBase -lTKGeomAlgo -lTKG3d -lTKG2d \
+        -lTKXSBase -lTKShHealing -lTKHLR -lTKTopAlgo -lTKMesh -lTKPrim \
+        -lTKCDF -lTKBool -lTKBO -lTKFillet -lTKOffset \
 
-LIBS +=              \
--lTKBin              \
--lTKBinL             \
--lTKBinTObj          \
--lTKBinXCAF          \
--lTKBO               \
--lTKBool             \
--lTKBRep             \
--lTKCAF              \
--lTKCDF              \
--lTKD3DHost          \
--lTKDCAF             \
--lTKDFBrowser        \
--lTKDraw             \
--lTKernel            \
--lTKFeat             \
--lTKFillet           \
--lTKG2d              \
--lTKG3d              \
--lTKGeomAlgo         \
--lTKGeomBase         \
--lTKHLR              \
--lTKIGES             \
--lTKIVtk             \
--lTKIVtkDraw         \
--lTKLCAF             \
--lTKMath             \
--lTKMesh             \
--lTKMeshVS           \
--lTKOffset           \
--lTKOpenGl           \
--lTKPrim             \
--lTKQADraw           \
--lTKService          \
--lTKShapeView        \
--lTKShHealing        \
--lTKStd              \
--lTKStdL             \
--lTKSTEP             \
--lTKSTEP209          \
--lTKSTEPAttr         \
--lTKSTEPBase         \
--lTKSTL              \
--lTKTInspector       \
--lTKTInspectorAPI    \
--lTKTObj             \
--lTKTObjDRAW         \
--lTKToolsDraw        \
--lTKTopAlgo          \
--lTKTopTest          \
--lTKTreeModel        \
--lTKV3d              \
--lTKVCAF             \
--lTKView             \
--lTKViewerTest       \
--lTKVInspector       \
--lTKVRML             \
--lTKXCAF             \
--lTKXDEDRAW          \
--lTKXDEIGES          \
--lTKXDESTEP          \
--lTKXMesh            \
--lTKXml              \
--lTKXmlL             \
--lTKXmlTObj          \
--lTKXmlXCAF          \
--lTKXSBase           \
--lTKXSDRAW
