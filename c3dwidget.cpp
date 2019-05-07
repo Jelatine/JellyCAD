@@ -11,7 +11,8 @@
 
 #include "c3dwidget.h"
 
-C3DWidget::C3DWidget(QWidget *parent) : QWidget(parent)
+C3DWidget::C3DWidget(QWidget *parent) : QWidget(parent),
+    m_shift_key_pressed(false)
 {
     //若交互式上下文为空，则创建对象
     if (m_context.IsNull())
@@ -57,6 +58,13 @@ C3DWidget::C3DWidget(QWidget *parent) : QWidget(parent)
     setAttribute( Qt::WA_PaintOnScreen );
     setAttribute( Qt::WA_NoSystemBackground );
     setMouseTracking( true );   //开启鼠标位置追踪
+
+    // 创建一个立方体作测试
+    TopoDS_Shape t_topo_box = BRepPrimAPI_MakeBox(3.0, 4.0, 5.0).Shape();
+    Handle(AIS_Shape) t_ais_box = new AIS_Shape(t_topo_box);
+    t_ais_box->SetColor(Quantity_NOC_AZURE);
+    m_context->Display(t_ais_box, Standard_True);
+    m_view->FitAll();
 }
 
 void C3DWidget::paintEvent(QPaintEvent *)
@@ -75,4 +83,69 @@ void C3DWidget::resizeEvent(QResizeEvent *)
 QPaintEngine *C3DWidget::paintEngine() const
 {
     return 0;
+}
+
+void C3DWidget::keyPressEvent(QKeyEvent *event)
+{
+    if(event->key()==Qt::Key_Shift)
+    {
+        m_shift_key_pressed = true;
+    }
+}
+
+void C3DWidget::keyReleaseEvent(QKeyEvent *event)
+{
+    if(event->key()==Qt::Key_Shift)
+    {
+        m_shift_key_pressed = false;
+    }
+}
+
+void C3DWidget::mousePressEvent(QMouseEvent *event)
+{
+    if( ((event->buttons() & Qt::MidButton) && m_shift_key_pressed)  //平移方式1
+        ||((event->buttons()&Qt::LeftButton)&&(event->buttons()&Qt::RightButton)))//平移方式2
+    {
+        m_current_mode = CurAction3d_DynamicPanning;
+        m_x_max = event->pos().x(); //记录起始X位置
+        m_y_max = event->pos().y(); //记录起始Y位置
+    }
+    else if(event->buttons() & Qt::MidButton)  //旋转
+    {
+        m_current_mode = CurAction3d_DynamicRotation;
+        m_view->StartRotation(event->pos().x(), event->pos().y());
+    }
+    else
+    {
+        m_current_mode = CurAction3d_Nothing;
+    }
+}
+
+void C3DWidget::mouseReleaseEvent(QMouseEvent *)
+{
+    m_current_mode = CurAction3d_Nothing;
+}
+
+void C3DWidget::mouseMoveEvent(QMouseEvent *event)
+{
+    switch (m_current_mode)
+    {
+    case CurAction3d_DynamicPanning:
+        //执行平移
+        m_view->Pan(event->pos().x() - m_x_max, m_y_max - event->pos().y());
+        m_x_max = event->pos().x();
+        m_y_max = event->pos().y();
+        break;
+    case CurAction3d_DynamicRotation:
+        //执行旋转
+        m_view->Rotation(event->pos().x(), event->pos().y());
+        break;
+    default:
+        break;
+    }
+}
+
+void C3DWidget::wheelEvent(QWheelEvent *event)
+{
+    m_view->Zoom(0, 0, event->angleDelta().y(), 0); //执行缩放
 }

@@ -13,13 +13,19 @@
 #define C3DWIDGET_H
 
 #include <QWidget>
-#include <AIS_InteractiveContext.hxx>
+#include <QMouseEvent>
+#include <QWheelEvent>
+#include <QKeyEvent>
 
+#include <AIS_InteractiveContext.hxx>
 #include <OpenGl_GraphicDriver.hxx>
 #include <V3d_View.hxx>
 #include <Aspect_Handle.hxx>
 #include <Aspect_DisplayConnection.hxx>
 #include <WNT_Window.hxx>
+
+#include <BRepPrimAPI_MakeBox.hxx>
+#include <AIS_Shape.hxx>
 ///
 /// \brief 三维显示窗口
 ///
@@ -44,6 +50,35 @@ protected:
     void resizeEvent(QResizeEvent *);
     //!返回窗口的绘制引擎
     QPaintEngine *paintEngine() const;
+    //!覆写键盘按键按下事件
+    void keyPressEvent(QKeyEvent *event);
+    //!覆写键盘按键释放事件
+    void keyReleaseEvent(QKeyEvent *event);
+    //!覆写鼠标按键按下事件
+    void mousePressEvent(QMouseEvent *event);
+    //!覆写鼠标按键释放事件
+    void mouseReleaseEvent(QMouseEvent *event);
+    //!覆写鼠标移动事件
+    void mouseMoveEvent(QMouseEvent *event);
+    //!覆写鼠标滚轮事件
+    void wheelEvent(QWheelEvent *event);
+
+protected:
+    //!三维场景转换模式
+    enum CurrentAction3d
+    {
+        CurAction3d_Nothing,
+        CurAction3d_DynamicPanning, //平移
+        CurAction3d_DynamicZooming, //缩放
+        CurAction3d_DynamicRotation //旋转
+    };
+private:
+    Standard_Integer m_x_max;    //!记录鼠标平移坐标X
+    Standard_Integer m_y_max;    //!记录鼠标平移坐标Y
+    CurrentAction3d m_current_mode; //!三维场景转换模式
+    bool m_shift_key_pressed;   //!记录Shift键是否被按下
+
+
 signals:
 
 public slots:
