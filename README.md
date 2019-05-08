@@ -17,6 +17,8 @@ OpenCASCADE-7.3.0
 3.Open JellyCAD.pro with Qt.
 4.Configure OpenCASCADE environment.
 
+## Effect
+<img src="https://img-blog.csdnimg.cn/20190508015752584.gif">
 
 ## Feedback
 
