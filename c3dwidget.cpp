@@ -147,5 +147,6 @@ void C3DWidget::mouseMoveEvent(QMouseEvent *event)
 
 void C3DWidget::wheelEvent(QWheelEvent *event)
 {
-    m_view->Zoom(0, 0, event->angleDelta().y(), 0); //执行缩放
+    m_view->StartZoomAtPoint(event->pos().x(),event->pos().y());
+    m_view->ZoomAtPoint(0, 0, event->angleDelta().y(), 0); //执行缩放
 }
