@@ -10,7 +10,7 @@
 # ====================================================*/
 
 #include "c3dwidget.h"
-
+#include "makebottle.h"
 C3DWidget::C3DWidget(QWidget *parent) : QWidget(parent),
     m_shift_key_pressed(false)
 {
@@ -60,10 +60,9 @@ C3DWidget::C3DWidget(QWidget *parent) : QWidget(parent),
     setMouseTracking( true );   //开启鼠标位置追踪
 
     // 创建一个立方体作测试
-    TopoDS_Shape t_topo_box = BRepPrimAPI_MakeBox(3.0, 4.0, 5.0).Shape();
-    Handle(AIS_Shape) t_ais_box = new AIS_Shape(t_topo_box);
-    t_ais_box->SetColor(Quantity_NOC_AZURE);
-    m_context->Display(t_ais_box, Standard_True);
+    TopoDS_Shape t_topo_bottle = MakeBottle(70.0, 50.0, 30.0);
+    Handle(AIS_Shape) t_ais_bottle = new AIS_Shape(t_topo_bottle);
+    m_context->Display(t_ais_bottle, Standard_True);
     m_view->FitAll();
 }
 

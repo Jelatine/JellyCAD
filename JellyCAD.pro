@@ -30,7 +30,8 @@ SOURCES += \
 
 HEADERS += \
         cmainwindow.h \
-    c3dwidget.h
+    c3dwidget.h \
+    makebottle.h
 
 FORMS += \
         cmainwindow.ui
