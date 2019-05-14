@@ -60,9 +60,49 @@ C3DWidget::C3DWidget(QWidget *parent) : QWidget(parent),
     setMouseTracking( true );   //开启鼠标位置追踪
 
     // 创建一个立方体作测试
-    TopoDS_Shape t_topo_bottle = MakeBottle(70.0, 50.0, 30.0);
-    Handle(AIS_Shape) t_ais_bottle = new AIS_Shape(t_topo_bottle);
-    m_context->Display(t_ais_bottle, Standard_True);
+//    TopoDS_Shape t_topo_bottle = MakeBottle(70.0, 50.0, 30.0);
+//    Handle(AIS_Shape) t_ais_bottle = new AIS_Shape(t_topo_bottle);
+//    m_context->Display(t_ais_bottle, Standard_True);
+//    m_view->FitAll();
+}
+
+void C3DWidget::make_cube(Standard_Real _dx, Standard_Real _dy, Standard_Real _dz)
+{
+    TopoDS_Shape t_topo_box = BRepPrimAPI_MakeBox(_dx, _dy, _dz).Shape();
+    Handle(AIS_Shape) t_ais_box = new AIS_Shape(t_topo_box);
+    m_context->Display(t_ais_box, Standard_True);
+    m_view->FitAll();
+}
+
+void C3DWidget::make_cylinder(Standard_Real _R, Standard_Real _H)
+{
+    TopoDS_Shape t_topo_cylinder = BRepPrimAPI_MakeCylinder(_R , _H).Shape();
+    Handle(AIS_Shape) t_ais_cylinder = new AIS_Shape(t_topo_cylinder);
+    m_context->Display(t_ais_cylinder, Standard_True);
+    m_view->FitAll();
+}
+
+void C3DWidget::make_sphere(Standard_Real _R)
+{
+    TopoDS_Shape t_topo_sphere = BRepPrimAPI_MakeSphere(_R).Shape();
+    Handle(AIS_Shape) t_ais_sphere = new AIS_Shape(t_topo_sphere);
+    m_context->Display(t_ais_sphere, Standard_True);
+    m_view->FitAll();
+}
+
+void C3DWidget::make_cone(Standard_Real _R1, Standard_Real _R2, Standard_Real _H)
+{
+    TopoDS_Shape t_topo_cone = BRepPrimAPI_MakeCone(_R1,_R2,_H).Shape();
+    Handle(AIS_Shape) t_ais_cone = new AIS_Shape(t_topo_cone);
+    m_context->Display(t_ais_cone, Standard_True);
+    m_view->FitAll();
+}
+
+void C3DWidget::make_torus(Standard_Real _R1, Standard_Real _R2)
+{
+    TopoDS_Shape t_topo_torus = BRepPrimAPI_MakeTorus(_R1 ,_R2).Shape();
+    Handle(AIS_Shape) t_ais_torus = new AIS_Shape(t_topo_torus);
+    m_context->Display(t_ais_torus, Standard_True);
     m_view->FitAll();
 }
 

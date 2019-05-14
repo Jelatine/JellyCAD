@@ -26,6 +26,17 @@ public:
     explicit CMainWindow(QWidget *parent = 0);
     ~CMainWindow();
     C3DWidget* m_3d_widget;
+private slots:
+    void on_actionMkCube_triggered();
+
+    void on_actionMkCylinder_triggered();
+
+    void on_actionMkSphere_triggered();
+
+    void on_actionMkCone_triggered();
+
+    void on_actionMkTorus_triggered();
+
 private:
     Ui::CMainWindow *ui;
 };

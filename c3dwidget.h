@@ -24,6 +24,10 @@
 #include <Aspect_DisplayConnection.hxx>
 #include <WNT_Window.hxx>
 
+#include <BRepPrimAPI_MakeSphere.hxx>
+#include <BRepPrimAPI_MakeCone.hxx>
+#include <BRepPrimAPI_MakeTorus.hxx>
+
 #include <BRepPrimAPI_MakeBox.hxx>
 #include <AIS_Shape.hxx>
 ///
@@ -34,6 +38,16 @@ class C3DWidget : public QWidget
     Q_OBJECT
 public:
     explicit C3DWidget(QWidget *parent = nullptr);
+    //! 生成立方体
+    void make_cube(Standard_Real _dx = 1.0, Standard_Real _dy = 1.0, Standard_Real _dz = 1.0);
+    //! 生成圆柱
+    void make_cylinder(Standard_Real _R = 0.5,  Standard_Real _H = 2.0);
+    //! 球体
+    void make_sphere(Standard_Real _R = 1.0);
+    //! 生成圆锥
+    void make_cone(Standard_Real _R1 = 1.0, Standard_Real _R2 = 0.0, Standard_Real _H = 2.0);
+    //! 生成圆环体
+    void make_torus(Standard_Real _R1 =2.0, Standard_Real _R2 = 0.5);
 private:
     //!交互式上下文能够管理一个或多个查看器(viewer)中的图形行为和交互式对象的选择
     Handle(AIS_InteractiveContext) m_context;

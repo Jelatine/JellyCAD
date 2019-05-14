@@ -25,3 +25,28 @@ CMainWindow::~CMainWindow()
 {
     delete ui;
 }
+
+void CMainWindow::on_actionMkCube_triggered()
+{
+    m_3d_widget->make_cube();
+}
+
+void CMainWindow::on_actionMkCylinder_triggered()
+{
+    m_3d_widget->make_cylinder();
+}
+
+void CMainWindow::on_actionMkSphere_triggered()
+{
+    m_3d_widget->make_sphere();
+}
+
+void CMainWindow::on_actionMkCone_triggered()
+{
+    m_3d_widget->make_cone();
+}
+
+void CMainWindow::on_actionMkTorus_triggered()
+{
+    m_3d_widget->make_torus();
+}
