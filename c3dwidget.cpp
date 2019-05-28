@@ -11,8 +11,7 @@
 
 #include "c3dwidget.h"
 #include "makebottle.h"
-C3DWidget::C3DWidget(QWidget *parent) : QWidget(parent),
-    m_shift_key_pressed(false)
+C3DWidget::C3DWidget(QWidget *parent) : QWidget(parent)
 {
     //若交互式上下文为空，则创建对象
     if (m_context.IsNull())
@@ -124,25 +123,9 @@ QPaintEngine *C3DWidget::paintEngine() const
     return 0;
 }
 
-void C3DWidget::keyPressEvent(QKeyEvent *event)
-{
-    if(event->key()==Qt::Key_Shift)
-    {
-        m_shift_key_pressed = true;
-    }
-}
-
-void C3DWidget::keyReleaseEvent(QKeyEvent *event)
-{
-    if(event->key()==Qt::Key_Shift)
-    {
-        m_shift_key_pressed = false;
-    }
-}
-
 void C3DWidget::mousePressEvent(QMouseEvent *event)
 {
-    if( ((event->buttons() & Qt::MidButton) && m_shift_key_pressed)  //平移方式1
+    if( ((event->buttons() & Qt::MidButton) && (QApplication::keyboardModifiers()==Qt::ShiftModifier) )  //平移方式1
         ||((event->buttons()&Qt::LeftButton)&&(event->buttons()&Qt::RightButton)))//平移方式2
     {
         m_current_mode = CurAction3d_DynamicPanning;
