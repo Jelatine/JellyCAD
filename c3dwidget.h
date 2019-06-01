@@ -24,7 +24,15 @@
 #include <V3d_View.hxx>
 #include <Aspect_Handle.hxx>
 #include <Aspect_DisplayConnection.hxx>
+#include <Graphic3d_GraphicDriver.hxx>
+
+#include <QGLWidget>
+#ifdef _WIN32
 #include <WNT_Window.hxx>
+#else
+#undef None
+#include <Xw_Window.hxx>
+#endif
 
 #include <BRepPrimAPI_MakeSphere.hxx>
 #include <BRepPrimAPI_MakeCone.hxx>
@@ -35,7 +43,7 @@
 ///
 /// \brief 三维显示窗口
 ///
-class C3DWidget : public QWidget
+class C3DWidget : public QGLWidget
 {
     Q_OBJECT
 public:
@@ -51,6 +59,8 @@ public:
     //! 生成圆环体
     void make_torus(Standard_Real _R1 =2.0, Standard_Real _R2 = 0.5);
 private:
+    //!初始化交互环境
+    void m_initialize_context();
     //!交互式上下文能够管理一个或多个查看器(viewer)中的图形行为和交互式对象的选择
     Handle(AIS_InteractiveContext) m_context;
     //!定义查看器(viewer)类型对象上的服务
@@ -64,8 +74,6 @@ protected:
     void paintEvent(QPaintEvent *);
     //!覆写窗口尺寸变化事件
     void resizeEvent(QResizeEvent *);
-    //!返回窗口的绘制引擎
-    QPaintEngine *paintEngine() const;
     //!覆写鼠标按键按下事件
     void mousePressEvent(QMouseEvent *event);
     //!覆写鼠标按键释放事件

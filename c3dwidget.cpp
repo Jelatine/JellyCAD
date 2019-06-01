@@ -11,51 +11,10 @@
 
 #include "c3dwidget.h"
 #include "makebottle.h"
-C3DWidget::C3DWidget(QWidget *parent) : QWidget(parent)
+C3DWidget::C3DWidget(QWidget *parent) : QGLWidget(parent)
 {
-    //若交互式上下文为空，则创建对象
-    if (m_context.IsNull())
-    {
-        //此对象提供与X server的连接，在Windows和Mac OS中不起作用
-        Handle(Aspect_DisplayConnection) m_display_donnection = new Aspect_DisplayConnection();
-        //创建OpenGl图形驱动
-        if (m_graphic_driver.IsNull())
-        {
-            m_graphic_driver = new OpenGl_GraphicDriver(m_display_donnection);
-        }
-        //获取QWidget的窗口系统标识符
-        WId window_handle = (WId) winId();
-        //创建Windows NT 窗口
-        Handle(WNT_Window) wind = new WNT_Window((Aspect_Handle) window_handle);
-        //创建3D查看器
-        m_viewer = new V3d_Viewer(m_graphic_driver, Standard_ExtString("viewer3d"));
-        //创建视图
-        m_view = m_viewer->CreateView();
-        m_view->SetWindow(wind);
-        //打开窗口
-        if (!wind->IsMapped())
-        {
-            wind->Map();
-        }
-        m_context = new AIS_InteractiveContext(m_viewer);  //创建交互式上下文
-        //配置查看器的光照
-        m_viewer->SetDefaultLights();
-        m_viewer->SetLightOn();
-        //设置视图的背景颜色为灰色
-        m_view->SetBackgroundColor(Quantity_NOC_GRAY60);
-        m_view->MustBeResized();
-        //显示直角坐标系，可以配置在窗口显示位置、文字颜色、大小、样式
-        m_view->TriedronDisplay(Aspect_TOTP_LEFT_LOWER, Quantity_NOC_GOLD, 0.08, V3d_ZBUFFER);
-        //设置显示模式
-        m_context->SetDisplayMode(AIS_Shaded, Standard_True);
-    }
     //配置QWidget
-    setAttribute(Qt::WA_PaintOnScreen);
-    setAttribute(Qt::WA_NoSystemBackground);
     setBackgroundRole( QPalette::NoRole );  //无背景
-    setFocusPolicy( Qt::StrongFocus );
-    setAttribute( Qt::WA_PaintOnScreen );
-    setAttribute( Qt::WA_NoSystemBackground );
     setMouseTracking( true );   //开启鼠标位置追踪
 
     // 创建一个立方体作测试
@@ -105,8 +64,57 @@ void C3DWidget::make_torus(Standard_Real _R1, Standard_Real _R2)
     m_view->FitAll();
 }
 
+void C3DWidget::m_initialize_context()
+{
+    //若交互式上下文为空，则创建对象
+    if (m_context.IsNull())
+    {
+        //此对象提供与X server的连接，在Windows和Mac OS中不起作用
+        Handle(Aspect_DisplayConnection) m_display_donnection = new Aspect_DisplayConnection();
+        //创建OpenGl图形驱动
+        if (m_graphic_driver.IsNull())
+        {
+            m_graphic_driver = new OpenGl_GraphicDriver(m_display_donnection);
+        }
+        //获取QWidget的窗口系统标识符
+        WId window_handle = (WId) winId();
+#ifdef _WIN32
+        // 创建Windows NT 窗口
+        Handle(WNT_Window) wind = new WNT_Window((Aspect_Handle) window_handle);
+#else
+        // 创建XLib window 窗口
+        Handle(Xw_Window) wind = new Xw_Window(m_display_donnection, (Window) window_handle);
+#endif
+        //创建3D查看器
+        m_viewer = new V3d_Viewer(m_graphic_driver);
+        //创建视图
+        m_view = m_viewer->CreateView();
+        m_view->SetWindow(wind);
+        //打开窗口
+        if (!wind->IsMapped())
+        {
+            wind->Map();
+        }
+        m_context = new AIS_InteractiveContext(m_viewer);  //创建交互式上下文
+        //配置查看器的光照
+        m_viewer->SetDefaultLights();
+        m_viewer->SetLightOn();
+        //设置视图的背景颜色为灰色
+        m_view->SetBackgroundColor(Quantity_NOC_GRAY60);
+        m_view->MustBeResized();
+        //显示直角坐标系，可以配置在窗口显示位置、文字颜色、大小、样式
+        m_view->TriedronDisplay(Aspect_TOTP_LEFT_LOWER, Quantity_NOC_GOLD, 0.08, V3d_ZBUFFER);
+        //设置显示模式
+        m_context->SetDisplayMode(AIS_Shaded, Standard_True);
+    }
+}
+
 void C3DWidget::paintEvent(QPaintEvent *)
 {
+    if (m_context.IsNull()) // 若未定义交互环境
+    {
+        m_initialize_context(); // 初始化交互环境
+    }
     m_view->Redraw();
 }
 
@@ -116,11 +124,6 @@ void C3DWidget::resizeEvent(QResizeEvent *)
     {
         m_view->MustBeResized();
     }
-}
-
-QPaintEngine *C3DWidget::paintEngine() const
-{
-    return 0;
 }
 
 void C3DWidget::mousePressEvent(QMouseEvent *event)

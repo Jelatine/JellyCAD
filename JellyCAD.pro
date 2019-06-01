@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui opengl
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -71,6 +71,13 @@ win32 {
         }
     }
 }
+
+#Linux环境下编译
+linux-g++ {
+    INCLUDEPATH += /usr/local/include/opencascade
+    LIBS += -L/usr/local/lib
+}
+
 #添加OCC库
 LIBS += -lTKernel -lTKMath -lTKService -lTKV3d -lTKOpenGl \
         -lTKBRep -lTKIGES -lTKSTL -lTKVRML -lTKSTEP -lTKSTEPAttr -lTKSTEP209 \
