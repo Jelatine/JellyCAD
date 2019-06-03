@@ -140,6 +140,18 @@ void C3DWidget::mousePressEvent(QMouseEvent *event)
         m_current_mode = CurAction3d_DynamicRotation;
         m_view->StartRotation(event->pos().x(), event->pos().y());
     }
+    else if(event->buttons() & Qt::LeftButton)  //鼠标左键选择模型
+    {
+        // 按下Shift键点击鼠标左键实现多选
+        if(qApp->keyboardModifiers() == Qt::ShiftModifier)
+        {
+            m_context->ShiftSelect(true);
+        }
+        else
+        {
+            m_context->Select(true);    // 单选模型
+        }
+    }
     else
     {
         m_current_mode = CurAction3d_Nothing;
@@ -153,6 +165,9 @@ void C3DWidget::mouseReleaseEvent(QMouseEvent *)
 
 void C3DWidget::mouseMoveEvent(QMouseEvent *event)
 {
+    // 鼠标移动到模型时，模型高亮显示
+    m_context->MoveTo(event->x(),event->y(),m_view,true);
+
     switch (m_current_mode)
     {
     case CurAction3d_DynamicPanning:
