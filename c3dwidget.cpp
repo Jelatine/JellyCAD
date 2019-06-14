@@ -106,6 +106,20 @@ void C3DWidget::m_initialize_context()
         m_view->TriedronDisplay(Aspect_TOTP_LEFT_LOWER, Quantity_NOC_GOLD, 0.08, V3d_ZBUFFER);
         //设置显示模式
         m_context->SetDisplayMode(AIS_Shaded, Standard_True);
+
+        // 设置模型高亮的风格
+        Handle(Prs3d_Drawer) t_hilight_style = m_context->HighlightStyle(); // 获取高亮风格
+        t_hilight_style->SetMethod(Aspect_TOHM_COLOR);  // 颜色显示方式
+        t_hilight_style->SetColor(Quantity_NOC_LIGHTYELLOW);    // 设置高亮颜色
+        t_hilight_style->SetDisplayMode(1); // 整体高亮
+        t_hilight_style->SetTransparency(0.2f); // 设置透明度
+
+        // 设置选择模型的风格
+        Handle(Prs3d_Drawer) t_select_style = m_context->SelectionStyle();  // 获取选择风格
+        t_select_style->SetMethod(Aspect_TOHM_COLOR);  // 颜色显示方式
+        t_select_style->SetColor(Quantity_NOC_LIGHTSEAGREEN);   // 设置选择后颜色
+        t_select_style->SetDisplayMode(1); // 整体高亮
+        t_select_style->SetTransparency(0.4f); // 设置透明度
     }
 }
 
