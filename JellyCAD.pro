@@ -70,6 +70,16 @@ win32 {
             LIBS += -L$$(CASROOT)/win64/$$compiler/lib
         }
     }
+
+# 外部库根目录
+LIBRARY_ROOT_PATH = D:\Libraries\VS2015x64
+
+# ASSIMP库
+ASSIMP_PATH = $$LIBRARY_ROOT_PATH\Assimp
+INCLUDEPATH += $$ASSIMP_PATH\include
+LIBS += -L$$ASSIMP_PATH\lib
+LIBS += -lassimp-vc140-mtd
+
 }
 
 #Linux环境下编译
