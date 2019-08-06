@@ -263,7 +263,7 @@ bool CModel::m_export_model(QString _filename, const char *_format_id,Handle(AIS
 
 //        if ( obj->IsKind( STANDARD_TYPE( AIS_Shape ) ) )
 //        {
-            Handle(CModel) ais_shape = Handle(CModel)::DownCast(obj);
+            Handle(AIS_Shape) ais_shape = Handle(AIS_Shape)::DownCast(obj);
 
             Graphic3d_MaterialAspect shpae_material(ais_shape->Material());
 
@@ -285,12 +285,10 @@ bool CModel::m_export_model(QString _filename, const char *_format_id,Handle(AIS
             Standard_ShortReal shin=shpae_material.Shininess();
             pMaterial->AddProperty(&shin,1,AI_MATKEY_SHININESS);
 
-            TopoDS_Shape theShape = Handle(CModel)::DownCast(obj)->Shape();
+            TopoDS_Shape theShape = ais_shape->Shape();
 
 //        }
 
-        int index=0;
-        int face_index=0;
 
         // calculate total number of the nodes and triangles
         for (TopExp_Explorer anExpSF (theShape, TopAbs_FACE); anExpSF.More(); anExpSF.Next())
@@ -311,6 +309,9 @@ bool CModel::m_export_model(QString _filename, const char *_format_id,Handle(AIS
         vn = pMesh->mNormals = new aiVector3D[pMesh->mNumVertices];
         pMesh->mFaces = new aiFace[pMesh->mNumFaces];
 
+
+        int index=0;
+        int face_index=0;
         // fill temporary triangulation
         Standard_Integer aNodeOffset = 0;
         for (TopExp_Explorer anExpSF (theShape, TopAbs_FACE); anExpSF.More(); anExpSF.Next())
@@ -367,7 +368,7 @@ bool CModel::m_export_model(QString _filename, const char *_format_id,Handle(AIS
     // 根节点加入子节点
     t_scene->mRootNode->addChildren(t_NumChildrenNode,t_node_list);
 
-    qDebug()<<"Return:"<< exporter.Export(t_scene , _format_id , _filename.toStdString());
+    exporter.Export(t_scene , _format_id , _filename.toStdString());
 
     return true;
 
