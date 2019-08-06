@@ -13,6 +13,11 @@
 #define CMAINWINDOW_H
 
 #include <QMainWindow>
+#include <QFileDialog>
+#include <QMessageBox>
+
+#include <TopTools_HSequenceOfShape.hxx>
+
 #include "c3dwidget.h"
 namespace Ui {
 class CMainWindow;
@@ -36,6 +41,10 @@ private slots:
     void on_actionMkCone_triggered();
 
     void on_actionMkTorus_triggered();
+
+    void on_actionImport_triggered();
+
+    void on_actionExport_triggered();
 
 private:
     Ui::CMainWindow *ui;

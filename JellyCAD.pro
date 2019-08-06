@@ -26,20 +26,32 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         main.cpp \
         cmainwindow.cpp \
-    c3dwidget.cpp
+    c3dwidget.cpp \
+    cmodel.cpp
 
 HEADERS += \
         cmainwindow.h \
     c3dwidget.h \
-    makebottle.h
+    makebottle.h \
+    cmodel.h
 
 FORMS += \
         cmainwindow.ui
 
 #Windows系统下编译
 win32 {
+    # 外部库根目录
+    LIBRARY_ROOT_PATH = D:\Libraries\VS2015x64
+
+    # ASSIMP库
+    ASSIMP_PATH = $$LIBRARY_ROOT_PATH\Assimp
+    INCLUDEPATH += $$ASSIMP_PATH\include
+    LIBS += -L$$ASSIMP_PATH\lib
+    LIBS += -lassimp-vc140-mtd
+
+    # OpenCASCADE库
     #包含路径
-    INCLUDEPATH += $$(CASROOT)/inc
+    INCLUDEPATH += $$LIBRARY_ROOT_PATH/OCC/inc
     #确定编译器
     win32-msvc2010 {
         compiler=vc10
@@ -56,29 +68,22 @@ win32 {
     #确定64位或32位系统，增加库的路径
     !contains(QMAKE_TARGET.arch, x86_64) {
         CONFIG(debug, debug|release) {  #x86_64 debug
-            LIBS += -L$$(CASROOT)/win32/$$compiler/libd
+            LIBS += -L$$LIBRARY_ROOT_PATH/OCC/win32/$$compiler/libd
         }
         else {  #x86_64 release
-            LIBS += -L$$(CASROOT)/win32/$$compiler/lib
+            LIBS += -L$$LIBRARY_ROOT_PATH/OCC/win32/$$compiler/lib
         }
     }
     else {
         CONFIG(debug, debug|release) {  #x86 debug
-            LIBS += -L$$(CASROOT)/win64/$$compiler/libd
+            LIBS += -L$$LIBRARY_ROOT_PATH/OCC/win64/$$compiler/libd
         }
         else {  #x86 release
-            LIBS += -L$$(CASROOT)/win64/$$compiler/lib
+            LIBS += -L$$LIBRARY_ROOT_PATH/OCC/win64/$$compiler/lib
         }
     }
 
-# 外部库根目录
-LIBRARY_ROOT_PATH = D:\Libraries\VS2015x64
 
-# ASSIMP库
-ASSIMP_PATH = $$LIBRARY_ROOT_PATH\Assimp
-INCLUDEPATH += $$ASSIMP_PATH\include
-LIBS += -L$$ASSIMP_PATH\lib
-LIBS += -lassimp-vc140-mtd
 
 }
 

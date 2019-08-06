@@ -40,6 +40,10 @@
 
 #include <BRepPrimAPI_MakeBox.hxx>
 #include <AIS_Shape.hxx>
+
+// Project Include
+#include "cmodel.h"
+
 ///
 /// \brief 三维显示窗口
 ///
@@ -58,6 +62,12 @@ public:
     void make_cone(Standard_Real _R1 = 1.0, Standard_Real _R2 = 0.0, Standard_Real _H = 2.0);
     //! 生成圆环体
     void make_torus(Standard_Real _R1 =2.0, Standard_Real _R2 = 0.5);
+
+    //! 获取三维环境交互对象
+    Handle(AIS_InteractiveContext) m_get_context(){return m_context;}
+
+    //! 获取三维显示界面
+    Handle(V3d_View)  m_get_view(){return m_view;}
 private:
     //!初始化交互环境
     void m_initialize_context();

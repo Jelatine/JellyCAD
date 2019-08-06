@@ -120,6 +120,13 @@ void C3DWidget::m_initialize_context()
         t_select_style->SetColor(Quantity_NOC_LIGHTSEAGREEN);   // 设置选择后颜色
         t_select_style->SetDisplayMode(1); // 整体高亮
         t_select_style->SetTransparency(0.4f); // 设置透明度
+
+        m_view->SetZoom(100);   // 放大
+
+        // 激活二维网格
+        m_viewer->SetRectangularGridValues(0,0,1,1,0);
+        m_viewer->SetRectangularGridGraphicValues(2.01,2.01,0);
+        m_viewer->ActivateGrid(Aspect_GT_Rectangular,Aspect_GDM_Lines);
     }
 }
 
@@ -142,60 +149,72 @@ void C3DWidget::resizeEvent(QResizeEvent *)
 
 void C3DWidget::mousePressEvent(QMouseEvent *event)
 {
-    if( ((event->buttons() & Qt::MidButton) && (QApplication::keyboardModifiers()==Qt::ShiftModifier) )  //平移方式1
-        ||((event->buttons()&Qt::LeftButton)&&(event->buttons()&Qt::RightButton)))//平移方式2
+    if((event->buttons()&Qt::LeftButton) && (event->buttons()&Qt::RightButton))
     {
-        m_current_mode = CurAction3d_DynamicPanning;
-        m_x_max = event->pos().x(); //记录起始X位置
-        m_y_max = event->pos().y(); //记录起始Y位置
+        // 鼠标左右键齐按：初始化平移
+        m_x_max=event->x();
+        m_y_max=event->y();
     }
-    else if(event->buttons() & Qt::MidButton)  //旋转
+    else if(event->buttons()&Qt::LeftButton)
     {
-        m_current_mode = CurAction3d_DynamicRotation;
-        m_view->StartRotation(event->pos().x(), event->pos().y());
-    }
-    else if(event->buttons() & Qt::LeftButton)  //鼠标左键选择模型
-    {
-        // 按下Shift键点击鼠标左键实现多选
-        if(qApp->keyboardModifiers() == Qt::ShiftModifier)
+        // 点击前，将鼠标位置传递到交互环境
+        m_context->MoveTo(event->pos().x(),event->pos().y(),m_view,Standard_True);
+        // 鼠标左键：选择模型
+        AIS_StatusOfPick t_pick_status = AIS_SOP_NothingSelected;
+        if(qApp->keyboardModifiers()==Qt::ControlModifier)
         {
-            m_context->ShiftSelect(true);
+            t_pick_status = m_context->ShiftSelect(true);   // 多选
         }
         else
         {
-            m_context->Select(true);    // 单选模型
+            t_pick_status = m_context->Select(true);        // 单选
         }
     }
-    else
+    else if(event->buttons()&Qt::MidButton)
     {
-        m_current_mode = CurAction3d_Nothing;
+        // 鼠标滚轮键：初始化平移
+        m_x_max=event->x();
+        m_y_max=event->y();
+        // 鼠标滚轮键：初始化旋转
+        m_view->StartRotation(event->x(),event->y());
     }
 }
 
-void C3DWidget::mouseReleaseEvent(QMouseEvent *)
+void C3DWidget::mouseReleaseEvent(QMouseEvent *event)
 {
-    m_current_mode = CurAction3d_Nothing;
+    // 将鼠标位置传递到交互环境
+    m_context->MoveTo(event->pos().x(),event->pos().y(),m_view,Standard_True);
 }
 
 void C3DWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    // 鼠标移动到模型时，模型高亮显示
-    m_context->MoveTo(event->x(),event->y(),m_view,true);
-
-    switch (m_current_mode)
+    if((event->buttons()&Qt::LeftButton) && (event->buttons()&Qt::RightButton))
     {
-    case CurAction3d_DynamicPanning:
-        //执行平移
-        m_view->Pan(event->pos().x() - m_x_max, m_y_max - event->pos().y());
-        m_x_max = event->pos().x();
-        m_y_max = event->pos().y();
-        break;
-    case CurAction3d_DynamicRotation:
-        //执行旋转
-        m_view->Rotation(event->pos().x(), event->pos().y());
-        break;
-    default:
-        break;
+        // 鼠标左右键齐按：执行平移
+        m_view->Pan(event->pos().x()-m_x_max,m_y_max-event->pos().y());
+        m_x_max=event->x();
+        m_y_max=event->y();
+    }
+    else if(event->buttons()&Qt::MidButton)
+    {
+        // 鼠标滚轮键
+        if(qApp->keyboardModifiers()==Qt::ShiftModifier)    // 且按下Shift键
+        {
+            // 鼠标滚轮键：执行平移
+            m_view->Pan(event->pos().x()-m_x_max,m_y_max-event->pos().y());
+            m_x_max=event->x();
+            m_y_max=event->y();
+        }
+        else
+        {
+            // 鼠标滚轮键：执行旋转
+            m_view->Rotation(event->x(),event->y());
+        }
+    }
+    else
+    {
+        // 将鼠标位置传递到交互环境
+        m_context->MoveTo(event->pos().x(),event->pos().y(),m_view,Standard_True);
     }
 }
 
