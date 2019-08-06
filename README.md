@@ -18,7 +18,7 @@ OpenCASCADE-7.3.0
 4.Configure OpenCASCADE environment.
 
 ## Effect
-<img src="https://img-blog.csdnimg.cn/20190508015752584.gif">
+<img src="https://img-blog.csdnimg.cn/20190806225153284.gif">
 
 ## Feedback
 
