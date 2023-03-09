@@ -26,7 +26,7 @@
 #include <Aspect_DisplayConnection.hxx>
 #include <Graphic3d_GraphicDriver.hxx>
 
-#include <QGLWidget>
+#include <QWidget>
 #ifdef _WIN32
 #include <WNT_Window.hxx>
 #else
@@ -47,7 +47,7 @@
 ///
 /// \brief 三维显示窗口
 ///
-class C3DWidget : public QGLWidget
+class C3DWidget : public QWidget
 {
     Q_OBJECT
 public:
@@ -92,7 +92,7 @@ protected:
     void mouseMoveEvent(QMouseEvent *event);
     //!覆写鼠标滚轮事件
     void wheelEvent(QWheelEvent *event);
-
+    
 protected:
     //!三维场景转换模式
     enum CurrentAction3d

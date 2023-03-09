@@ -11,7 +11,7 @@
 
 #include "c3dwidget.h"
 #include "makebottle.h"
-C3DWidget::C3DWidget(QWidget *parent) : QGLWidget(parent)
+C3DWidget::C3DWidget(QWidget *parent) : QWidget(parent)
 {
     //配置QWidget
     setBackgroundRole( QPalette::NoRole );  //无背景

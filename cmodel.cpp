@@ -319,14 +319,14 @@ bool CModel::m_export_model(QString _filename, const char *_format_id,Handle(AIS
             TopLoc_Location aLoc;
             Handle(Poly_Triangulation) aTriangulation = BRep_Tool::Triangulation (TopoDS::Face (anExpSF.Current()), aLoc);
 
-            const TColgp_Array1OfPnt& aNodes = aTriangulation->Nodes();
-            const Poly_Array1OfTriangle& aTriangles = aTriangulation->Triangles();
+            auto aNodes = aTriangulation->InternalNodes();
+            auto aTriangles = aTriangulation->InternalTriangles();
 
             // copy nodes
             gp_Trsf aTrsf = aLoc.Transformation();
             for (Standard_Integer aNodeIter = aNodes.Lower(); aNodeIter <= aNodes.Upper(); ++aNodeIter)
             {
-                gp_Pnt aPnt = aNodes (aNodeIter);
+                gp_Pnt aPnt = aNodes [aNodeIter];
                 aPnt.Transform (aTrsf);
                 qDebug()<<"nodes "<<aPnt.X()<<aPnt.Y()<<aPnt.Z();
                 vp[index].Set(aPnt.X(),aPnt.Y(),aPnt.Z());
