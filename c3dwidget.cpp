@@ -17,11 +17,20 @@ C3DWidget::C3DWidget(QWidget *parent) : QWidget(parent)
     setBackgroundRole( QPalette::NoRole );  //无背景
     setMouseTracking( true );   //开启鼠标位置追踪
 
+    if (m_context.IsNull()) // 若未定义交互环境
+    {
+        m_initialize_context(); // 初始化交互环境
+    }
     // 创建一个立方体作测试
 //    TopoDS_Shape t_topo_bottle = MakeBottle(70.0, 50.0, 30.0);
 //    Handle(AIS_Shape) t_ais_bottle = new AIS_Shape(t_topo_bottle);
 //    m_context->Display(t_ais_bottle, Standard_True);
 //    m_view->FitAll();
+        setAttribute(Qt::WA_PaintOnScreen);
+        setAttribute(Qt::WA_NoSystemBackground);
+        setFocusPolicy(Qt::StrongFocus);
+        setAttribute(Qt::WA_PaintOnScreen);
+        setAttribute(Qt::WA_NoSystemBackground);
 }
 
 void C3DWidget::make_cube(Standard_Real _dx, Standard_Real _dy, Standard_Real _dz)
@@ -132,10 +141,6 @@ void C3DWidget::m_initialize_context()
 
 void C3DWidget::paintEvent(QPaintEvent *)
 {
-    if (m_context.IsNull()) // 若未定义交互环境
-    {
-        m_initialize_context(); // 初始化交互环境
-    }
     m_view->Redraw();
 }
 

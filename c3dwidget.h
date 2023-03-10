@@ -93,6 +93,11 @@ protected:
     //!覆写鼠标滚轮事件
     void wheelEvent(QWheelEvent *event);
     
+    //! 返回窗口的绘制引擎
+    QPaintEngine *paintEngine() const override
+    {
+        return 0;
+    }
 protected:
     //!三维场景转换模式
     enum CurrentAction3d
