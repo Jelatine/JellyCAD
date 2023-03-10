@@ -168,14 +168,15 @@ void C3DWidget::mousePressEvent(QMouseEvent *event)
         AIS_StatusOfPick t_pick_status = AIS_SOP_NothingSelected;
         if(qApp->keyboardModifiers()==Qt::ControlModifier)
         {
-            t_pick_status = m_context->ShiftSelect(true);   // 多选
+            t_pick_status = m_context->SelectDetected(AIS_SelectionScheme_Add);   // 多选
         }
         else
         {
-            t_pick_status = m_context->Select(true);        // 单选
+            t_pick_status = m_context->SelectDetected();        // 单选
         }
+        m_view->Update();
     }
-    else if(event->buttons()&Qt::MidButton)
+    else if(event->buttons()&Qt::MiddleButton)
     {
         // 鼠标滚轮键：初始化平移
         m_x_max=event->x();
@@ -200,7 +201,7 @@ void C3DWidget::mouseMoveEvent(QMouseEvent *event)
         m_x_max=event->x();
         m_y_max=event->y();
     }
-    else if(event->buttons()&Qt::MidButton)
+    else if(event->buttons()&Qt::MiddleButton)
     {
         // 鼠标滚轮键
         if(qApp->keyboardModifiers()==Qt::ShiftModifier)    // 且按下Shift键
@@ -225,6 +226,6 @@ void C3DWidget::mouseMoveEvent(QMouseEvent *event)
 
 void C3DWidget::wheelEvent(QWheelEvent *event)
 {
-    m_view->StartZoomAtPoint(event->pos().x(),event->pos().y());
+    m_view->StartZoomAtPoint(event->position().x(),event->position().y());
     m_view->ZoomAtPoint(0, 0, event->angleDelta().y(), 0); //执行缩放
 }
