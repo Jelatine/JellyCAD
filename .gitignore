@@ -44,3 +44,5 @@ CMakeLists.txt.user*
 
 build/
 .vscode/
+
+.idea/

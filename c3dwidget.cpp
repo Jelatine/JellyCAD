@@ -11,6 +11,7 @@
 
 #include "c3dwidget.h"
 #include "makebottle.h"
+#include <AIS_ViewCube.hxx>
 C3DWidget::C3DWidget(QWidget *parent) : QWidget(parent)
 {
     //配置QWidget
@@ -111,8 +112,14 @@ void C3DWidget::m_initialize_context()
         //设置视图的背景颜色为灰色
         m_view->SetBackgroundColor(Quantity_NOC_GRAY60);
         m_view->MustBeResized();
-        //显示直角坐标系，可以配置在窗口显示位置、文字颜色、大小、样式
-        m_view->TriedronDisplay(Aspect_TOTP_LEFT_LOWER, Quantity_NOC_GOLD, 0.08, V3d_ZBUFFER);
+        //显示视方体
+        auto view_cube = new AIS_ViewCube();
+        auto transform_pers = new Graphic3d_TransformPers(Graphic3d_TMF_TriedronPers,
+                                                          Aspect_TOTP_LEFT_LOWER,
+                                                          Graphic3d_Vec2i(85, 85));
+        view_cube->SetTransformPersistence(transform_pers);
+        m_context->Display(view_cube, Standard_True);
+
         //设置显示模式
         m_context->SetDisplayMode(AIS_Shaded, Standard_True);
 
