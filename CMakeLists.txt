@@ -42,7 +42,7 @@ target_link_libraries(JellyCAD PRIVATE
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     # hide console
-    set_target_properties(JellyCAD PROPERTIES WIN32_EXECUTABLE YES LINK_FLAGS "/ENTRY:mainCRTStartup")
+#    set_target_properties(JellyCAD PROPERTIES WIN32_EXECUTABLE YES LINK_FLAGS "/ENTRY:mainCRTStartup")
 endif ()
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/scripts)

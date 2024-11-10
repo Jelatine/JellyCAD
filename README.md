@@ -5,6 +5,8 @@
 </div>
 通过脚本语言编程，构造和导出3D模型。
 
+![window](doc/window.png)
+
 ## 特点
 
 - 支持`Windows`和`Linux`系统
@@ -116,6 +118,79 @@ show({b,c,n,s});  -- display the objects
 ```
 
 ![example1](doc/example1.png)
+
+例2：圆角和倒角
+```lua
+print("Fillet OR Chamfer");
+b1=box.new(1,1,1,{color='red3',x=2,y=2});
+b1:fillet(0.2,{dir='z'}); -- 圆角 r=0.2 限制条件为边缘与基坐标系的Z重合
+b2=box.new(1,1,1,{color='green3',x=2,y=-2});
+b2:fillet(0.2,{max={3,3,3}}); -- 圆角 r=0.2 边缘始末点同时小于 3,3,3
+c=cylinder.new(0.5,1,{color='gray',x=-2,y=-2});
+c:fillet(0.2,{type='circle'}); -- 圆角 r=0.2 限制条件为边缘类型是圆形
+b3=box.new(1,1,1,{color='lightblue'});
+b3:chamfer(0.3,{min={0.5,-1,0.5},max={9,9,9}}); -- 倒角 r=0.3 边缘始末点同时大于 0.5,-1,0.5 且小于 9,9,9
+show({b1,b2,b3,c});
+```
+
+![example2](doc/example2.png)
+
+例3：拉伸多边形
+```lua
+print('Polygon Prism')
+points={{0,0,0},{0,1,0},{0.5,1,0},{0.5,1.5,0},{1.5,1.5,0},{1.5,1,0},{2,1,0},{2,0,0}};
+p = polygon.new(points);
+p:color("#FFF")
+show(p);
+f = face.new(p);
+f:prism(0, 0, 1);
+show(f);
+```
+
+例4：布尔操作
+
+```lua
+print("Boolean Operation");
+c=cylinder.new(10,10);
+c:cut(cylinder.new(8,10,{pos={0,0,1}}));
+c:translate(20,20,0);
+show(c);
+s=sphere.new(10);
+b=box.new(10,10,10);
+s:common(b);
+s:translate(-20,20,0);
+show(s);
+c1=cone.new(10,5,20,{color='green4'});
+s1=sphere.new(10,{color='red'});
+c1:fuse(s1);
+c1:translate(-20,-20,0);
+show(c1);
+```
+
+![example4](doc/example4.png)
+
+例5：导出文件
+
+```lua
+print("Export");
+c=cylinder.new(10,10);
+s=sphere.new(10);
+c=cone.new(10,5,20,{color='green4'});
+export_stl(c,'cylinder.stl',{type='ascii',radius=0.05});
+export_step(s,'sphere.step');
+export_iges(c,'cone.iges');
+```
+
+run `./JellyCAD -f scripts/5export.lua`
+
+- Blender 显示STL导出结果
+  ![example5](doc/example5_stl.png)
+- Fusion360 显示STEP导出结果
+  ![example5](doc/example5_step.png)
+- FreeCAD 显示IGES导出结果
+  ![example5](doc/example5_iges.png)
+
+
 
 ## Feedback
 
