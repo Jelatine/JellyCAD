@@ -1,3 +1,4 @@
+print("Fillet OR Chamfer");
 b1=box.new(1,1,1,{x=2,y=2});
 b1:fillet(0.2,{dir='z'});
 

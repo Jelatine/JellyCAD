@@ -1,3 +1,4 @@
+print("Hello, World!");
 b = box.new(0.1, 1, 1);
 b:translate(2, 2, 0);
 b:rotate(0, 0, -30);
