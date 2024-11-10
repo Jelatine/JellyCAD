@@ -1,37 +1,46 @@
-cmake_minimum_required(VERSION 3.0.0)
-project(jelly_cad VERSION 0.1.0)
+#
+# Copyright (c) 2024. Li Jianbin. All rights reserved.
+# MIT License
+#
+cmake_minimum_required(VERSION 3.14)
+project(JellyCAD)
+set(CMAKE_CXX_STANDARD 17)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+    enable_language("RC")
+    set(WIN32_RESOURCES ${CMAKE_CURRENT_SOURCE_DIR}/resource/icon.rc)
+endif ()
 
-# QT Lib
 set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
-find_package(Qt5 REQUIRED Widgets)
+find_package(OpenCASCADE REQUIRED QUIET)
+find_package(Qt5 REQUIRED COMPONENTS Widgets)
+find_package(Lua REQUIRED)
+find_package(sol2 CONFIG REQUIRED)
 
-# OpenCASCADE LIB
-find_package(freetype CONFIG REQUIRED)
-find_package(OpenCASCADE CONFIG REQUIRED)
-include_directories(${OpenCASCADE_INCLUDE_DIR})
+set(SRC_FILES main.cpp
+        resource/res.qrc
+        include/jy_shape.h
+        src/jy_shape.cpp
+        include/jy_lua_virtual_machine.h
+        src/jy_lua_virtual_machine.cpp
+        include/jy_main_window.h
+        src/jy_main_window.cpp
+        include/jy_code_editor.h
+        src/jy_code_editor.cpp
+        include/jy_activity_bar.h
+        src/jy_3d_widget.cpp
+        include/jy_3d_widget.h)
 
-# ASSIMP LIB
-find_package(assimp CONFIG REQUIRED)
-
-# USER
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-set(USER_SOURCE
-    main.cpp
-    cmainwindow.cpp
-    c3dwidget.cpp
-    cmodel.cpp
-    cmainwindow.h
-    c3dwidget.h
-    makebottle.h
-    cmodel.h
-    cmainwindow.ui
-    res.qrc
-)
-
-add_executable(${CMAKE_PROJECT_NAME} ${USER_SOURCE})
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
+add_executable(JellyCAD ${SRC_FILES} ${WIN32_RESOURCES})
+target_include_directories(JellyCAD PRIVATE ${OpenCASCADE_INCLUDE_DIR})
+target_include_directories(JellyCAD PRIVATE include)
+target_link_libraries(JellyCAD PRIVATE
         Qt5::Widgets
         ${OpenCASCADE_LIBRARIES}
-        assimp::assimp)
+        sol2
+        ${LUA_LIBRARIES})
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+    # hide console
+    set_target_properties(JellyCAD PROPERTIES WIN32_EXECUTABLE YES LINK_FLAGS "/ENTRY:mainCRTStartup")
+endif ()

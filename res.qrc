@@ -1,9 +1,0 @@
-<RCC>
-    <qresource prefix="/">
-        <file>data/mk_box.png</file>
-        <file>data/mk_cone.png</file>
-        <file>data/mk_cylinder.png</file>
-        <file>data/mk_torus.png</file>
-        <file>data/mk_sphere.png</file>
-    </qresource>
-</RCC>
