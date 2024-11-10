@@ -7,7 +7,7 @@
 
 ## 特点
 
-- 支持Windows和Linux系统
+- 支持`Windows`和`Linux`系统
 - 通过`lua`脚本语言构造三维模型
 - 可导出`STL`,`STEP`,`IGES`格式的文件
 
@@ -121,12 +121,20 @@ Jelatine([lijianbinmail@163.com](mailto:lijianbinmail@163.com))
 ## 参考
 
 > [JellyCAD old version](https://github.com/Jelatine/JellyCAD/tree/master)
+>
 > [OpenCascade 说明文档](https://dev.opencascade.org/doc/overview/html/index.html)
+>
 > [布尔运算](https://blog.csdn.net/weixin_45751713/article/details/139399875)
+>
 > [圆角倒角](https://blog.csdn.net/fcqwin/article/details/17204707)
+>
 > [平移旋转](https://blog.csdn.net/cfyouling/article/details/136400406)
+>
 > [访问拓扑边TopoDS_Edge的起末点](https://blog.csdn.net/s634772208/article/details/130101544)
+>
 > [判断Edge/Wire是直线还是圆弧(wire:BRepAdaptor_CompCurve,Edge:BRepAdaptor_Curve)](https://www.cnblogs.com/occi/p/14619592.html)
+>
 > [创建实体](https://developer.aliyun.com/article/235775)
+>
 > [fougue/mayo: 3D CAD viewer and converter based on Qt + OpenCascade](https://github.com/fougue/mayo)
 
