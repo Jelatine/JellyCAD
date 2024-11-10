@@ -40,11 +40,10 @@ target_link_libraries(JellyCAD PRIVATE
         sol2
         ${LUA_LIBRARIES})
 
-if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-    # hide console
-#    set_target_properties(JellyCAD PROPERTIES WIN32_EXECUTABLE YES LINK_FLAGS "/ENTRY:mainCRTStartup")
+if ((${CMAKE_SYSTEM_NAME} MATCHES "Windows") AND (${CMAKE_BUILD_TYPE} STREQUAL "Release"))
+    set_target_properties(JellyCAD PROPERTIES WIN32_EXECUTABLE ON)
 endif ()
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/scripts)
-file(GLOB EXAMPLE_SCRIPTS  "${CMAKE_CURRENT_SOURCE_DIR}/examples/*.lua")
+file(GLOB EXAMPLE_SCRIPTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/*.lua")
 file(COPY ${EXAMPLE_SCRIPTS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/scripts/)
