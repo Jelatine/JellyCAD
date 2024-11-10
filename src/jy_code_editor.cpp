@@ -99,7 +99,7 @@ JyCodeEditor::Highlighter::Highlighter(QTextDocument *parent) : QSyntaxHighlight
                     << ":rotate" << ":locate" << ":color" << ":prism";
     m_append_keyword_list(custom_function, "#3369FF");  // 浅蓝色
     QStringList custom_global_func;
-    custom_global_func << "export_stl" << "export_step" << "show";
+    custom_global_func << "export_stl" << "export_step" << "export_iges" << "show";
     m_append_keyword_list(custom_global_func, "#800080");  // 浅紫色
     QTextCharFormat t_text_char_format;
     HighlightingRule rule;

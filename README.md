@@ -185,12 +185,12 @@ run `./JellyCAD -f scripts/5export.lua`
 
 - Blender 显示STL导出结果
   ![example5](doc/example5_stl.png)
+
 - Fusion360 显示STEP导出结果
   ![example5](doc/example5_step.png)
+
 - FreeCAD 显示IGES导出结果
   ![example5](doc/example5_iges.png)
-
-
 
 ## Feedback
 
