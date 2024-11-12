@@ -82,6 +82,7 @@ bool JyShape::fillet(const double &_r, const sol::table &_cond) const {
     MF.Build();
     if (!MF.IsDone()) { return false; }
     s_->SetShape(MF.Shape());
+    s_->Redisplay();
     return true;
 }
 
@@ -98,6 +99,7 @@ bool JyShape::chamfer(const double &_dis, const sol::table &_cond) const {
     MC.Build();
     if (!MC.IsDone()) { return false; }
     s_->SetShape(MC.Shape());
+    s_->Redisplay();
     return true;
 }
 
@@ -274,6 +276,7 @@ void JyShape::locate_base(const LocateType &_type, const double &_x, const doubl
         TopLoc_Location location(transformation);
         s_->SetShape(topology.Moved(location));
     }
+    s_->Redisplay();
 }
 
 void JyShape::prism(const double &_x, const double &_y, const double &_z) const {
@@ -281,6 +284,7 @@ void JyShape::prism(const double &_x, const double &_y, const double &_z) const 
     if (!s_) { return; }
     TopoDS_Shape result = BRepPrimAPI_MakePrism(s_->Shape(), prism_dir);
     s_->SetShape(result);
+    s_->Redisplay();
 }
 
 void JyShape::translate(const double &_x, const double &_y, const double &_z) const {
