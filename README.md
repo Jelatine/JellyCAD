@@ -67,6 +67,14 @@ jellycad -f file.lua
 - 打开:Ctrl+O
 - 保存:Ctrl+S
 
+### 脚本编写
+
+[Lua 5.4 Reference Manual - contents](https://www.lua.org/manual/5.4/)
+
+[Lua 教程 | 菜鸟教程](https://www.runoob.com/lua/lua-tutorial.html)
+
+[](https://www.runoob.com/lua/lua-tutorial.html)
+
 ## 软件定义的类型和函数
 
 ### 全局函数
@@ -184,13 +192,16 @@ export_iges(c,'cone.iges');
 run `./JellyCAD -f scripts/5export.lua`
 
 - Blender 显示STL导出结果
-  ![example5](doc/example5_stl.png)
+  
+  <img src="doc/example5_stl.png" style="zoom:30%;" />
 
 - Fusion360 显示STEP导出结果
-  ![example5](doc/example5_step.png)
+  
+  <img src="doc/example5_step.png" style="zoom:30%;" />
 
 - FreeCAD 显示IGES导出结果
-  ![example5](doc/example5_iges.png)
+  
+  <img src="doc/example5_iges.png" style="zoom:30%;" />
 
 ## Feedback
 
