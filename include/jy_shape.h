@@ -19,6 +19,8 @@ public:
 
     explicit JyShape() = default;
 
+    explicit JyShape(const std::string &_filename);
+
     //!< 拷贝构造函数
     JyShape(const JyShape &other) {
         if (other.s_) {

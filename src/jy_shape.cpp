@@ -25,6 +25,31 @@
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <IGESControl_Writer.hxx>
+#include <STEPControl_Reader.hxx>
+
+JyShape::JyShape(const std::string &_filename) {
+    if (_filename.empty()) { throw std::runtime_error("Filename is empty!"); }
+    const auto ends_with = [&_filename](const std::string &suffix) {
+        if (suffix.length() > _filename.length()) { return false; }
+        return (_filename.rfind(suffix) == (_filename.length() - suffix.length()));
+    };
+    if (ends_with(".step") || ends_with(".STEP")) {
+        STEPControl_Reader reader;
+        const auto &res = reader.ReadFile(_filename.c_str()); // 加载文件只是记忆数据，不转换
+        if (res != IFSelect_RetDone) { throw std::runtime_error("Failed Import STEP file!"); }
+        reader.PrintCheckLoad(Standard_False, IFSelect_ItemsByEntity); // 检查加载的文件(不是强制性)
+        //加载step文件
+        Standard_Integer NbRoots = reader.NbRootsForTransfer();
+        Standard_Integer num = reader.TransferRoots();
+        s_ = new AIS_Shape(reader.OneShape());
+    } else if (ends_with(".stl") || ends_with(".STL")) {
+        TopoDS_Shape topology_shape;
+        if (!StlAPI::Read(topology_shape, _filename.c_str())) { throw std::runtime_error("Failed Import STL file!"); }
+        s_ = new AIS_Shape(topology_shape);
+    } else {
+        throw std::runtime_error("Not support file!");
+    }
+}
 
 void JyShape::process_opt(const sol::table &_opt) const {
     if (!_opt) { return; }

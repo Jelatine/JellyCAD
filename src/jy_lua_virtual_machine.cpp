@@ -7,7 +7,7 @@
 JyLuaVirtualMachine::JyLuaVirtualMachine() {
     lua.open_libraries();
 
-    auto shape_user = lua.new_usertype<JyShape>("Shape", sol::constructors<JyShape()>());
+    auto shape_user = lua.new_usertype<JyShape>("shape", sol::constructors<JyShape(const std::string &)>());
     shape_user["type"] = &JyShape::type;
     shape_user["fuse"] = &JyShape::fuse;
     shape_user["cut"] = &JyShape::cut;

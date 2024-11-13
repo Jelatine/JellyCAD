@@ -16,14 +16,14 @@
 ## 开发环境
 
 - Windows 11 23H2
-  - CMake 3.24.0-rc1
-  - Visual Studio 17 2022
-  - vcpkg(2022.02.02-4297-g78b61582c)[qt5,lua,sol2,opencascade]
+    - CMake 3.24.0-rc1
+    - Visual Studio 17 2022
+    - vcpkg(2022.02.02-4297-g78b61582c)[qt5,lua,sol2,opencascade]
 
 - Ubuntu 22.04.5 LTS(WSL)
-  - CMake 3.31.0
-  - c++ (Ubuntu 11.4.0-1ubuntu1~22.04)
-  - vcpkg(2022.02.02-8233-g813a241fb)[qt5,lua,sol2,opencascade]
+    - CMake 3.31.0
+    - c++ (Ubuntu 11.4.0-1ubuntu1~22.04)
+    - vcpkg(2022.02.02-8233-g813a241fb)[qt5,lua,sol2,opencascade]
 
 ## 编译
 
@@ -63,6 +63,7 @@ jellycad -f file.lua
 - 鼠标滚轮缩放
 
 #### 快捷键
+
 - 新建:Ctrl+N
 - 打开:Ctrl+O
 - 保存:Ctrl+S
@@ -83,7 +84,7 @@ jellycad -f file.lua
 
 ### 形状实现类
 
-以下8个形状均继承`Shape`基类
+以下8个形状均继承`shape`基类
 
 - `box`/`cylinder`/`cone`/`sphere`创建类型`SOLID`的三维模型
 - `edge`创建边缘，支持`lin`(line),圆弧`circ`(circle),`elips`(ellipse),`hypr`(hyperbola),`parab`(parabola)类型的边缘
@@ -92,7 +93,9 @@ jellycad -f file.lua
 
 ### 形状基类
 
-基类`Shape`实现的方法：
+基类`shape`实现的方法：
+
+构造函数可导入`step`和`stl`文件，如`s=shape.new('flank.stl');`
 
 - `type`返回形状类型，格式为字符串
 - `fuse`融合
@@ -106,10 +109,12 @@ jellycad -f file.lua
 - `color`设置颜色
 - `transparency`设置透明度
 - `prism`拉伸操作
-  - 拉伸形状变换：`edge->face,face->solid,wire->shell`
+    - 拉伸形状变换：`edge->face,face->solid,wire->shell`
 
 ## 例程
+
 例1：绘制实体，设置位姿和颜色
+
 ```lua
 print("Hello, World!");
 b = box.new(0.1, 1, 1); -- create a box with dimensions 0.1 x 1 x 1
@@ -128,6 +133,7 @@ show({b,c,n,s});  -- display the objects
 ![example1](doc/example1.png)
 
 例2：圆角和倒角
+
 ```lua
 print("Fillet OR Chamfer");
 b1=box.new(1,1,1,{color='red3',x=2,y=2});
@@ -144,6 +150,7 @@ show({b1,b2,b3,c});
 ![example2](doc/example2.png)
 
 例3：拉伸多边形
+
 ```lua
 print('Polygon Prism')
 points={{0,0,0},{0,1,0},{0.5,1,0},{0.5,1.5,0},{1.5,1.5,0},{1.5,1,0},{2,1,0},{2,0,0}};
@@ -192,15 +199,15 @@ export_iges(c,'cone.iges');
 run `./JellyCAD -f scripts/5export.lua`
 
 - Blender 显示STL导出结果
-  
+
   <img src="doc/example5_stl.png" style="zoom:30%;" />
 
 - Fusion360 显示STEP导出结果
-  
+
   <img src="doc/example5_step.png" style="zoom:30%;" />
 
 - FreeCAD 显示IGES导出结果
-  
+
   <img src="doc/example5_iges.png" style="zoom:30%;" />
 
 ## Feedback
