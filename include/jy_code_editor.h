@@ -61,7 +61,7 @@ public:
 
 public slots:
 
-    void slot_update_number_width(int) { setViewportMargins(number_area_width() + 16, 0, 0, 0); }
+    void slot_update_number_width(int) { setViewportMargins(number_area_width() + 8, 0, 0, 0); }
 
     void slot_update_number_area(const QRect &rect, int dy);
 };

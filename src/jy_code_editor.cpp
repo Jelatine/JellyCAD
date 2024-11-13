@@ -3,6 +3,7 @@
  * MIT License
  */
 #include "jy_code_editor.h"
+#include <QStyleOption>
 
 JyCodeEditor::JyCodeEditor(QWidget *parent) : QPlainTextEdit(parent), number_area_(new NumberArea(this)) {
     setWordWrapMode(QTextOption::NoWrap);
@@ -16,6 +17,7 @@ JyCodeEditor::JyCodeEditor(QWidget *parent) : QPlainTextEdit(parent), number_are
     connect(this, &JyCodeEditor::blockCountChanged, this, &JyCodeEditor::slot_update_number_width);
     connect(this, &JyCodeEditor::updateRequest, this, &JyCodeEditor::slot_update_number_area);
     slot_update_number_width(0);
+    viewport()->setStyleSheet("border-left: 1px solid #4b5059;");
 }
 
 
@@ -26,17 +28,15 @@ int JyCodeEditor::number_area_width() {
         max /= 10;
         ++digits;
     }
-    int space = 3 + 16 + 3 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;
+    int space = 8 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;
     return space;
 }
 
 void JyCodeEditor::paint_line_number(QPaintEvent *event) {
     if (!number_area_) { return; }
     QPainter painter(number_area_);
-    painter.setFont(this->font());
-    painter.fillRect(event->rect(), QColor::fromRgb(240, 240, 240));   // 行号栏底纹色
-
-
+    QStyleOption opt;
+    opt.initFrom(this); //读取qss设置的样式
     QTextBlock t_first_visible_block = firstVisibleBlock(); // 第一个可看到的区间
     int t_block_number = t_first_visible_block.blockNumber();   // 第一个区间号
     int t_top = qRound(blockBoundingGeometry(t_first_visible_block).translated(contentOffset()).top());
@@ -45,7 +45,8 @@ void JyCodeEditor::paint_line_number(QPaintEvent *event) {
     while (t_first_visible_block.isValid() && t_top <= event->rect().bottom()) {
         if (t_first_visible_block.isVisible() && t_bottom >= event->rect().top()) {
             int t_number = t_block_number + 1;
-            painter.setPen(QColor::fromRgb(150, 150, 150));    // 行号栏字体色
+//            painter.setPen(opt.palette.color(QPalette::WindowText));    // 行号栏字体色
+            painter.setPen(QColor("#4b5059"));    // 行号栏字体色
             const auto rect = QRect(0, t_top, number_area_->width(), fontMetrics().height());
             painter.drawText(rect, Qt::AlignRight, QString::number(t_number));
         }
@@ -83,28 +84,28 @@ JyCodeEditor::Highlighter::Highlighter(QTextDocument *parent) : QSyntaxHighlight
                                         << "false" << "for" << "function" << "if" << "in"
                                         << "local" << "or" << "nil" << "not" << "repeat"
                                         << "return" << "then" << "true" << "until" << "while",
-                          "#2985c7");  // 蓝色
+                          "#CF8E6D");  // 橙色
     // 内置功能
     m_append_keyword_list(
             QStringList() << "assert" << "collectgarbage" << "dofile" << "error" << "getmetatable" << "ipairs"
                           << "load" << "loadfile" << "next" << "pairs" << "pcall" << "print" << "rawequal"
                           << "rawget" << "rawset" << "require" << "select" << "setmetatable" << "tonumber"
                           << "tostring" << "type" << "xpcall" << "warn",
-            "#3369FF");  // 浅蓝色
+            "#CF8E6D");  // 橙色
     QStringList custom_class;
     custom_class << "box" << "cylinder" << "cone" << "sphere" << "edge" << "wire" << "polygon" << "face";
-    m_append_keyword_list(custom_class, "#F92671");  // 浅红色
+    m_append_keyword_list(custom_class, "#C77DBB");  // 粉红色
     QStringList custom_function;
     custom_function << ":type" << ":fuse" << ":cut" << ":common" << ":fillet" << ":chamfer" << ":translate"
                     << ":rotate" << ":locate" << ":color" << ":prism";
     m_append_keyword_list(custom_function, "#3369FF");  // 浅蓝色
     QStringList custom_global_func;
     custom_global_func << "export_stl" << "export_step" << "export_iges" << "show";
-    m_append_keyword_list(custom_global_func, "#800080");  // 浅紫色
+    m_append_keyword_list(custom_global_func, "#B3AE60");  // 黄色
     QTextCharFormat t_text_char_format;
     HighlightingRule rule;
     // 字符串（双引号）
-    t_text_char_format.setForeground(QBrush("#42E2CB"));
+    t_text_char_format.setForeground(QBrush("#6AAB73")); // 绿色
     rule.pattern = QRegularExpression(QStringLiteral("\".*\""));
     rule.format = t_text_char_format;
     highlightingRules.append(rule);
@@ -113,7 +114,7 @@ JyCodeEditor::Highlighter::Highlighter(QTextDocument *parent) : QSyntaxHighlight
     rule.format = t_text_char_format;
     highlightingRules.append(rule);
     // 注释
-    t_text_char_format.setForeground(QBrush("#008000"));    // 绿色
+    t_text_char_format.setForeground(QBrush("#7A7E85"));    // 灰色
     rule.pattern = QRegularExpression(QStringLiteral("--.*"));
     rule.format = t_text_char_format;
     highlightingRules.append(rule);
@@ -121,7 +122,7 @@ JyCodeEditor::Highlighter::Highlighter(QTextDocument *parent) : QSyntaxHighlight
     m_comment_start_expression = QRegularExpression(QStringLiteral("--\\[\\["));
     m_comment_end_expression = QRegularExpression(QStringLiteral("--\\]\\]"));
 
-    m_multi_line_comment_format.setForeground(QBrush("#008000"));    // 注释绿色
+    m_multi_line_comment_format.setForeground(QBrush("#7A7E85"));    // 注释灰色
 }
 
 

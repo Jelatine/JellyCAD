@@ -11,6 +11,7 @@
 #include <AIS_Shape.hxx>
 #include <AIS_ViewCube.hxx>
 #include <AIS_Trihedron.hxx>
+#include <V3d_Light.hxx>
 #include "jy_shape.h"
 
 class Jy3DWidget : public QWidget {
@@ -20,6 +21,7 @@ Q_OBJECT
     Handle(V3d_View) m_view; //!创建一个视图
     Handle(AIS_ViewCube) view_cube; //!视方体
     Handle(AIS_Trihedron) origin_coord; //!基坐标系
+    Handle(V3d_Light) light_direction; //! 定向光源
     Standard_Integer m_x_max{};    //!记录鼠标平移坐标X
     Standard_Integer m_y_max{};    //!记录鼠标平移坐标Y
 public:

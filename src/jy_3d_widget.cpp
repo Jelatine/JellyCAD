@@ -11,8 +11,11 @@
 #include <Geom_Axis2Placement.hxx>
 #include <AIS_Shape.hxx>
 #include <BRepBndLib.hxx>
+
 #ifdef _WIN32
+
 #include <WNT_Window.hxx>
+
 #else
 #include <Xw_Window.hxx>
 #endif
@@ -102,10 +105,15 @@ void Jy3DWidget::initialize_context() {
     }
     m_context = new AIS_InteractiveContext(m_viewer);  //创建交互式上下文
     //配置查看器的光照
-    m_viewer->SetDefaultLights();
+    light_direction = new V3d_Light(Graphic3d_TypeOfLightSource_Directional);
+    light_direction->SetDirection(m_view->Camera()->Direction());
+    m_viewer->AddLight(new V3d_Light(Graphic3d_TypeOfLightSource_Ambient));
+    m_viewer->AddLight(light_direction);
     m_viewer->SetLightOn();
     //设置视图的背景颜色为灰色
-    m_view->SetBackgroundColor(Quantity_NOC_GRAY60);
+    Quantity_Color background_color;
+    Quantity_Color::ColorFromHex("#3f3f3f", background_color);
+    m_view->SetBackgroundColor(background_color);
     m_view->MustBeResized();
 
     create_view_cube(); // 创建视方体
@@ -229,6 +237,7 @@ void Jy3DWidget::mouseMoveEvent(QMouseEvent *event) {
     } else if (event->buttons() & Qt::RightButton) {
         // 鼠标滚轮键：执行旋转
         m_view->Rotation(event->x(), event->y());
+        light_direction->SetDirection(m_view->Camera()->Direction());
     } else {
         // 将鼠标位置传递到交互环境
         m_context->MoveTo(event->pos().x(), event->pos().y(), m_view, Standard_True);

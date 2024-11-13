@@ -15,10 +15,6 @@ class JyActivityBar : public QToolBar {
 Q_OBJECT
 public:
     explicit JyActivityBar(QWidget *parent = nullptr) : QToolBar(parent) {
-        this->setStyleSheet("QToolBar{background-color:#fafafa;width: 50px;border: 1px solid #d7d9de;}"\
-                        "QPushButton{width:50px;height:42px;border:0;padding:0;background-color:transparent; }"\
-                        "QPushButton:checked{ background-color:gray;}"\
-                        "QPushButton:hover{ background-color:#3369ff; }");
         setMovable(false); // 工具栏不可移动
         setContextMenuPolicy(Qt::CustomContextMenu);    // 禁止右键菜单
         const auto button_script = new QPushButton();   // 创建脚本显示按钮

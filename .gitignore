@@ -1,6 +1,7 @@
 build/
 cmake-build-*
 .idea/
+win/
 
 # Editor directories and files
 .idea
