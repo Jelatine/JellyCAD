@@ -7,6 +7,10 @@ QPushButton {
     border-radius: 4px;
 }
 
+QPushButton:disabled {
+    color: #4b5059;
+}
+
 QPushButton:hover {
     color: #3369ff;
 }
