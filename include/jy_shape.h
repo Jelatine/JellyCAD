@@ -29,6 +29,7 @@ public:
             other.s_->Color(color);
             s_->SetColor(color);
             s_->SetTransparency(other.s_->Transparency());
+            s_->SetMaterial(other.s_->Material());
         }
     }
 

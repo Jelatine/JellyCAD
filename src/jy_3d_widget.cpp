@@ -36,6 +36,7 @@ void Jy3DWidget::display(const JyShape &theIObj) {
     if (!theIObj.data()) { return; }
     // 更新网格数据，保证网格的XY能覆盖模型
     const auto shape = theIObj.data();
+    shape->SetMaterial(Graphic3d_NameOfMaterial_Stone);
     // 模型包围盒计算
     Bnd_Box bounding;
     BRepBndLib::Add(shape->Shape(), bounding);
