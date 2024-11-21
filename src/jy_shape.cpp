@@ -26,6 +26,7 @@
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <IGESControl_Writer.hxx>
 #include <STEPControl_Reader.hxx>
+#include <StlAPI_Reader.hxx>
 
 JyShape::JyShape(const std::string &_filename) {
     if (_filename.empty()) { throw std::runtime_error("Filename is empty!"); }
@@ -44,7 +45,13 @@ JyShape::JyShape(const std::string &_filename) {
         s_ = new AIS_Shape(reader.OneShape());
     } else if (ends_with(".stl") || ends_with(".STL")) {
         TopoDS_Shape topology_shape;
+#if 1
+        StlAPI_Reader reader;
+        if (!reader.Read(topology_shape, _filename.c_str())) { throw std::runtime_error("Failed Import STL file!"); }
+#else
+        //!< DEPRECATED
         if (!StlAPI::Read(topology_shape, _filename.c_str())) { throw std::runtime_error("Failed Import STL file!"); }
+#endif
         s_ = new AIS_Shape(topology_shape);
     } else {
         throw std::runtime_error("Not support file!");
