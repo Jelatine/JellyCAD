@@ -5,7 +5,7 @@
 </div>
 通过脚本语言编程，构造和导出3D模型。
 
-![window](doc/window.png)
+![cover](doc/cover.png)
 
 ## 特点
 
