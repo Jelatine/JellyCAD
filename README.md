@@ -18,7 +18,11 @@
 - Windows 11 23H2
     - CMake 3.24.0-rc1
     - Visual Studio 17 2022
-    - vcpkg(2022.02.02-4297-g78b61582c)[qt5,lua,sol2,opencascade]
+    - vcpkg(2024-10-18)
+      - qt5 5.15.15
+      - opencascade 7.8.1
+      - sol2 3.3.1
+      - lua 5.4.7
 
 - Ubuntu 22.04.5 LTS(WSL)
     - CMake 3.31.0
@@ -30,10 +34,10 @@
 依赖包安装
 
 ```bash
-vcpkg install qt5:x64-windows
-vcpkg install lua:x64-windows
-vcpkg install sol2:x64-windows
-vcpkg install opencascade:x64-windows
+vcpkg install qt5
+vcpkg install lua
+vcpkg install sol2
+vcpkg install opencascade
 ```
 
 生成程序
