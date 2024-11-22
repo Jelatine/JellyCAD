@@ -1,3 +1,7 @@
+<!--
+  ~ Copyright (c) 2024. Li Jianbin. All rights reserved.
+  ~ MIT License
+-->
 <RCC>
     <qresource prefix="/">
         <file>style.qss</file>

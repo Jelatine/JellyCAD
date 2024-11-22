@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2024. Li Jianbin. All rights reserved.
+ * MIT License
+ */
 QPushButton {
     width: 90px;
     height: 32px;
