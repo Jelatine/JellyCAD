@@ -28,6 +28,7 @@ set(SRC_FILES main.cpp
         include/jy_code_editor.h
         src/jy_code_editor.cpp
         include/jy_activity_bar.h
+        src/jy_activity_bar.cpp
         src/jy_3d_widget.cpp
         include/jy_3d_widget.h)
 
