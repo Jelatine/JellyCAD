@@ -5,6 +5,10 @@
 #include "jy_main_window.h"
 #include <QMessageBox>
 #include <QStatusBar>
+#include <QStackedWidget>
+#include <QLineEdit>
+#include <QTextBrowser>
+#include <QDateTime>
 
 JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
                                               jy_3d_widget(new Jy3DWidget),
@@ -34,11 +38,55 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     layout_editor_group->addLayout(layout_buttons);
     layout_editor_group->addWidget(code_editor);
     widget_editor_group->setLayout(layout_editor_group);
+
+    //!< 终端
+    auto widget_terminal = new QWidget;
+    widget_terminal->setLayout(new QVBoxLayout);
+    auto edit_lua_cmd = new QLineEdit;
+    auto text_lua_message = new QTextBrowser;
+    edit_lua_cmd->setPlaceholderText("Enter Lua command here");
+    widget_terminal->layout()->addWidget(edit_lua_cmd);
+    widget_terminal->layout()->addWidget(text_lua_message);
+    connect(edit_lua_cmd, &QLineEdit::returnPressed, [=]() {
+        qDebug() << "run lua cmd: " << edit_lua_cmd->text();
+        text_lua_message->setTextColor(Qt::cyan);
+        const auto &script_text = edit_lua_cmd->text();
+        text_lua_message->append(script_text);
+        lvm->exec_code(script_text.toStdString());
+        edit_lua_cmd->clear();
+    });
+    connect(lvm, &JyLuaVirtualMachine::sig_show_message, [=](const QString &_result, const int &_type) {
+        // 日期时间 和等级
+        const auto &str_prefix = QDateTime::currentDateTime().toString("[yyyy-MM-dd hh:mm:ss] ") + current_filename;
+        if (_type == -2) {
+            text_lua_message->setTextColor(Qt::red);
+        } else if (_type == -1) {
+            text_lua_message->setTextColor(Qt::lightGray);
+            text_lua_message->append(str_prefix);
+            text_lua_message->setTextColor(Qt::red);
+            statusBar()->showMessage(_result);
+        } else if (_type == 1) {
+            text_lua_message->setTextColor(Qt::lightGray);
+            text_lua_message->append(str_prefix);
+            text_lua_message->setTextColor(Qt::green);
+            statusBar()->showMessage(_result);
+        } else if (_type == 0) {
+            text_lua_message->setTextColor(Qt::gray);
+        } else {}
+        text_lua_message->append(_result);
+    });
+
+
+
+    //!< 工作台: PAGE1: 脚本编辑器  PAGE2: 终端
+    auto stack_widget = new QStackedWidget;
+    stack_widget->addWidget(widget_editor_group);
+    stack_widget->addWidget(widget_terminal);
     //!< 布局
     addToolBar(Qt::LeftToolBarArea, m_activity_bar);    // 活动栏，放置在最左侧
     auto central_widget = new QSplitter; // 可分割容器，水平分割脚本编辑器与三维显示窗，可拖动分割条调整两控件大小比例
     central_widget->setOrientation(Qt::Horizontal);
-    central_widget->addWidget(widget_editor_group);
+    central_widget->addWidget(stack_widget);
     central_widget->addWidget(jy_3d_widget);
     setCentralWidget(central_widget);
     resize(800, 400);   // 初始界面大小800x400
@@ -54,7 +102,8 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     addAction(acton_open);
     //!< 信号槽连接
     connect(watcher, &QFileSystemWatcher::fileChanged, this, &JyMainWindow::slot_file_changed);
-    connect(m_activity_bar, &JyActivityBar::sig_show_script, widget_editor_group, &QWidget::setVisible);
+    connect(m_activity_bar, &JyActivityBar::sig_set_side_bar_visible, stack_widget, &QStackedWidget::setVisible);
+    connect(m_activity_bar, &JyActivityBar::sig_set_side_bar_index, stack_widget, &QStackedWidget::setCurrentIndex);
     connect(code_editor, &QPlainTextEdit::modificationChanged, button_save, &QPushButton::setEnabled);
     connect(code_editor, &QPlainTextEdit::modificationChanged, [=](bool m) {
         if (m) {
@@ -70,7 +119,6 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     connect(acton_open, &QAction::triggered, button_open, &QPushButton::click);
     connect(acton_save, &QAction::triggered, button_save, &QPushButton::click);
     connect(lvm, &JyLuaVirtualMachine::display, jy_3d_widget, &Jy3DWidget::display);
-    connect(lvm, &JyLuaVirtualMachine::sig_show_message, statusBar(), &QStatusBar::showMessage);
 }
 
 void JyMainWindow::slot_file_changed(const QString &path) {
@@ -126,13 +174,14 @@ void JyMainWindow::slot_button_open_clicked() {
     if (filename.isEmpty()) { return; }
     QFile file_read(filename);
     if (!file_read.open(QIODevice::ReadOnly)) { return; }
+    QDir dir(filename);
+    current_filename = dir.dirName();
     code_editor->setPlainText(file_read.readAll());
     if (!watcher->files().empty()) { watcher->removePaths(watcher->files()); }
     watcher->addPath(filename);
     file_read.close();
     this->slot_file_changed(filename);
     code_editor->document()->setModified(false);
-    QDir dir(filename);
     QString title = dir.dirName();
     if (dir.cd("../")) {
         current_file_dir = dir.absolutePath();
@@ -156,6 +205,8 @@ void JyMainWindow::slot_button_save_clicked() {
     } else { return; }
     QFile file_save(save_filename);
     if (!file_save.open(QIODevice::WriteOnly)) { return; }
+    QDir dir(save_filename);
+    current_filename = dir.dirName();
     is_save_from_editor = true; // 标记为从编辑器保存
     file_save.write(code_editor->toPlainText().toUtf8());
     file_save.close();
@@ -164,7 +215,6 @@ void JyMainWindow::slot_button_save_clicked() {
         this->slot_file_changed(save_filename);
     }
     code_editor->document()->setModified(false);
-    QDir dir(save_filename);
     QString title = dir.dirName();
     if (dir.cd("../")) {
         current_file_dir = dir.absolutePath();

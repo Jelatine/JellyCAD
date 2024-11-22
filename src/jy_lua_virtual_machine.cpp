@@ -97,9 +97,18 @@ void JyLuaVirtualMachine::run(const std::string &_file_path) {
     auto result = lua.script_file(_file_path, sol::script_pass_on_error);
     if (!result.valid()) {
         const QString message = result.get<sol::error>().what();
-        emit sig_show_message(message);
+        emit sig_show_message(message, -1);
     } else {
-        emit sig_show_message("success");
+        emit sig_show_message("success", 1);
     }
     lua.collect_gc();   // 运行完做一次完整的垃圾收集循环
+}
+
+
+void JyLuaVirtualMachine::exec_code(const std::string &_code) {
+    auto result = lua.safe_script(_code, sol::script_pass_on_error);
+    if (!result.valid()) {
+        const QString message = result.get<sol::error>().what();
+        emit sig_show_message(message, -2);
+    } else {}
 }

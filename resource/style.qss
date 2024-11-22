@@ -55,3 +55,12 @@ QToolBar QPushButton:hover {
 QPlainTextEdit {
     border: 0;
 }
+
+QLineEdit {
+    height: 32px;
+    background: #f0f0f0;
+    color: #2b2d30;
+    border: 1px solid #2b2d30;
+    border-radius: 2px;
+    padding: 0 12px;
+}
