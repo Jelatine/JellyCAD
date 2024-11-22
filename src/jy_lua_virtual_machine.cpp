@@ -6,6 +6,18 @@
 
 JyLuaVirtualMachine::JyLuaVirtualMachine() {
     lua.open_libraries();
+    lua["print"] = [=](const sol::object &v) {
+        if (v.get_type() == sol::type::string) {
+            emit sig_show_message(QString::fromStdString(v.as<std::string>()), 0);
+        } else if (v.get_type() == sol::type::number) {
+            if (v.is<int>()) { emit sig_show_message(QString::number(v.as<int>()), 0); }
+            else if (v.is<double>()) { emit sig_show_message(QString::number(v.as<double>()), 0); }
+            else {}
+        } else if (v.get_type() == sol::type::table) {
+            const auto addr = QString::number((qulonglong) v.as<sol::table>().lua_state(), 16).toUpper();
+            emit sig_show_message(("table: " + addr), 0);
+        } else {}
+    };
 
     auto shape_user = lua.new_usertype<JyShape>("shape", sol::constructors<JyShape(const std::string &)>());
     shape_user["type"] = &JyShape::type;
