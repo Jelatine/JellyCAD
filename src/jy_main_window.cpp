@@ -43,7 +43,7 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     auto widget_terminal = new QWidget;
     widget_terminal->setLayout(new QVBoxLayout);
     auto edit_lua_cmd = new QLineEdit;
-    auto text_lua_message = new QTextBrowser;
+    text_lua_message = new QTextBrowser;
     edit_lua_cmd->setPlaceholderText("Enter Lua command here");
     widget_terminal->layout()->addWidget(edit_lua_cmd);
     widget_terminal->layout()->addWidget(text_lua_message);
@@ -57,17 +57,12 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     });
     connect(lvm, &JyLuaVirtualMachine::sig_show_message, [=](const QString &_result, const int &_type) {
         // 日期时间 和等级
-        const auto &str_prefix = QDateTime::currentDateTime().toString("[yyyy-MM-dd hh:mm:ss] ") + current_filename;
         if (_type == -2) {
             text_lua_message->setTextColor(Qt::red);
         } else if (_type == -1) {
-            text_lua_message->setTextColor(Qt::lightGray);
-            text_lua_message->append(str_prefix);
             text_lua_message->setTextColor(Qt::red);
             statusBar()->showMessage(_result);
         } else if (_type == 1) {
-            text_lua_message->setTextColor(Qt::lightGray);
-            text_lua_message->append(str_prefix);
             text_lua_message->setTextColor(Qt::green);
             statusBar()->showMessage(_result);
         } else if (_type == 0) {
@@ -149,6 +144,9 @@ void JyMainWindow::slot_file_changed(const QString &path) {
     qDebug() << "file changed: " << path << " " << i++;
     jy_3d_widget->remove_all();
     statusBar()->clearMessage();
+    const auto &str_prefix = QDateTime::currentDateTime().toString("[yyyy-MM-dd hh:mm:ss] ") + path;
+    text_lua_message->setTextColor(Qt::white);
+    text_lua_message->append(str_prefix);
     lvm->run(path.toStdString()); // 执行脚本
 }
 
@@ -174,14 +172,13 @@ void JyMainWindow::slot_button_open_clicked() {
     if (filename.isEmpty()) { return; }
     QFile file_read(filename);
     if (!file_read.open(QIODevice::ReadOnly)) { return; }
-    QDir dir(filename);
-    current_filename = dir.dirName();
     code_editor->setPlainText(file_read.readAll());
     if (!watcher->files().empty()) { watcher->removePaths(watcher->files()); }
     watcher->addPath(filename);
     file_read.close();
     this->slot_file_changed(filename);
     code_editor->document()->setModified(false);
+    QDir dir(filename);
     QString title = dir.dirName();
     if (dir.cd("../")) {
         current_file_dir = dir.absolutePath();
@@ -205,8 +202,6 @@ void JyMainWindow::slot_button_save_clicked() {
     } else { return; }
     QFile file_save(save_filename);
     if (!file_save.open(QIODevice::WriteOnly)) { return; }
-    QDir dir(save_filename);
-    current_filename = dir.dirName();
     is_save_from_editor = true; // 标记为从编辑器保存
     file_save.write(code_editor->toPlainText().toUtf8());
     file_save.close();
@@ -215,6 +210,7 @@ void JyMainWindow::slot_button_save_clicked() {
         this->slot_file_changed(save_filename);
     }
     code_editor->document()->setModified(false);
+    QDir dir(save_filename);
     QString title = dir.dirName();
     if (dir.cd("../")) {
         current_file_dir = dir.absolutePath();

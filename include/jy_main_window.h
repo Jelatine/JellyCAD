@@ -10,6 +10,7 @@
 #include <QDebug>
 #include <QSplitter>
 #include <QFileDialog>
+#include <QTextBrowser>
 #include "jy_3d_widget.h"
 #include "jy_lua_virtual_machine.h"
 #include "jy_shape.h"
@@ -24,7 +25,7 @@ Q_OBJECT
     JyCodeEditor *code_editor;
     bool is_save_from_editor{false}; //!< 从编辑器保存的标志, true 从本编辑器保存, false 外部保存
     QString current_file_dir; //!< 当前文件的路径
-    QString current_filename; //!< 当前脚本名称
+    QTextBrowser *text_lua_message;
 public:
     explicit JyMainWindow(QWidget *parent = nullptr);
 
