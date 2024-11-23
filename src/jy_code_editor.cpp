@@ -13,7 +13,7 @@ JyCodeEditor::JyCodeEditor(QWidget *parent) : QPlainTextEdit(parent), number_are
     setFont(t_font);
     QFontMetrics metrics(t_font);
     setTabStopDistance(4 * metrics.averageCharWidth());
-    auto highlighter = new Highlighter(this->document());
+    highlighter_ = new Highlighter(this->document());
     connect(this, &JyCodeEditor::blockCountChanged, this, &JyCodeEditor::slot_update_number_width);
     connect(this, &JyCodeEditor::updateRequest, this, &JyCodeEditor::slot_update_number_area);
     slot_update_number_width(0);
@@ -135,6 +135,7 @@ void JyCodeEditor::Highlighter::m_append_keyword_list(const QStringList &_list, 
         rule.format = t_text_char_format;
         highlightingRules.append(rule);
     }
+    keyword_list.append(_list);
 }
 
 

@@ -33,6 +33,8 @@ class JyCodeEditor : public QPlainTextEdit {
     public:
         explicit Highlighter(QTextDocument *parent = nullptr);
 
+        QStringList keyword_list;
+
     private:
         struct HighlightingRule {
             QRegularExpression pattern;
@@ -50,8 +52,13 @@ class JyCodeEditor : public QPlainTextEdit {
         void highlightBlock(const QString &text) override;
     };
 
+    Highlighter *highlighter_;
+
 public:
+
     explicit JyCodeEditor(QWidget *parent = nullptr);
+
+    [[nodiscard]] QStringList keyword_list() const { return highlighter_->keyword_list; }
 
     int number_area_width();
 

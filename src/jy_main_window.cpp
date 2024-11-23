@@ -10,6 +10,8 @@
 #include <QLineEdit>
 #include <QTextBrowser>
 #include <QDateTime>
+#include <QCompleter>
+#include <QAbstractItemView>
 
 JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
                                               jy_3d_widget(new Jy3DWidget),
@@ -44,11 +46,17 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     auto widget_terminal = new QWidget;
     widget_terminal->setLayout(new QVBoxLayout);
     auto edit_lua_cmd = new QLineEdit;
+    auto command_completer = new QCompleter(code_editor->keyword_list());
+    command_completer->setWrapAround(false);
+    command_completer->popup()->setStyleSheet("font-size: 20px;");
+    command_completer->popup()->setFocusPolicy(Qt::NoFocus);
+    edit_lua_cmd->setCompleter(command_completer);
     text_lua_message = new QTextBrowser;
     edit_lua_cmd->setPlaceholderText("Enter Lua command here");
     widget_terminal->layout()->addWidget(edit_lua_cmd);
     widget_terminal->layout()->addWidget(text_lua_message);
-    connect(edit_lua_cmd, &QLineEdit::returnPressed, [=]() {
+    connect(edit_lua_cmd, &QLineEdit::editingFinished, [=]() {
+        if (edit_lua_cmd->completer()->popup()->isVisible()) { return; }
         qDebug() << "run lua cmd: " << edit_lua_cmd->text();
         text_lua_message->setTextColor(Qt::cyan);
         const auto &script_text = edit_lua_cmd->text();
