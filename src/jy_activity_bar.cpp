@@ -10,10 +10,12 @@ JyActivityBar::JyActivityBar(QWidget *parent) : QToolBar(parent) {
     const auto button_script = new QPushButton();   // 创建脚本显示按钮
     button_script->setIcon(QApplication::style()->standardIcon(QStyle::SP_FileIcon));
     button_script->setToolTip(tr("Script"));   // 设置提示文字
-    const auto button_terminal = new QPushButton();   // 创建脚本显示按钮
-
+    const auto button_terminal = new QPushButton();   // 创建终端页面选择按钮
     button_terminal->setIcon(QApplication::style()->standardIcon(QStyle::SP_DialogOkButton));
     button_terminal->setToolTip(tr("Terminal"));   // 设置提示文字
+    const auto button_help = new QPushButton();   // 创建帮助页面选择按钮
+    button_help->setIcon(QApplication::style()->standardIcon(QStyle::SP_MessageBoxQuestion));
+    button_help->setToolTip(tr("Help"));   // 设置提示文字
     // 转发按钮信号到主窗口，用于显示/隐藏脚本编辑界面
     // 布局
     const auto widget_tool_buttons = new QWidget(this); // 按钮容器
@@ -22,10 +24,12 @@ JyActivityBar::JyActivityBar(QWidget *parent) : QToolBar(parent) {
     vbox_layout->setSpacing(0);
     vbox_layout->addWidget(button_script);  // 加入脚本按钮
     vbox_layout->addWidget(button_terminal);  // 加入终端按钮
+    vbox_layout->addWidget(button_help);  // 加入帮助按钮
     addWidget(widget_tool_buttons); //工具栏加入按钮容器
     button_group = new QButtonGroup(this);
     button_group->addButton(button_script, 0);
     button_group->addButton(button_terminal, 1);
+    button_group->addButton(button_help, 2);
     const auto buttons = button_group->buttons();
     for (const auto &button: buttons) {
         button->setCheckable(true);// 设置图标大小

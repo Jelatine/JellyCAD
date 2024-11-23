@@ -3,6 +3,7 @@
  * MIT License
  */
 #include "jy_main_window.h"
+#include "jy_page_help.h"
 #include <QMessageBox>
 #include <QStatusBar>
 #include <QStackedWidget>
@@ -71,12 +72,11 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
         text_lua_message->append(_result);
     });
 
-
-
-    //!< 工作台: PAGE1: 脚本编辑器  PAGE2: 终端
+    //!< 工作台: PAGE1: 脚本编辑器  PAGE2: 终端 PAGE3: 帮助
     auto stack_widget = new QStackedWidget;
     stack_widget->addWidget(widget_editor_group);
     stack_widget->addWidget(widget_terminal);
+    stack_widget->addWidget(new JyPageHelp);
     //!< 布局
     addToolBar(Qt::LeftToolBarArea, m_activity_bar);    // 活动栏，放置在最左侧
     auto central_widget = new QSplitter; // 可分割容器，水平分割脚本编辑器与三维显示窗，可拖动分割条调整两控件大小比例

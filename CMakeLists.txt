@@ -12,10 +12,25 @@ endif ()
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
-find_package(OpenCASCADE REQUIRED QUIET)
+find_package(OpenCASCADE REQUIRED REQUIRED)
 find_package(Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Lua REQUIRED)
+find_package(Lua CONFIG REQUIRED)
 find_package(sol2 CONFIG REQUIRED)
+
+message(STATUS "occ version:${OpenCASCADE_VERSION}")
+message(STATUS "qt5 version:${Qt5_VERSION}")
+message(STATUS "sol2 version:${sol2_VERSION}")
+
+add_definitions(-DVERSION_DISPLAY_OCC=\"${OpenCASCADE_VERSION}\")
+add_definitions(-DVERSION_DISPLAY_QT5=\"${Qt5_VERSION}\")
+add_definitions(-DVERSION_DISPLAY_SOL2=\"${sol2_VERSION}\")
+
+execute_process(COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} describe
+        TIMEOUT 3 OUTPUT_VARIABLE JELLY_CAD_VERSION RESULT_VARIABLE RES OUTPUT_STRIP_TRAILING_WHITESPACE)
+if (RES EQUAL 0)
+    add_definitions(-DJELLY_CAD_VERSION=\"${JELLY_CAD_VERSION}\")
+    message(STATUS "software:${JELLY_CAD_VERSION}")
+endif ()
 
 set(SRC_FILES main.cpp
         resource/res.qrc
