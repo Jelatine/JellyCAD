@@ -74,11 +74,11 @@ jellycad -f file.lua
 
 ### 脚本编写
 
+[帮助文档](resource/help.md)
+
 [Lua 5.4 Reference Manual - contents](https://www.lua.org/manual/5.4/)
 
 [Lua 教程 | 菜鸟教程](https://www.runoob.com/lua/lua-tutorial.html)
-
-[](https://www.runoob.com/lua/lua-tutorial.html)
 
 ## 软件定义的类型和函数
 

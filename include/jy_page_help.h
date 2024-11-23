@@ -51,10 +51,12 @@ public:
         help_doc->setOpenLinks(true);
         help_doc->setOpenExternalLinks(true);
 
-        help_doc->setHtml(
-                "<p>JellyCAD is a free and open-source CAD application, developed by Li Jianbin.</p>"
-                "<p>It is licensed under the MIT License.</p>"
-                "<p>The source code is available on <a href=\"https://github.com/Jelatine/JellyCAD\">GitHub</a>.</p>");
+
+        QFile file_help_doc(":/help.md");
+        if(file_help_doc.open(QFile::ReadOnly)){
+            help_doc->setHtml(file_help_doc.readAll());
+            file_help_doc.close();
+        }
         layout()->addWidget(help_doc);
     }
 };
