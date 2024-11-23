@@ -10,6 +10,7 @@
 #include <QVBoxLayout>
 #include <QDateTime>
 #include <QLocale>
+#include <QTextBrowser>
 
 class JyPageHelp : public QWidget {
 public:
@@ -46,6 +47,15 @@ public:
 #ifdef LUA_VERSION
         layout()->addWidget(new QLabel("\t" + QString::fromStdString(LUA_VERSION)));
 #endif
+        auto help_doc = new QTextBrowser;
+        help_doc->setOpenLinks(true);
+        help_doc->setOpenExternalLinks(true);
+
+        help_doc->setHtml(
+                "<p>JellyCAD is a free and open-source CAD application, developed by Li Jianbin.</p>"
+                "<p>It is licensed under the MIT License.</p>"
+                "<p>The source code is available on <a href=\"https://github.com/Jelatine/JellyCAD\">GitHub</a>.</p>");
+        layout()->addWidget(help_doc);
     }
 };
 
