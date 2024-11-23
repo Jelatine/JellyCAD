@@ -21,6 +21,9 @@ public:
 
     void exec_code(const std::string &_code);
 
+private:
+    void lua_print(const sol::object &v);
+
 signals:
 
     void display(const JyShape &theIObj);

@@ -57,9 +57,10 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     widget_terminal->layout()->addWidget(text_lua_message);
     connect(edit_lua_cmd, &QLineEdit::editingFinished, [=]() {
         if (edit_lua_cmd->completer()->popup()->isVisible()) { return; }
-        qDebug() << "run lua cmd: " << edit_lua_cmd->text();
-        text_lua_message->setTextColor(Qt::cyan);
         const auto &script_text = edit_lua_cmd->text();
+        if (script_text.isEmpty()) { return; }
+        qDebug() << "run lua cmd: " << script_text;
+        text_lua_message->setTextColor(Qt::cyan);
         text_lua_message->append(script_text);
         lvm->exec_code(script_text.toStdString());
         edit_lua_cmd->clear();

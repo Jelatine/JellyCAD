@@ -6,20 +6,7 @@
 
 JyLuaVirtualMachine::JyLuaVirtualMachine() {
     lua.open_libraries();
-    lua["print"] = [=](const sol::object &v) {
-        if (v.get_type() == sol::type::string) {
-            emit sig_show_message(QString::fromStdString(v.as<std::string>()), 0);
-        } else if (v.get_type() == sol::type::number) {
-            if (v.is<int>()) { emit sig_show_message(QString::number(v.as<int>()), 0); }
-            else if (v.is<double>()) { emit sig_show_message(QString::number(v.as<double>()), 0); }
-            else {}
-        } else if (v.get_type() == sol::type::table) {
-            const auto addr = QString::number((qulonglong) v.as<sol::table>().lua_state(), 16).toUpper();
-            emit sig_show_message(("table: " + addr), 0);
-        } else if (v.get_type() == sol::type::nil) {
-            emit sig_show_message("nil", 0);
-        } else {}
-    };
+    lua["print"] = [=](const sol::object &v) { this->lua_print(v); };
 
     auto shape_user = lua.new_usertype<JyShape>("shape", sol::constructors<JyShape(const std::string &)>());
     shape_user["type"] = &JyShape::type;
@@ -124,5 +111,32 @@ void JyLuaVirtualMachine::exec_code(const std::string &_code) {
     if (!result.valid()) {
         const QString message = result.get<sol::error>().what();
         emit sig_show_message(message, -2);
+    } else {}
+}
+
+
+void JyLuaVirtualMachine::lua_print(const sol::object &v) {
+    if (v.get_type() == sol::type::string) {
+        emit sig_show_message(QString::fromStdString(v.as<std::string>()), 0);
+    } else if (v.get_type() == sol::type::number) {
+        if (v.is<int>()) { emit sig_show_message(QString::number(v.as<int>()), 0); }
+        else if (v.is<double>()) { emit sig_show_message(QString::number(v.as<double>()), 0); }
+        else {}
+    } else if (v.get_type() == sol::type::table) {
+        const auto addr = QString::number((qulonglong) v.as<sol::table>().pointer(), 16).toUpper();
+        emit sig_show_message(("table: " + addr), 0);
+    } else if (v.get_type() == sol::type::nil) {
+        emit sig_show_message("nil", 0);
+    } else if (v.get_type() == sol::type::boolean) {
+        emit sig_show_message((v.as<bool>() ? "true" : "false"), 0);
+    } else if (v.get_type() == sol::type::userdata) {
+        const auto addr = QString::number((qulonglong) v.as<sol::userdata>().pointer(), 16).toUpper();
+        emit sig_show_message(("userdata: " + addr), 0);
+    } else if (v.get_type() == sol::type::function) {
+        const auto addr = QString::number((qulonglong) v.as<sol::function>().pointer(), 16).toUpper();
+        emit sig_show_message(("function: " + addr), 0);
+    } else if (v.get_type() == sol::type::thread) {
+        const auto addr = QString::number((qulonglong) v.as<sol::thread>().pointer(), 16).toUpper();
+        emit sig_show_message(("thread: " + addr), 0);
     } else {}
 }
