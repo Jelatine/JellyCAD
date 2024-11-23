@@ -16,6 +16,8 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
         } else if (v.get_type() == sol::type::table) {
             const auto addr = QString::number((qulonglong) v.as<sol::table>().lua_state(), 16).toUpper();
             emit sig_show_message(("table: " + addr), 0);
+        } else if (v.get_type() == sol::type::nil) {
+            emit sig_show_message("nil", 0);
         } else {}
     };
 
