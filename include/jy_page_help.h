@@ -44,9 +44,7 @@ public:
         layout()->addWidget(new QLabel("\tsol2"));
 #endif
 #ifdef LUA_VERSION
-        layout()->addWidget(new QLabel("\tLua " + QString::fromStdString(LUA_VERSION)));
-#else
-        layout()->addWidget(new QLabel("\tLua"));
+        layout()->addWidget(new QLabel("\t" + QString::fromStdString(LUA_VERSION)));
 #endif
     }
 };
