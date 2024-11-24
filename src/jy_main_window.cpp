@@ -55,7 +55,7 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     edit_lua_cmd->setPlaceholderText("Enter Lua command here");
     widget_terminal->layout()->addWidget(edit_lua_cmd);
     widget_terminal->layout()->addWidget(text_lua_message);
-    connect(edit_lua_cmd, &QLineEdit::editingFinished, [=]() {
+    connect(edit_lua_cmd, &QLineEdit::returnPressed, [=]() {
         if (edit_lua_cmd->completer()->popup()->isVisible()) { return; }
         const auto &script_text = edit_lua_cmd->text();
         if (script_text.isEmpty()) { return; }
