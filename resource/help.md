@@ -17,7 +17,7 @@
     <code>export_stl(filename,option)</code><br>
     export the shape to the stl file<br>
     filename: string - the path of the file to be exported<br>
-    option: table - {type[string](ascii/binary), radius[number]}
+    option: table - {type[string](ascii/binary), radian[number](The smaller the curvature, the more triangles there are)}
 </p>
 <p>
     <code>export_step(filename)</code><br>
