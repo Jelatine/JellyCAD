@@ -26,7 +26,7 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
     const auto show_one = [=](const JyShape &s) { emit display(s); };
     const auto show_multi = [=](const sol::table &_list) {
         for (int i = 1; i <= _list.size(); ++i) {
-            const JyShape s = _list[i];
+            const JyShape &s = _list[i];
             emit display(s);
         }
     };

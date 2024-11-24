@@ -27,6 +27,7 @@
 #include <IGESControl_Writer.hxx>
 #include <STEPControl_Reader.hxx>
 #include <StlAPI_Reader.hxx>
+#include <AIS_InteractiveContext.hxx>
 
 JyShape::JyShape(const std::string &_filename) {
     if (_filename.empty()) { throw std::runtime_error("Filename is empty!"); }
@@ -309,6 +310,7 @@ void JyShape::locate_base(const LocateType &_type, const double &_x, const doubl
         s_->SetShape(topology.Moved(location));
     }
     s_->Redisplay();
+    if (s_->InteractiveContext()) { s_->InteractiveContext()->Update(s_, true); }
 }
 
 void JyShape::prism(const double &_x, const double &_y, const double &_z) const {
@@ -335,11 +337,13 @@ void JyShape::color(const std::string &_name_or_hex) const {
     } else if (Quantity_Color::ColorFromName(_name_or_hex.c_str(), target_color)) {
         s_->SetColor(target_color);
     } else {}
+    if (s_->InteractiveContext()) { s_->InteractiveContext()->Update(s_, true); }
 }
 
 void JyShape::transparency(const double &_value) const {
     if ((_value < 0) || (_value > 1)) { throw std::invalid_argument("Invalid transparency value![0,1]"); }
     s_->SetTransparency(_value);
+    if (s_->InteractiveContext()) { s_->InteractiveContext()->Update(s_, true); }
 }
 
 void JyShape::set_stl_radian(const sol::table &_opt) const {
