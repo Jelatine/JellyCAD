@@ -1,0 +1,40 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+
+    - uses: actions/checkout@v4
+
+    - name: Cache vcpkg installed
+      id: vcpkg-566f9496b7
+      uses: actions/cache@v4
+      with:
+          path: ${{github.workspace}}/vcpkg
+          key: vcpkg_566f9496b7
+
+    - name: Setup vcpkg
+      if: steps.vcpkg-566f9496b7.outputs.cache-hit != 'true'
+      run: |
+        cd ${{github.workspace}}
+        git clone https://github.com/Microsoft/vcpkg.git
+        cd vcpkg
+        git checkout 566f9496b7e00ee0cc00aca0ab90493d122d148a
+        ./bootstrap-vcpkg.sh
+        echo "${{github.workspace}}/vcpkg" >> "$GITHUB_PATH"
+
+    - name: Install dependencies
+      if: steps.vcpkg-566f9496b7.outputs.cache-hit != 'true'
+      run: vcpkg install lua sol2 tinyxml2 qt5 opencascade
+
+    - name: Use vcpkg
+      run: vcpkg integrate install
