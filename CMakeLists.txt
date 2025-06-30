@@ -12,7 +12,7 @@ endif ()
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
-find_package(OpenCASCADE REQUIRED REQUIRED)
+find_package(OpenCASCADE CONFIG REQUIRED)
 find_package(Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Lua CONFIG REQUIRED)
 find_package(sol2 CONFIG REQUIRED)
