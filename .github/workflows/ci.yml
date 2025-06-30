@@ -26,6 +26,8 @@ jobs:
       run: |
         ls ${{github.workspace}}/vcpkg
         ls ${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
+        ls C:/vcpkg/
+        vcpkg list
 
     - name: Setup vcpkg
       if: steps.vcpkg-566f9496b7.outputs.cache-hit != 'true'
@@ -42,7 +44,7 @@ jobs:
       run: vcpkg install lua sol2 tinyxml2 qt5 opencascade
 
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config Release
