@@ -45,11 +45,13 @@ jobs:
         vcpkg list
 
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config Release
 
     - name: Check Files
-      run: ls ${{github.workspace}}/build
+      run: |
+        ls ${{github.workspace}}/build
+        ls ${{github.workspace}}/build/bin
 
