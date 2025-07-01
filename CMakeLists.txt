@@ -56,6 +56,10 @@ target_link_libraries(JellyCAD PRIVATE
         sol2
         ${LUA_LIBRARIES})
 
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif ()
+
 if ((${CMAKE_SYSTEM_NAME} MATCHES "Windows") AND (${CMAKE_BUILD_TYPE} STREQUAL "Release"))
     set_target_properties(JellyCAD PROPERTIES WIN32_EXECUTABLE ON)
 endif ()
