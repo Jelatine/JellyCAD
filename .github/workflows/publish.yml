@@ -66,11 +66,6 @@ jobs:
           # 将版本号信息输出到环境变量，供下一步使用
           Add-Content -Path $env:GITHUB_OUTPUT -Value "git_version=$VERSION"
 
-      - name: Display version
-        shell: pwsh
-        run: |
-          echo "${{ steps.get_version.outputs.git_version }}"
-
       # 创建安装包
       - name: 创建安装包
         shell: pwsh
@@ -79,7 +74,7 @@ jobs:
           makensis /DPRODUCT_VERSION="${{ steps.get_version.outputs.git_version }}" ${{github.workspace}}/build/installer.nsi
 
       # 从git提交中生成更改日志
-      - name: Generate changelog
+      - name: 从git提交中生成更改日志
         id: changelog
         shell: pwsh
         run: |
@@ -119,13 +114,13 @@ jobs:
           $delimiter | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       # 创建Release并上传文件
-      - name: Create Release
+      - name: 创建Release并上传文件
         uses: softprops/action-gh-release@v1
         with:
           body: ${{ steps.changelog.outputs.changelog }}
           draft: false
           prerelease: false
           files: |
-            ${{github.workspace}}/build/JellyCAD_Setup_${{ steps.get_version.outputs.git_version }}.exe
+            ${{github.workspace}}\build\JellyCAD_Setup_${{ steps.get_version.outputs.git_version }}.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
