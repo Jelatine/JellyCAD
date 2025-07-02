@@ -1,0 +1,131 @@
+name: Build and Release
+
+on:
+  # 当推送标签时触发
+  push:
+    tags:
+      - 'v*'
+  # 也可以手动触发
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      # 检出代码
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          # 获取完整的git历史，包括所有标签
+          fetch-depth: 0
+
+      # 处理vcpkg文件夹的缓存信息
+      - name: 处理vcpkg文件夹的缓存信息
+        id: vcpkg-566f9496b7
+        uses: actions/cache@v4
+        with:
+          path: ${{github.workspace}}/vcpkg
+          key: vcpkg_566f9496b7_v2
+
+      # 处理vcpkg环境及安装必要的库(缓存不存在时开启)
+      - name: 处理vcpkg环境及安装必要的库(缓存不存在时开启)
+        shell: pwsh
+        if: steps.vcpkg-566f9496b7.outputs.cache-hit != 'true'
+        run: |
+          cd ${{github.workspace}}
+          git clone https://github.com/Microsoft/vcpkg.git
+          cd vcpkg
+          git checkout 566f9496b7e00ee0cc00aca0ab90493d122d148a
+          ./bootstrap-vcpkg.bat
+          ${{github.workspace}}/vcpkg/vcpkg install lua sol2 tinyxml2 qt5 opencascade
+
+      # 配置CMake及编译
+      - name: 配置CMake及编译
+        shell: pwsh
+        run: |
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
+          cmake --build ${{github.workspace}}/build --config Release
+
+      - name: 获取当前版本号
+        shell: pwsh
+        id: get_version
+        run: |
+          try {
+            $VERSION = git describe --tags --abbrev=0 2>$null
+            if (-not $VERSION) { $VERSION = "v0.0.0" }
+          } catch {
+            $VERSION = "v0.0.0"
+          }
+          Write-Host "从git标签获取的版本号: $VERSION"
+          # 将版本号信息输出到环境变量，供下一步使用
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "git_version=$VERSION"
+
+      - name: Display version
+        shell: pwsh
+        run: |
+          echo "${{ steps.get_version.outputs.git_version }}"
+
+      # 创建安装包
+      - name: 创建安装包
+        shell: pwsh
+        run: |
+          cp ${{github.workspace}}/resource/installer.nsi ${{github.workspace}}/build
+          makensis /DPRODUCT_VERSION="${{ steps.get_version.outputs.git_version }}" ${{github.workspace}}/build/installer.nsi
+
+      # 从git提交中生成更改日志
+      - name: Generate changelog
+        id: changelog
+        shell: pwsh
+        run: |
+          # 获取上一个标签
+          $previousTag = ""
+          try {
+            $previousTag = git describe --tags --abbrev=0 HEAD~1 2>$null
+          } catch {
+            Write-Host "No previous tag found"
+          }
+          
+          # 生成更新日志
+          if ([string]::IsNullOrEmpty($previousTag)) {
+            # 如果没有上一个标签，获取所有提交
+            $commits = git log --pretty=format:"- %s (%h)" --no-merges
+          } else {
+            # 获取两个标签之间的提交
+            $commits = git log --pretty=format:"- %s (%h)" --no-merges "$previousTag..HEAD"
+          }
+          
+          # 创建更新日志内容
+          $changelog = @"
+          ## What's Changed in ${{ github.ref_name }}
+          
+          $commits
+          
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/$previousTag...${{ github.ref_name }}
+          "@
+          
+          # 保存到文件
+          $changelog | Out-File -FilePath "CHANGELOG.md" -Encoding utf8
+          
+          # 输出到GitHub Actions (Windows格式)
+          $delimiter = "EOF_$(Get-Random)"
+          "changelog<<$delimiter" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          $changelog | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          $delimiter | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      # 创建Release并上传文件
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body: ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+          files: |
+            ${{github.workspace}}/build/JellyCAD_Setup_${{ steps.get_version.outputs.git_version }}.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
