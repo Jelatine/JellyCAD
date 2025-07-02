@@ -6,17 +6,17 @@
 #define JY_SHAPE_H
 
 #include <AIS_Shape.hxx>
+#include <QDebug>
 #include <TopoDS_Edge.hxx>
 #include <sol/table.hpp>
-#include <QDebug>
 
 class JyShape {
 public:
     [[nodiscard]] Handle(AIS_Shape) data() const { return s_; }
 
     Handle(AIS_Shape) s_;
-public:
 
+public:
     explicit JyShape() = default;
 
     explicit JyShape(const std::string &_filename);
@@ -37,27 +37,27 @@ public:
 
     [[nodiscard]] std::string type() const;
 
-    [[nodiscard]] bool fuse(const JyShape &_other) const;
+    JyShape &fuse(const JyShape &_other);
 
-    [[nodiscard]] bool cut(const JyShape &_other) const;
+    JyShape &cut(const JyShape &_other);
 
-    [[nodiscard]] bool common(const JyShape &_other) const;
+    JyShape &common(const JyShape &_other);
 
-    [[nodiscard]] bool fillet(const double &_r, const sol::table &_cond) const;
+    JyShape &fillet(const double &_r, const sol::table &_cond);
 
-    [[nodiscard]] bool chamfer(const double &_dis, const sol::table &_cond) const;
+    JyShape &chamfer(const double &_dis, const sol::table &_cond);
 
-    void prism(const double &_x, const double &_y, const double &_z) const;  //!< 拉伸
+    JyShape &prism(const double &_x, const double &_y, const double &_z);//!< 拉伸
 
-    void translate(const double &_x, const double &_y, const double &_z) const; //!< 相对当前坐标系平移
+    JyShape &translate(const double &_x, const double &_y, const double &_z);//!< 相对当前坐标系平移
 
-    void rotate(const double &_rx, const double &_ry, const double &_rz) const; //!< 相对当前坐标系旋转
+    JyShape &rotate(const double &_rx, const double &_ry, const double &_rz);//!< 相对当前坐标系旋转
 
-    void locate(const sol::table &_t) const; //!< 设置绝对位置和姿态
+    JyShape &locate(const sol::table &_t);//!< 设置绝对位置和姿态
 
-    void color(const std::string &_name_or_hex) const;
+    JyShape &color(const std::string &_name_or_hex);
 
-    void transparency(const double &_value) const;
+    JyShape &transparency(const double &_value);
 
     void set_stl_radian(const sol::table &_opt) const;
 
@@ -71,12 +71,12 @@ private:
     static bool get_double_vector(const sol::table &_t, std::vector<double> &_v);
 
     template<typename T>
-    [[nodiscard]] bool algo(const JyShape &_other) const {
-        if (!s_) { return false; }
-        if (!_other.s_) { return false; }
+    JyShape &algo(const JyShape &_other) {
+        if (!s_) { return *this; }
+        if (!_other.s_) { return *this; }
         T algo_fuse(s_->Shape(), _other.s_->Shape());
         s_->SetShape(algo_fuse.Shape());
-        return true;
+        return *this;
     }
 
     enum class LocateType : int {
@@ -96,7 +96,7 @@ private:
     static bool edge_filter(const TopoDS_Edge &_edge, const sol::table &_cond);
 
 protected:
-    void process_opt(const sol::table &_opt) const;
+    void process_opt(const sol::table &_opt);
 
     static gp_Pnt get_point_3d(const sol::table &_t);
 
@@ -149,4 +149,4 @@ public:
     explicit JyFace(const JyShape &_shape);
 };
 
-#endif //JY_SHAPE_H
+#endif//JY_SHAPE_H

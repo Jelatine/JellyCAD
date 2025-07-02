@@ -3,31 +3,31 @@
  * MIT License
  */
 #include "jy_shape.h"
-#include <BRepPrimAPI_MakeBox.hxx>
-#include <BRepPrimAPI_MakeCylinder.hxx>
-#include <BRepPrimAPI_MakeCone.hxx>
-#include <BRepAlgoAPI_Fuse.hxx>
-#include <BRepAlgoAPI_Cut.hxx>
-#include <BRepAlgoAPI_Common.hxx>
-#include <StlAPI.hxx>
-#include <STEPControl_Writer.hxx>
-#include <gp_Quaternion.hxx>
-#include <BRepFilletAPI_MakeFillet.hxx>
-#include <TopoDS.hxx>
-#include <TopExp_Explorer.hxx>
-#include <Geom_Line.hxx>
-#include <BRepFilletAPI_MakeChamfer.hxx>
+#include <AIS_InteractiveContext.hxx>
 #include <BRepAdaptor_Curve.hxx>
-#include <BRepPrimAPI_MakeSphere.hxx>
-#include <BRepPrimAPI_MakePrism.hxx>
+#include <BRepAlgoAPI_Common.hxx>
+#include <BRepAlgoAPI_Cut.hxx>
+#include <BRepAlgoAPI_Fuse.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
-#include <BRepBuilderAPI_MakePolygon.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
+#include <BRepBuilderAPI_MakePolygon.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
+#include <BRepFilletAPI_MakeChamfer.hxx>
+#include <BRepFilletAPI_MakeFillet.hxx>
+#include <BRepPrimAPI_MakeBox.hxx>
+#include <BRepPrimAPI_MakeCone.hxx>
+#include <BRepPrimAPI_MakeCylinder.hxx>
+#include <BRepPrimAPI_MakePrism.hxx>
+#include <BRepPrimAPI_MakeSphere.hxx>
+#include <Geom_Line.hxx>
 #include <IGESControl_Writer.hxx>
 #include <STEPControl_Reader.hxx>
+#include <STEPControl_Writer.hxx>
+#include <StlAPI.hxx>
 #include <StlAPI_Reader.hxx>
-#include <AIS_InteractiveContext.hxx>
+#include <TopExp_Explorer.hxx>
+#include <TopoDS.hxx>
+#include <gp_Quaternion.hxx>
 
 JyShape::JyShape(const std::string &_filename) {
     if (_filename.empty()) { throw std::runtime_error("Filename is empty!"); }
@@ -37,9 +37,9 @@ JyShape::JyShape(const std::string &_filename) {
     };
     if (ends_with(".step") || ends_with(".STEP")) {
         STEPControl_Reader reader;
-        const auto &res = reader.ReadFile(_filename.c_str()); // 加载文件只是记忆数据，不转换
+        const auto &res = reader.ReadFile(_filename.c_str());// 加载文件只是记忆数据，不转换
         if (res != IFSelect_RetDone) { throw std::runtime_error("Failed Import STEP file!"); }
-        reader.PrintCheckLoad(Standard_False, IFSelect_ItemsByEntity); // 检查加载的文件(不是强制性)
+        reader.PrintCheckLoad(Standard_False, IFSelect_ItemsByEntity);// 检查加载的文件(不是强制性)
         //加载step文件
         Standard_Integer NbRoots = reader.NbRootsForTransfer();
         Standard_Integer num = reader.TransferRoots();
@@ -59,7 +59,7 @@ JyShape::JyShape(const std::string &_filename) {
     }
 }
 
-void JyShape::process_opt(const sol::table &_opt) const {
+void JyShape::process_opt(const sol::table &_opt) {
     if (!_opt) { return; }
     if (_opt["color"].is<std::string>()) {
         color(_opt["color"]);
@@ -93,33 +93,33 @@ std::string JyShape::type() const {
     return "unknown";
 }
 
-bool JyShape::fuse(const JyShape &_other) const {
+JyShape &JyShape::fuse(const JyShape &_other) {
     return algo<BRepAlgoAPI_Fuse>(_other);
 }
 
-bool JyShape::cut(const JyShape &_other) const {
+JyShape &JyShape::cut(const JyShape &_other) {
     return algo<BRepAlgoAPI_Cut>(_other);
 }
 
-bool JyShape::common(const JyShape &_other) const {
+JyShape &JyShape::common(const JyShape &_other) {
     return algo<BRepAlgoAPI_Common>(_other);
 }
 
-bool JyShape::fillet(const double &_r, const sol::table &_cond) const {
+JyShape &JyShape::fillet(const double &_r, const sol::table &_cond) {
     BRepFilletAPI_MakeFillet MF(s_->Shape());
     for (TopExp_Explorer ex(s_->Shape(), TopAbs_EDGE); ex.More(); ex.Next()) {
         TopoDS_Edge edge = TopoDS::Edge(ex.Current());
         if (edge_filter(edge, _cond)) { MF.Add(_r, TopoDS::Edge(ex.Current())); }
     }
-    if (MF.NbContours() == 0) { return false; }
+    if (MF.NbContours() == 0) { return *this; }
     MF.Build();
-    if (!MF.IsDone()) { return false; }
+    if (!MF.IsDone()) { return *this; }
     s_->SetShape(MF.Shape());
     s_->Redisplay();
-    return true;
+    return *this;
 }
 
-bool JyShape::chamfer(const double &_dis, const sol::table &_cond) const {
+JyShape &JyShape::chamfer(const double &_dis, const sol::table &_cond) {
     BRepFilletAPI_MakeChamfer MC(s_->Shape());
     TopTools_IndexedDataMapOfShapeListOfShape M;
     TopExp::MapShapesAndAncestors(s_->Shape(), TopAbs_EDGE, TopAbs_FACE, M);
@@ -128,12 +128,12 @@ bool JyShape::chamfer(const double &_dis, const sol::table &_cond) const {
         TopoDS_Face F = TopoDS::Face(M.FindFromIndex(i).First());
         if (edge_filter(E, _cond)) { MC.Add(_dis, _dis, E, F); }
     }
-    if (MC.NbContours() == 0) { return false; }
+    if (MC.NbContours() == 0) { return *this; }
     MC.Build();
-    if (!MC.IsDone()) { return false; }
+    if (!MC.IsDone()) { return *this; }
     s_->SetShape(MC.Shape());
     s_->Redisplay();
-    return true;
+    return *this;
 }
 
 
@@ -230,7 +230,7 @@ gp_Dir JyShape::get_dir_3d(const sol::table &_t) {
     return {_t[1], _t[2], _t[3]};
 }
 
-void JyShape::locate(const sol::table &_t) const {
+JyShape &JyShape::locate(const sol::table &_t) {
     if (_t["pos"].is<sol::table>()) {
         sol::table pos3 = _t["pos"];
         std::vector<double> pos_data;
@@ -251,6 +251,7 @@ void JyShape::locate(const sol::table &_t) const {
     if (_t["rx"].is<double>()) { locate_base(LocateType::ROTATE_X, _t["rx"], 0, 0); }
     if (_t["ry"].is<double>()) { locate_base(LocateType::ROTATE_Y, 0, _t["ry"], 0); }
     if (_t["rz"].is<double>()) { locate_base(LocateType::ROTATE_Z, 0, 0, _t["rz"]); }
+    return *this;
 }
 
 void JyShape::locate_base(const LocateType &_type, const double &_x, const double &_y, const double &_z,
@@ -300,7 +301,6 @@ void JyShape::locate_base(const LocateType &_type, const double &_x, const doubl
             quaternion.SetEulerAngles(gp_YawPitchRoll, deg_rz, deg_ry, deg_rx);
             transformation.SetRotationPart(quaternion);
             break;
-
     }
     if (_abs) {
         TopLoc_Location location(transformation);
@@ -313,37 +313,43 @@ void JyShape::locate_base(const LocateType &_type, const double &_x, const doubl
     if (s_->InteractiveContext()) { s_->InteractiveContext()->Update(s_, true); }
 }
 
-void JyShape::prism(const double &_x, const double &_y, const double &_z) const {
+JyShape &JyShape::prism(const double &_x, const double &_y, const double &_z) {
     gp_Vec prism_dir{_x, _y, _z};
-    if (!s_) { return; }
+    if (!s_) { return *this; }
     TopoDS_Shape result = BRepPrimAPI_MakePrism(s_->Shape(), prism_dir);
     s_->SetShape(result);
     s_->Redisplay();
+    return *this;
 }
 
-void JyShape::translate(const double &_x, const double &_y, const double &_z) const {
+JyShape &JyShape::translate(const double &_x, const double &_y, const double &_z) {
     locate_base(LocateType::TRANSLATE_ALL, _x, _y, _z, false);
+    return *this;
 }
 
-void JyShape::rotate(const double &_rx, const double &_ry, const double &_rz) const {
+JyShape &JyShape::rotate(const double &_rx, const double &_ry, const double &_rz) {
     locate_base(LocateType::ROTATE_ALL, _rx, _ry, _rz, false);
+    return *this;
 }
 
-void JyShape::color(const std::string &_name_or_hex) const {
-    if (!s_) { return; }
+JyShape &JyShape::color(const std::string &_name_or_hex) {
+    if (!s_) { return *this; }
     Quantity_Color target_color;
     if (Quantity_Color::ColorFromHex(_name_or_hex.c_str(), target_color)) {
         s_->SetColor(target_color);
     } else if (Quantity_Color::ColorFromName(_name_or_hex.c_str(), target_color)) {
         s_->SetColor(target_color);
-    } else {}
+    } else {
+    }
     if (s_->InteractiveContext()) { s_->InteractiveContext()->Update(s_, true); }
+    return *this;
 }
 
-void JyShape::transparency(const double &_value) const {
+JyShape &JyShape::transparency(const double &_value) {
     if ((_value < 0) || (_value > 1)) { throw std::invalid_argument("Invalid transparency value![0,1]"); }
     s_->SetTransparency(_value);
     if (s_->InteractiveContext()) { s_->InteractiveContext()->Update(s_, true); }
+    return *this;
 }
 
 void JyShape::set_stl_radian(const sol::table &_opt) const {
@@ -360,16 +366,17 @@ void JyShape::export_stl(const std::string &_filename, const sol::table &_opt) c
             theAsciiMode = Standard_True;
         } else if (type_name == "binary") {
             theAsciiMode = Standard_False;
-        } else {}
+        } else {
+        }
     }
-    if (StlAPI::Write(s_->Shape(), _filename.c_str(), theAsciiMode)) { return; } // 成功
+    if (StlAPI::Write(s_->Shape(), _filename.c_str(), theAsciiMode)) { return; }// 成功
     throw std::runtime_error("Failed to export stl!");
 }
 
 void JyShape::export_step(const std::string &_filename) const {
     STEPControl_Writer writer;
     writer.Transfer(s_->Shape(), STEPControl_AsIs);
-    if (writer.Write(_filename.c_str())) { return; } // 成功
+    if (writer.Write(_filename.c_str())) { return; }// 成功
     throw std::runtime_error("Failed to export STEP!");
 }
 
@@ -378,7 +385,7 @@ void JyShape::export_iges(const std::string &_filename) const {
     if (!writer.AddShape(s_->Shape())) {
         throw std::runtime_error("Failed to add shape!");
     }
-    if (writer.Write(_filename.c_str())) { return; }    // 成功
+    if (writer.Write(_filename.c_str())) { return; }// 成功
     throw std::runtime_error("Failed to export IGES!");
 }
 
@@ -458,7 +465,8 @@ JyWire::JyWire(const sol::table &_param) {
             if (!shape.s_) { continue; }
             const auto wire = TopoDS::Wire(shape.s_->Shape());
             make_wire.Add(wire);
-        } else {}
+        } else {
+        }
     }
     if (!make_wire.IsDone()) { return; }
     s_ = new AIS_Shape(make_wire);
