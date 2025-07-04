@@ -147,7 +147,7 @@ void Jy3DWidget::create_view_cube() {
     const auto &vc_attributes = view_cube->Attributes();
     //设置视方体基准线
     vc_attributes->SetDatumAspect(new Prs3d_DatumAspect()); //设置的预前工作（十分重要）
-    const Handle_Prs3d_DatumAspect &datumAspect = view_cube->Attributes()->DatumAspect();
+    const Handle(Prs3d_DatumAspect) &datumAspect = view_cube->Attributes()->DatumAspect();
     //设置轴颜色
     datumAspect->ShadingAspect(Prs3d_DatumParts_XAxis)->SetColor(Quantity_NOC_RED);
     datumAspect->ShadingAspect(Prs3d_DatumParts_YAxis)->SetColor(Quantity_NOC_GREEN);

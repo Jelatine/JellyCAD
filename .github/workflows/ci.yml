@@ -37,6 +37,7 @@ jobs:
           sudo apt-get install -y libltdl-dev libxcb*
           sudo apt-get install -y libx11* libgl1-mesa-dev libxrender-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev
           sudo apt-get install -y libxtst-dev pkg-config autoconf libtool bison libglu1-mesa-dev freeglut3-dev
+          sudo apt-get install -y libfontconfig1-dev
 
       - name: 缓存vcpkg仓库(windows)
         if: ${{ matrix.os=='windows-latest' }}
