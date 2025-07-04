@@ -8,59 +8,98 @@ on:
 
 jobs:
   build:
+    strategy:
+      matrix:
+        os: [ windows-latest, ubuntu-latest ]
 
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
 
     steps:
 
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Cache vcpkg installed
-      id: vcpkg-566f9496b7
-      uses: actions/cache@v4
-      with:
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ matrix.os=='ubuntu-latest' }}
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: 安装依赖
+        if: ${{ matrix.os=='ubuntu-latest' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libltdl-dev libxcb*
+          sudo apt-get install -y libx11* libgl1-mesa-dev libxrender-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev
+          sudo apt-get install -y libxtst-dev pkg-config autoconf libtool bison libglu1-mesa-dev freeglut3-dev
+
+      - name: 缓存vcpkg仓库(windows)
+        if: ${{ matrix.os=='windows-latest' }}
+        id: cache_vcpkg_windows
+        uses: actions/cache@v4
+        with:
           path: ${{github.workspace}}/vcpkg
-          key: vcpkg_566f9496b7_v2
+          key: cache_vcpkg_windows
 
-    - name: Setup vcpkg
-      if: steps.vcpkg-566f9496b7.outputs.cache-hit != 'true'
-      run: |
-        cd ${{github.workspace}}
-        git clone https://github.com/Microsoft/vcpkg.git
-        cd vcpkg
-        git checkout 566f9496b7e00ee0cc00aca0ab90493d122d148a
-        ./bootstrap-vcpkg.bat
-        echo "${{github.workspace}}/vcpkg" >> "$GITHUB_PATH"
+      - name: 缓存vcpkg仓库(ubuntu)
+        if: ${{ matrix.os=='ubuntu-latest' }}
+        id: cache_vcpkg_ubuntu
+        uses: actions/cache@v4
+        with:
+          path: ${{github.workspace}}/vcpkg
+          key: cache_vcpkg_ubuntu
 
-    - name: Install dependencies
-      if: steps.vcpkg-566f9496b7.outputs.cache-hit != 'true'
-      run: ${{github.workspace}}/vcpkg/vcpkg install lua sol2 tinyxml2 qt5 opencascade
+      - name: 下载vcpkg仓库(windows)
+        if: ${{ matrix.os =='windows-latest' && steps.cache_vcpkg_windows.outputs.cache-hit != 'true'}}
+        run: |
+          cd ${{github.workspace}}
+          git clone https://github.com/Microsoft/vcpkg.git
+          cd vcpkg
+          git checkout 566f9496b7e00ee0cc00aca0ab90493d122d148a
+          ./bootstrap-vcpkg.bat
+          ${{github.workspace}}/vcpkg/vcpkg install lua sol2 tinyxml2 qt5-base opencascade
 
-    - name: Clean Vcpkg
-      shell: pwsh
-      run: |
-        if (Test-Path "${{github.workspace}}/vcpkg/buildtrees") { 
-          Remove-Item '${{github.workspace}}/vcpkg/buildtrees' -Recurse 
-          Write-Host "删除目录: ${{github.workspace}}/vcpkg/buildtrees" -ForegroundColor Green
-        }
-        if (Test-Path "${{github.workspace}}/vcpkg/downloads") { 
-          Remove-Item '${{github.workspace}}/vcpkg/downloads' -Recurse 
-          Write-Host "删除目录: ${{github.workspace}}/vcpkg/downloads" -ForegroundColor Green
-        }
-        if (Test-Path "${{github.workspace}}/vcpkg/packages") { 
-          Remove-Item '${{github.workspace}}/vcpkg/packages' -Recurse 
-          Write-Host "删除目录: ${{github.workspace}}/vcpkg/packages" -ForegroundColor Green
-        }
+      - name: 下载vcpkg仓库(ubuntu)
+        if: ${{ matrix.os =='ubuntu-latest' && steps.cache_vcpkg_ubuntu.outputs.cache-hit != 'true'}}
+        run: |
+          cd ${{github.workspace}}
+          git clone https://github.com/Microsoft/vcpkg.git
+          cd vcpkg
+          git checkout 566f9496b7e00ee0cc00aca0ab90493d122d148a
+          ./bootstrap-vcpkg.sh
+          ${{github.workspace}}/vcpkg/vcpkg install lua sol2 tinyxml2 qt5-base opencascade
 
 
-    - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
+      - name: Clean Vcpkg
+        shell: bash
+        run: |
+          if [ -d "${{github.workspace}}/vcpkg/buildtrees" ]; then 
+            rm -rf "${{github.workspace}}/vcpkg/buildtrees"
+            echo "删除目录: ${{github.workspace}}/vcpkg/buildtrees"
+          fi
+          if [ -d "${{github.workspace}}/vcpkg/downloads" ]; then 
+            rm -rf "${{github.workspace}}/vcpkg/downloads"
+            echo "删除目录: ${{github.workspace}}/vcpkg/downloads"
+          fi
+          if [ -d "${{github.workspace}}/vcpkg/packages" ]; then 
+            rm -rf "${{github.workspace}}/vcpkg/packages"
+            echo "删除目录: ${{github.workspace}}/vcpkg/packages"
+          fi
 
-    - name: Build
-      run: cmake --build ${{github.workspace}}/build --config Release
 
-    - name: Check Files
-      run: |
-        ls ${{github.workspace}}/build
-        ls ${{github.workspace}}/build/bin
+      - name: Configure CMake
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
+
+      - name: Build
+        run: cmake --build ${{github.workspace}}/build --config Release
+
+      - name: Check Files
+        run: |
+          ls ${{github.workspace}}/build
+          ls ${{github.workspace}}/build/bin
 
