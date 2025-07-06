@@ -77,7 +77,6 @@ jobs:
           cd ${{github.workspace}}
           git clone https://github.com/Microsoft/vcpkg.git -b 2025.06.13
           ${{github.workspace}}/vcpkg/bootstrap-vcpkg.sh
-          ${{github.workspace}}/vcpkg/vcpkg install lua sol2 tinyxml2 qt5-base opencascade
 
       - name: vcpack安装qt5-base(ubuntu)
         if: steps.cache_vcpkg_ubuntu.outputs.cache-hit != 'true'
