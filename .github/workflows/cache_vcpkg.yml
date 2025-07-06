@@ -72,14 +72,58 @@ jobs:
           swap-storage: true
 
       - name: 下载vcpkg仓库(ubuntu)
-        if: steps.cache_vcpkg_ubuntu.outputs.cache-hit
+        if: steps.cache_vcpkg_ubuntu.outputs.cache-hit != 'true'
         run: |
           cd ${{github.workspace}}
           git clone https://github.com/Microsoft/vcpkg.git -b 2025.06.13
           ${{github.workspace}}/vcpkg/bootstrap-vcpkg.sh
           ${{github.workspace}}/vcpkg/vcpkg install lua sol2 tinyxml2 qt5-base opencascade
 
-      - name: Clean Vcpkg
+      - name: vcpack安装qt5-base(ubuntu)
+        if: steps.cache_vcpkg_ubuntu.outputs.cache-hit != 'true'
+        run: ${{github.workspace}}/vcpkg/vcpkg qt5-base
+
+      - name: Clean Vcpkg for qt5-base
+        shell: bash
+        run: |
+          if [ -d "${{github.workspace}}/vcpkg/buildtrees" ]; then 
+            rm -rf "${{github.workspace}}/vcpkg/buildtrees"
+            echo "删除目录: ${{github.workspace}}/vcpkg/buildtrees"
+          fi
+          if [ -d "${{github.workspace}}/vcpkg/downloads" ]; then 
+            rm -rf "${{github.workspace}}/vcpkg/downloads"
+            echo "删除目录: ${{github.workspace}}/vcpkg/downloads"
+          fi
+          if [ -d "${{github.workspace}}/vcpkg/packages" ]; then 
+            rm -rf "${{github.workspace}}/vcpkg/packages"
+            echo "删除目录: ${{github.workspace}}/vcpkg/packages"
+          fi
+
+      - name: vcpack安装opencascade(ubuntu)
+        if: steps.cache_vcpkg_ubuntu.outputs.cache-hit != 'true'
+        run: ${{github.workspace}}/vcpkg/vcpkg opencascade
+
+      - name: Clean Vcpkg for opencascade
+        shell: bash
+        run: |
+          if [ -d "${{github.workspace}}/vcpkg/buildtrees" ]; then 
+            rm -rf "${{github.workspace}}/vcpkg/buildtrees"
+            echo "删除目录: ${{github.workspace}}/vcpkg/buildtrees"
+          fi
+          if [ -d "${{github.workspace}}/vcpkg/downloads" ]; then 
+            rm -rf "${{github.workspace}}/vcpkg/downloads"
+            echo "删除目录: ${{github.workspace}}/vcpkg/downloads"
+          fi
+          if [ -d "${{github.workspace}}/vcpkg/packages" ]; then 
+            rm -rf "${{github.workspace}}/vcpkg/packages"
+            echo "删除目录: ${{github.workspace}}/vcpkg/packages"
+          fi
+
+      - name: vcpack安装other(ubuntu)
+        if: steps.cache_vcpkg_ubuntu.outputs.cache-hit != 'true'
+        run: ${{github.workspace}}/vcpkg/vcpkg lua sol2 tinyxml2
+
+      - name: Clean Vcpkg for other
         shell: bash
         run: |
           if [ -d "${{github.workspace}}/vcpkg/buildtrees" ]; then 
