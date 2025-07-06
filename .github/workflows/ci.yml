@@ -18,17 +18,17 @@ jobs:
 
       - uses: actions/checkout@v4
 
-      - name: Free Disk Space (Ubuntu)
-        if: ${{ matrix.os=='ubuntu-latest' }}
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
+      # - name: Free Disk Space (Ubuntu)
+      #   if: ${{ matrix.os=='ubuntu-latest' }}
+      #   uses: jlumbroso/free-disk-space@main
+      #   with:
+      #     tool-cache: false
+      #     android: true
+      #     dotnet: true
+      #     haskell: true
+      #     large-packages: true
+      #     docker-images: true
+      #     swap-storage: true
 
       - name: 安装依赖
         if: ${{ matrix.os=='ubuntu-latest' }}
@@ -59,20 +59,16 @@ jobs:
         if: ${{ matrix.os =='windows-latest' && steps.cache_vcpkg_windows.outputs.cache-hit != 'true'}}
         run: |
           cd ${{github.workspace}}
-          git clone https://github.com/Microsoft/vcpkg.git
-          cd vcpkg
-          git checkout 566f9496b7e00ee0cc00aca0ab90493d122d148a
-          ./bootstrap-vcpkg.bat
+          git clone https://github.com/Microsoft/vcpkg.git -b 2025.06.13
+          ${{github.workspace}}/vcpkg/bootstrap-vcpkg.bat
           ${{github.workspace}}/vcpkg/vcpkg install lua sol2 tinyxml2 qt5-base opencascade
 
       - name: 下载vcpkg仓库(ubuntu)
         if: ${{ matrix.os =='ubuntu-latest' && steps.cache_vcpkg_ubuntu.outputs.cache-hit != 'true'}}
         run: |
           cd ${{github.workspace}}
-          git clone https://github.com/Microsoft/vcpkg.git
-          cd vcpkg
-          git checkout 566f9496b7e00ee0cc00aca0ab90493d122d148a
-          ./bootstrap-vcpkg.sh
+          git clone https://github.com/Microsoft/vcpkg.git -b 2025.06.13
+          ${{github.workspace}}/vcpkg/bootstrap-vcpkg.sh
           ${{github.workspace}}/vcpkg/vcpkg install lua sol2 tinyxml2 qt5-base opencascade
 
 
