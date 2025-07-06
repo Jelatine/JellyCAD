@@ -55,7 +55,7 @@ target_include_directories(JellyCAD PRIVATE include)
 target_link_libraries(JellyCAD PRIVATE
         Qt5::Widgets
         ${OpenCASCADE_LIBRARIES}
-        sol2
+#        sol2
         ${LUA_LIBRARIES})
 
 if (NOT CMAKE_BUILD_TYPE)
