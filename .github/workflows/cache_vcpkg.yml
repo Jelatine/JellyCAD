@@ -80,7 +80,7 @@ jobs:
 
       - name: vcpack安装qt5-base(ubuntu)
         if: steps.cache_vcpkg_ubuntu.outputs.cache-hit != 'true'
-        run: ${{github.workspace}}/vcpkg/vcpkg qt5-base
+        run: ${{github.workspace}}/vcpkg/vcpkg install qt5-base
 
       - name: Clean Vcpkg for qt5-base
         shell: bash
@@ -100,7 +100,7 @@ jobs:
 
       - name: vcpack安装opencascade(ubuntu)
         if: steps.cache_vcpkg_ubuntu.outputs.cache-hit != 'true'
-        run: ${{github.workspace}}/vcpkg/vcpkg opencascade
+        run: ${{github.workspace}}/vcpkg/vcpkg install opencascade
 
       - name: Clean Vcpkg for opencascade
         shell: bash
@@ -120,7 +120,7 @@ jobs:
 
       - name: vcpack安装other(ubuntu)
         if: steps.cache_vcpkg_ubuntu.outputs.cache-hit != 'true'
-        run: ${{github.workspace}}/vcpkg/vcpkg lua sol2 tinyxml2
+        run: ${{github.workspace}}/vcpkg/vcpkg install lua sol2 tinyxml2
 
       - name: Clean Vcpkg for other
         shell: bash
