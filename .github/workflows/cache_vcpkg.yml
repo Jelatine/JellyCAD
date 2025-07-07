@@ -44,24 +44,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: 安装依赖
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libltdl-dev libxcb*
-          sudo apt-get install -y libx11* libgl1-mesa-dev libxrender-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev
-          sudo apt-get install -y libxtst-dev pkg-config autoconf libtool bison libglu1-mesa-dev freeglut3-dev
-          sudo apt-get install -y libfontconfig1-dev
-          sudo apt-get install -y libgles2-mesa-dev
-
-      - name: 缓存vcpkg仓库(ubuntu)
-        id: cache_vcpkg_ubuntu
-        uses: actions/cache@v4
-        with:
-          path: ${{github.workspace}}/vcpkg
-          key: cache_vcpkg_ubuntu
-
+      
       - name: Free Disk Space (Ubuntu)
-        if: steps.cache_vcpkg_ubuntu.outputs.cache-hit != 'true'
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
@@ -71,6 +55,22 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
+          
+      - name: 安装依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libltdl-dev libxcb*
+          sudo apt-get install -y libx11* libgl1-mesa-dev libxrender-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev
+          sudo apt-get install -y libxtst-dev pkg-config autoconf libtool bison libglu1-mesa-dev freeglut3-dev
+          sudo apt-get install -y libfontconfig1-dev
+          sudo apt-get install -y libgles2-mesa-dev libdrm-dev libgbm-dev libsm-dev libcups2-dev libmtdev-dev libts-dev
+
+      - name: 缓存vcpkg仓库(ubuntu)
+        id: cache_vcpkg_ubuntu
+        uses: actions/cache@v4
+        with:
+          path: ${{github.workspace}}/vcpkg
+          key: cache_vcpkg_ubuntu
 
       - name: 下载vcpkg仓库(ubuntu)
         if: steps.cache_vcpkg_ubuntu.outputs.cache-hit != 'true'
