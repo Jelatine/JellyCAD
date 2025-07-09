@@ -18,11 +18,11 @@
 - Windows 11 23H2
     - CMake 3.24.0-rc1
     - Visual Studio 17 2022
-    - vcpkg(2024-10-18)
-      - qt5 5.15.15
-      - opencascade 7.8.1
-      - sol2 3.3.1
-      - lua 5.4.7
+    - vcpkg(2025.06.13)
+      - qt5 5.15.16
+      - opencascade 7.9.0
+      - sol2 3.5.0
+      - lua 5.4
 
 - Ubuntu 22.04.5 LTS(WSL)
     - CMake 3.31.0
@@ -34,20 +34,18 @@
 依赖包安装
 
 ```bash
-vcpkg install qt5
-vcpkg install lua
-vcpkg install sol2
-vcpkg install opencascade
+vcpkg install qt5-base lua sol2 opencascade
 ```
 
 生成程序
 
 ```bash
-cd (your_workspace)/JellyCAD
+git clone https://github.com/Jelatine/JellyCAD.git
+cd JellyCAD
 mkdir build
 cd build
-cmake .. . -DCMAKE_TOOLCHAIN_FILE=(your_vcpkg_dir)/scripts/buildsystems/vcpkg.cmake
-cmake --build
+cmake .. -DCMAKE_TOOLCHAIN_FILE=(your_vcpkg_dir)/scripts/buildsystems/vcpkg.cmake
+cmake --build .
 ```
 
 ## 使用
@@ -55,7 +53,7 @@ cmake --build
 ### 命令行模式
 
 ```bash
-jellycad -f file.lua
+./JellyCAD -f file.lua
 ```
 
 ### 图形界面模式
@@ -199,24 +197,6 @@ export_stl(c,'cylinder.stl',{type='ascii',radius=0.05});
 export_step(s,'sphere.step');
 export_iges(c,'cone.iges');
 ```
-
-run `./JellyCAD -f scripts/5export.lua`
-
-- Blender 显示STL导出结果
-
-  <img src="doc/example5_stl.png" style="zoom:30%;" />
-
-- Fusion360 显示STEP导出结果
-
-  <img src="doc/example5_step.png" style="zoom:30%;" />
-
-- FreeCAD 显示IGES导出结果
-
-  <img src="doc/example5_iges.png" style="zoom:30%;" />
-
-## Feedback
-
-Jelatine([lijianbinmail@163.com](mailto:lijianbinmail@163.com))
 
 ## 参考
 
