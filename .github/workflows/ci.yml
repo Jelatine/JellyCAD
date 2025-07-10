@@ -17,6 +17,20 @@ jobs:
     steps:
 
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 获取版本号
+        shell: bash
+        id: get_version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+          
+          VERSION_NUMBER=${VERSION#v}
+          echo "version_number=$VERSION_NUMBER" >> $GITHUB_OUTPUT
+          echo "Version Number: $VERSION_NUMBER"
 
       - name: 安装依赖(ubuntu)
         if: ${{ matrix.os=='ubuntu-latest' }}
@@ -45,7 +59,7 @@ jobs:
           key: cache_vcpkg_ubuntu
 
       - name: Configure CMake
-        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
+        run: cmake -B ${{github.workspace}}/build -DTAG_VERSION=${{ steps.get_version.outputs.version }} -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
       - name: Build
         run: cmake --build ${{github.workspace}}/build --config Release

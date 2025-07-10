@@ -28,16 +28,13 @@ add_definitions(-DVERSION_DISPLAY_QT5=\"${Qt5_VERSION}\")
 add_definitions(-DVERSION_DISPLAY_SOL2=\"${sol2_VERSION}\")
 
 if (TAG_VERSION)
-    add_definitions(-DJELLY_CAD_VERSION=\"${TAG_VERSION}\")
     message(STATUS "software(input):${TAG_VERSION}")
 else ()
-    execute_process(COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} describe --tags --abbrev=0
+    execute_process(COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} describe
             TIMEOUT 3 OUTPUT_VARIABLE TAG_VERSION RESULT_VARIABLE RES OUTPUT_STRIP_TRAILING_WHITESPACE)
-    if (RES EQUAL 0)
-        add_definitions(-DJELLY_CAD_VERSION=\"${TAG_VERSION}\")
-        message(STATUS "software:${TAG_VERSION}")
-    endif ()
+    message(STATUS "software:${TAG_VERSION}")
 endif ()
+add_definitions(-DJELLY_CAD_VERSION=\"${TAG_VERSION}\")
 
 set(SRC_FILES main.cpp
         resource/res.qrc
