@@ -59,7 +59,7 @@ jobs:
           key: cache_vcpkg_ubuntu
 
       - name: Configure CMake
-        run: cmake -B ${{github.workspace}}/build -DTAG_VERSION=${{ steps.get_version.outputs.version }} -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
+        run: cmake -B ${{github.workspace}}/build -DTAG_VERSION="${{ steps.get_version.outputs.version }}" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
       - name: Build
         run: cmake --build ${{github.workspace}}/build --config Release
