@@ -21,6 +21,7 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
     shape_user["color"] = &JyShape::color;
     shape_user["transparency"] = &JyShape::transparency;
     shape_user["prism"] = &JyShape::prism;
+    shape_user["revol"] = &JyShape::revol;
 
     // 全局函数
     const auto show_one = [=](const JyShape &s) { emit display(s); };

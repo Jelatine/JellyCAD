@@ -106,11 +106,11 @@ JyCodeEditor::Highlighter::Highlighter(QTextDocument *parent) : QSyntaxHighlight
     HighlightingRule rule;
     // 字符串（双引号）
     t_text_char_format.setForeground(QBrush("#6AAB73")); // 绿色
-    rule.pattern = QRegularExpression(QStringLiteral("\".*\""));
+    rule.pattern = QRegularExpression(QStringLiteral("\".*?\""));
     rule.format = t_text_char_format;
     highlightingRules.append(rule);
     // 字符串（单引号）
-    rule.pattern = QRegularExpression(QStringLiteral("'.*'"));
+    rule.pattern = QRegularExpression(QStringLiteral("'.*?'"));
     rule.format = t_text_char_format;
     highlightingRules.append(rule);
     // 注释

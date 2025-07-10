@@ -2,8 +2,8 @@
  * Copyright (c) 2024. Li Jianbin. All rights reserved.
  * MIT License
  */
-#include <QApplication>
 #include "jy_main_window.h"
+#include <QApplication>
 
 int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
@@ -15,6 +15,10 @@ int main(int argc, char *argv[]) {
             break;
         }
         if (x == "-f") { script_mode = true; }
+        if (x == "-V" || x == "--version") {
+            qDebug() << "JellyCAD Version:" << QString::fromStdString(JELLY_CAD_VERSION);
+            return 0;
+        }
     }
     JyMainWindow w;
     if (script_mode && !path_script.isEmpty()) {

@@ -49,6 +49,8 @@ public:
 
     JyShape &prism(const double &_x, const double &_y, const double &_z);//!< 拉伸
 
+    JyShape &revol(const std::array<double, 3> _pos, const std::array<double, 3> _dir, const double &_angle);//!< 旋转面
+
     JyShape &translate(const double &_x, const double &_y, const double &_z);//!< 相对当前坐标系平移
 
     JyShape &rotate(const double &_rx, const double &_ry, const double &_rz);//!< 相对当前坐标系旋转

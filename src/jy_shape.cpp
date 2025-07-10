@@ -18,6 +18,7 @@
 #include <BRepPrimAPI_MakeCone.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
+#include <BRepPrimAPI_MakeRevol.hxx>
 #include <BRepPrimAPI_MakeSphere.hxx>
 #include <Geom_Line.hxx>
 #include <IGESControl_Writer.hxx>
@@ -317,6 +318,15 @@ JyShape &JyShape::prism(const double &_x, const double &_y, const double &_z) {
     gp_Vec prism_dir{_x, _y, _z};
     if (!s_) { return *this; }
     TopoDS_Shape result = BRepPrimAPI_MakePrism(s_->Shape(), prism_dir);
+    s_->SetShape(result);
+    s_->Redisplay();
+    return *this;
+}
+
+JyShape &JyShape::revol(const std::array<double, 3> _pos, const std::array<double, 3> _dir, const double &_angle) {
+    if (!s_) { return *this; }
+    gp_Ax1 axis{gp_Pnt(_pos[0], _pos[1], _pos[2]), gp_Dir(_dir[0], _dir[1], _dir[2])};
+    TopoDS_Shape result = BRepPrimAPI_MakeRevol(s_->Shape(), axis, _angle * M_PI / 180.0);
     s_->SetShape(result);
     s_->Redisplay();
     return *this;
