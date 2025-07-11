@@ -27,7 +27,6 @@ jobs:
 
       # 处理vcpkg文件夹的缓存信息
       - name: 缓存vcpkg仓库(windows)
-        if: ${{ matrix.os=='windows-latest' }}
         id: cache_vcpkg_windows
         uses: actions/cache@v4
         with:
@@ -49,7 +48,7 @@ jobs:
         run: cmake --build ${{github.workspace}}/build --config Release
 
       - name: 创建安装包
-        shell: bash
+        shell: pwsh
         run: |
           cp ${{github.workspace}}/resource/installer.nsi ${{github.workspace}}/build
           makensis /DPRODUCT_VERSION="${{ steps.get_version.outputs.git_version }}" ${{github.workspace}}/build/installer.nsi
