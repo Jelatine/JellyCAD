@@ -14,7 +14,7 @@ on:
         default: 'v1.0.0'
 
 jobs:
-  build-and-release:
+  build:
     runs-on: windows-latest
 
     steps:
@@ -26,101 +26,106 @@ jobs:
           fetch-depth: 0
 
       # 处理vcpkg文件夹的缓存信息
-      - name: 处理vcpkg文件夹的缓存信息
-        id: vcpkg-566f9496b7
+      - name: 缓存vcpkg仓库(windows)
+        if: ${{ matrix.os=='windows-latest' }}
+        id: cache_vcpkg_windows
         uses: actions/cache@v4
         with:
           path: ${{github.workspace}}/vcpkg
-          key: vcpkg_566f9496b7_v2
+          key: cache_vcpkg_windows
 
-      # 处理vcpkg环境及安装必要的库(缓存不存在时开启)
-      - name: 处理vcpkg环境及安装必要的库(缓存不存在时开启)
-        shell: pwsh
-        if: steps.vcpkg-566f9496b7.outputs.cache-hit != 'true'
-        run: |
-          cd ${{github.workspace}}
-          git clone https://github.com/Microsoft/vcpkg.git
-          cd vcpkg
-          git checkout 566f9496b7e00ee0cc00aca0ab90493d122d148a
-          ./bootstrap-vcpkg.bat
-          ${{github.workspace}}/vcpkg/vcpkg install lua sol2 tinyxml2 qt5 opencascade
-
-      # 配置CMake及编译
-      - name: 配置CMake及编译
-        shell: pwsh
-        run: |
-          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
-          cmake --build ${{github.workspace}}/build --config Release
-
-      - name: 获取当前版本号
-        shell: pwsh
+      - name: 获取版本号
+        shell: bash
         id: get_version
         run: |
-          try {
-            $VERSION = git describe --tags --abbrev=0 2>$null
-            if (-not $VERSION) { $VERSION = "v0.0.0" }
-          } catch {
-            $VERSION = "v0.0.0"
-          }
-          Write-Host "从git标签获取的版本号: $VERSION"
-          # 将版本号信息输出到环境变量，供下一步使用
-          Add-Content -Path $env:GITHUB_OUTPUT -Value "git_version=$VERSION"
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
 
-      # 创建安装包
+      - name: Configure CMake
+        run: cmake -B ${{github.workspace}}/build -DTAG_VERSION="${{ steps.get_version.outputs.version }}" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
+
+      - name: Build
+        run: cmake --build ${{github.workspace}}/build --config Release
+
       - name: 创建安装包
-        shell: pwsh
+        shell: bash
         run: |
           cp ${{github.workspace}}/resource/installer.nsi ${{github.workspace}}/build
           makensis /DPRODUCT_VERSION="${{ steps.get_version.outputs.git_version }}" ${{github.workspace}}/build/installer.nsi
 
-      # 从git提交中生成更改日志
-      - name: 从git提交中生成更改日志
-        id: changelog
-        shell: pwsh
-        run: |
-          # 获取上一个标签
-          $previousTag = ""
-          try {
-            $previousTag = git describe --tags --abbrev=0 HEAD~1 2>$null
-          } catch {
-            Write-Host "No previous tag found"
-          }
-          
-          # 生成更新日志
-          if ([string]::IsNullOrEmpty($previousTag)) {
-            # 如果没有上一个标签，获取所有提交
-            $commits = git log --pretty=format:"- %s (%h)" --no-merges
-          } else {
-            # 获取两个标签之间的提交
-            $commits = git log --pretty=format:"- %s (%h)" --no-merges "$previousTag..HEAD"
-          }
-          
-          # 创建更新日志内容
-          $changelog = @"
-          ## What's Changed in ${{ github.ref_name }}
-          
-          $commits
-          
-          **Full Changelog**: https://github.com/${{ github.repository }}/compare/$previousTag...${{ github.ref_name }}
-          "@
-          
-          # 保存到文件
-          $changelog | Out-File -FilePath "CHANGELOG.md" -Encoding utf8
-          
-          # 输出到GitHub Actions (Windows格式)
-          $delimiter = "EOF_$(Get-Random)"
-          "changelog<<$delimiter" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          $changelog | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          $delimiter | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-windows-x64
+          path: build/JellyCAD_Setup_${{ steps.get_version.outputs.git_version }}.exe
+          retention-days: 1
 
-      # 创建Release并上传文件
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整的git历史
+
+      - name: Get version from git tag
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+          
+          VERSION_NUMBER=${VERSION#v}
+          echo "version_number=$VERSION_NUMBER" >> $GITHUB_OUTPUT
+          echo "Version Number: $VERSION_NUMBER"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+          
+          if [ -z "$PREV_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges ${PREV_TAG}..HEAD)
+          fi
+          
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "changelog<<$EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
+
+      - name: 下载所有构建产物
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
       - name: 创建Release并上传文件
         uses: softprops/action-gh-release@v1
         with:
-          body: ${{ steps.changelog.outputs.changelog }}
+          tag_name: ${{ steps.get_version.outputs.version }}
+          name: Release ${{ steps.get_version.outputs.version }}
+          body: |
+            ## 🚀 Release ${{ steps.get_version.outputs.version_number }}
+            
+            ### 📋 Changes
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ---
+            **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ steps.get_version.outputs.version }}...HEAD
           draft: false
           prerelease: false
           files: |
-            build/JellyCAD_Setup_${{ steps.get_version.outputs.git_version }}.exe
+            artifacts/*
+          generate_release_notes: true
+          make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

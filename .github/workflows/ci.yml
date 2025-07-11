@@ -66,6 +66,6 @@ jobs:
 
       - name: Check Files
         run: |
-          ls ${{github.workspace}}/build
-          ls ${{github.workspace}}/build/bin
+          cd ${{github.workspace}}/build/bin
+          ./JellyCAD.exe --version
 
