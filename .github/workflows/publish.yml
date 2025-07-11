@@ -51,13 +51,13 @@ jobs:
         shell: pwsh
         run: |
           cp ${{github.workspace}}/resource/installer.nsi ${{github.workspace}}/build
-          makensis /DPRODUCT_VERSION="${{ steps.get_version.outputs.git_version }}" ${{github.workspace}}/build/installer.nsi
+          makensis /DPRODUCT_VERSION="${{ steps.get_version.outputs.version }}" ${{github.workspace}}/build/installer.nsi
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
           name: app-windows-x64
-          path: build/JellyCAD_Setup_${{ steps.get_version.outputs.git_version }}.exe
+          path: build/JellyCAD_Setup_${{ steps.get_version.outputs.version }}.exe
           retention-days: 1
 
   release:
