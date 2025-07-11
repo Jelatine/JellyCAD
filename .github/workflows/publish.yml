@@ -15,7 +15,10 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        os: [ windows-latest, ubuntu-latest ]
+    runs-on: ${{ matrix.os }}
 
     steps:
       # 检出代码
@@ -25,14 +28,6 @@ jobs:
           # 获取完整的git历史，包括所有标签
           fetch-depth: 0
 
-      # 处理vcpkg文件夹的缓存信息
-      - name: 缓存vcpkg仓库(windows)
-        id: cache_vcpkg_windows
-        uses: actions/cache@v4
-        with:
-          path: ${{github.workspace}}/vcpkg
-          key: cache_vcpkg_windows
-
       - name: 获取版本号
         shell: bash
         id: get_version
@@ -41,19 +36,61 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
+      - name: 安装依赖(ubuntu)
+        if: ${{ matrix.os=='ubuntu-latest' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libltdl-dev libxcb*
+          sudo apt-get install -y libx11* libgl1-mesa-dev libxrender-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev
+          sudo apt-get install -y libxtst-dev pkg-config autoconf libtool bison libglu1-mesa-dev freeglut3-dev
+          sudo apt-get install -y libfontconfig1-dev
+          sudo apt-get install -y libgles2-mesa-dev libdrm-dev libgbm-dev libsm-dev libcups2-dev libmtdev-dev libts-dev
+
+      - name: 缓存vcpkg仓库(ubuntu)
+        if: ${{ matrix.os=='ubuntu-latest' }}
+        id: cache_vcpkg_ubuntu
+        uses: actions/cache@v4
+        with:
+          path: ${{github.workspace}}/vcpkg
+          key: cache_vcpkg_ubuntu
+
+      - name: 缓存vcpkg仓库(windows)
+        if: ${{ matrix.os=='windows-latest' }}
+        id: cache_vcpkg_windows
+        uses: actions/cache@v4
+        with:
+          path: ${{github.workspace}}/vcpkg
+          key: cache_vcpkg_windows
+
       - name: Configure CMake
         run: cmake -B ${{github.workspace}}/build -DTAG_VERSION="${{ steps.get_version.outputs.version }}" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
       - name: Build
         run: cmake --build ${{github.workspace}}/build --config Release
 
-      - name: 创建安装包
+      - name: 创建安装包(windows)
+        if: ${{ matrix.os=='ubuntu-latest' }}
+        run: |
+          cd ${{github.workspace}}/build
+          cpack
+
+      - name: 上传构建产物(ubuntu)
+        if: ${{ matrix.os=='ubuntu-latest' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-ubuntu-x64
+          path: build/JellyCAD_Setup_${{ steps.get_version.outputs.version }}.sh
+          retention-days: 1
+
+      - name: 创建安装包(windows)
+        if: ${{ matrix.os=='windows-latest' }}
         shell: pwsh
         run: |
           cp ${{github.workspace}}/resource/installer.nsi ${{github.workspace}}/build
           makensis /DPRODUCT_VERSION="${{ steps.get_version.outputs.version }}" ${{github.workspace}}/build/installer.nsi
 
-      - name: 上传构建产物
+      - name: 上传构建产物(windows)
+        if: ${{ matrix.os=='windows-latest' }}
         uses: actions/upload-artifact@v4
         with:
           name: app-windows-x64
