@@ -55,7 +55,7 @@ jobs:
           makensis /DPRODUCT_VERSION="${{ steps.get_version.outputs.git_version }}" ${{github.workspace}}/build/installer.nsi
 
       - name: 上传构建产物
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: app-windows-x64
           path: build/JellyCAD_Setup_${{ steps.get_version.outputs.git_version }}.exe
@@ -104,9 +104,10 @@ jobs:
           echo "$EOF" >> $GITHUB_OUTPUT
 
       - name: 下载所有构建产物
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: artifacts
+          merge-multiple: true
 
       - name: 创建Release并上传文件
         uses: softprops/action-gh-release@v1
