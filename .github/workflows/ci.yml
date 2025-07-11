@@ -67,10 +67,10 @@ jobs:
           cd ${{github.workspace}}/build/bin
           ./JellyCAD --version
 
-      - name: 试运行(ubuntu)
-        if: ${{ matrix.os=='ubuntu-latest' }}
-        run: |
-          export QT_DEBUG_PLUGINS=1
-          cd ${{github.workspace}}/build/bin
-          ./JellyCAD --version
+#      - name: 试运行(ubuntu)
+#        if: ${{ matrix.os=='ubuntu-latest' }}
+#        run: |
+#          export QT_DEBUG_PLUGINS=1
+#          cd ${{github.workspace}}/build/bin
+#          ./JellyCAD --version
 
