@@ -37,6 +37,7 @@ jobs:
           sudo apt-get install -y libxtst-dev pkg-config autoconf libtool bison libglu1-mesa-dev freeglut3-dev
           sudo apt-get install -y libfontconfig1-dev
           sudo apt-get install -y libgles2-mesa-dev libdrm-dev libgbm-dev libsm-dev libcups2-dev libmtdev-dev libts-dev
+          sudo apt-get install -y libxcb-xinerama0 libxkbcommon-x11-0
 
       - name: 缓存vcpkg仓库(windows)
         if: ${{ matrix.os=='windows-latest' }}
@@ -60,8 +61,16 @@ jobs:
       - name: Build
         run: cmake --build ${{github.workspace}}/build --config Release
 
-      - name: Check Files
+      - name: 试运行(windows)
+        if: ${{ matrix.os=='windows-latest' }}
         run: |
+          cd ${{github.workspace}}/build/bin
+          ./JellyCAD --version
+
+      - name: 试运行(ubuntu)
+        if: ${{ matrix.os=='ubuntu-latest' }}
+        run: |
+          export QT_DEBUG_PLUGINS=1
           cd ${{github.workspace}}/build/bin
           ./JellyCAD --version
 
