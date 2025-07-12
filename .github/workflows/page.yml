@@ -19,6 +19,7 @@ jobs:
         with:
           node-version: '22.x'
           cache: 'npm'
+          cache-dependency-path: './doc/package-lock.json'
 
       - name: Build 🏗️
         run: |
