@@ -11,3 +11,7 @@ win/
 *.njsproj
 *.sln
 *.sw?
+
+doc/.vitepress/cache
+doc/.vitepress/dist
+doc/node_modules
