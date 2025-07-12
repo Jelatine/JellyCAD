@@ -16,6 +16,8 @@
 
 #include <WNT_Window.hxx>
 
+#elif defined(__APPLE__)
+#include <Cocoa_Window.hxx>
 #else
 #include <Xw_Window.hxx>
 #endif
@@ -91,6 +93,8 @@ void Jy3DWidget::initialize_context() {
 #ifdef _WIN32
     // 创建Windows NT 窗口
     Handle(WNT_Window) wind = new WNT_Window((Aspect_Handle) window_handle);
+#elif defined(__APPLE__)
+    window = new Cocoa_Window(reinterpret_cast<NSView*>(winId()));
 #else
     // 创建XLib window 窗口
     Handle(Xw_Window) wind = new Xw_Window(display_connection, window_handle);
