@@ -74,3 +74,30 @@ jobs:
 #          cd ${{github.workspace}}/build/bin
 #          ./JellyCAD --version
 
+
+  build_macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 获取版本号
+        shell: bash
+        id: get_version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: 缓存vcpkg仓库(macos)
+        id: cache_vcpkg_macos
+        uses: actions/cache@v4
+        with:
+          path: ${{github.workspace}}/vcpkg
+          key: cache_vcpkg_macos
+
+      - name: Configure CMake
+        run: |
+          cmake -B ${{github.workspace}}/build -DTAG_VERSION="${{ steps.get_version.outputs.version }}" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
+          cmake --build ${{github.workspace}}/build --config Release
