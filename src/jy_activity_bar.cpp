@@ -7,14 +7,13 @@
 JyActivityBar::JyActivityBar(QWidget *parent) : QToolBar(parent) {
     setMovable(false); // 工具栏不可移动
     setContextMenuPolicy(Qt::CustomContextMenu);    // 禁止右键菜单
-    const auto button_script = new QPushButton();   // 创建脚本显示按钮
-    button_script->setIcon(QApplication::style()->standardIcon(QStyle::SP_FileIcon));
+    setStyleSheet("font-size: 20px;");
+    const auto button_script = new QPushButton("📄");   // 创建脚本显示按钮
     button_script->setToolTip(tr("Script"));   // 设置提示文字
-    const auto button_terminal = new QPushButton();   // 创建终端页面选择按钮
-    button_terminal->setIcon(QApplication::style()->standardIcon(QStyle::SP_DialogOkButton));
+    const auto button_terminal = new QPushButton("🖥️");   // 创建终端页面选择按钮
+
     button_terminal->setToolTip(tr("Terminal"));   // 设置提示文字
-    const auto button_help = new QPushButton();   // 创建帮助页面选择按钮
-    button_help->setIcon(QApplication::style()->standardIcon(QStyle::SP_MessageBoxQuestion));
+    const auto button_help = new QPushButton("ℹ️");   // 创建帮助页面选择按钮
     button_help->setToolTip(tr("Help"));   // 设置提示文字
     // 转发按钮信号到主窗口，用于显示/隐藏脚本编辑界面
     // 布局

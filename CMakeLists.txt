@@ -9,7 +9,11 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     enable_language("RC")
     set(WIN32_RESOURCES ${CMAKE_CURRENT_SOURCE_DIR}/resource/icon.rc)
 endif ()
-
+if(MSVC)
+    # 解决UTF-8存在中文时，MSVC编译失败
+    add_compile_options("/source-charset:utf-8")
+    add_compile_options("/execution-charset:utf-8")
+endif()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY $<1:${CMAKE_CURRENT_BINARY_DIR}/bin>)
 
 set(CMAKE_AUTOMOC ON)
