@@ -17,7 +17,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ windows-latest, ubuntu-latest ]
+        os: [ windows-latest, ubuntu-latest, macos-latest ]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -62,13 +62,21 @@ jobs:
           path: ${{github.workspace}}/vcpkg
           key: cache_vcpkg_windows
 
+      - name: 缓存vcpkg仓库(macos)
+        if: ${{ matrix.os=='macos-latest' }}
+        id: cache_vcpkg_macos
+        uses: actions/cache@v4
+        with:
+          path: ${{github.workspace}}/vcpkg
+          key: cache_vcpkg_macos
+
       - name: Configure CMake
         run: cmake -B ${{github.workspace}}/build -DTAG_VERSION="${{ steps.get_version.outputs.version }}" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
       - name: Build
         run: cmake --build ${{github.workspace}}/build --config Release
 
-      - name: 创建安装包(windows)
+      - name: 创建安装包(ubuntu)
         if: ${{ matrix.os=='ubuntu-latest' }}
         run: |
           cd ${{github.workspace}}/build
@@ -97,6 +105,18 @@ jobs:
           path: build/JellyCAD_Setup_${{ steps.get_version.outputs.version }}.exe
           retention-days: 1
 
+      - name: 创建安装包(macos)
+        if: ${{ matrix.os=='macos-latest' }}
+        run: |
+          cd ${{github.workspace}}/build
+          cpack
+      - name: 上传构建产物(macos)
+        if: ${{ matrix.os=='macos-latest' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-macos-x64
+          path: build/JellyCAD_Setup_${{ steps.get_version.outputs.version }}.dmg
+          retention-days: 1
   release:
     needs: build
     runs-on: ubuntu-latest

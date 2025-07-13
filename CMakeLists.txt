@@ -9,11 +9,11 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     enable_language("RC")
     set(WIN32_RESOURCES ${CMAKE_CURRENT_SOURCE_DIR}/resource/icon.rc)
 endif ()
-if(MSVC)
+if (MSVC)
     # 解决UTF-8存在中文时，MSVC编译失败
     add_compile_options("/source-charset:utf-8")
     add_compile_options("/execution-charset:utf-8")
-endif()
+endif ()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY $<1:${CMAKE_CURRENT_BINARY_DIR}/bin>)
 
 set(CMAKE_AUTOMOC ON)
@@ -61,7 +61,6 @@ target_include_directories(JellyCAD PRIVATE include)
 target_link_libraries(JellyCAD PRIVATE
         Qt5::Widgets
         ${OpenCASCADE_LIBRARIES}
-#        sol2
         ${LUA_LIBRARIES})
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -76,11 +75,44 @@ file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin/scripts)
 file(GLOB EXAMPLE_SCRIPTS "${CMAKE_CURRENT_SOURCE_DIR}/scripts/*.lua")
 file(COPY ${EXAMPLE_SCRIPTS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bin/scripts)
 
-install(TARGETS JellyCAD RUNTIME DESTINATION .)
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/scripts DESTINATION .)
-set(CPACK_GENERATOR "STGZ")
 set(CPACK_PACKAGE_NAME "JellyCAD")
 set(CPACK_PACKAGE_VERSION ${TAG_VERSION})
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}_Setup_${CPACK_PACKAGE_VERSION}")
+if (APPLE)
+    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/scripts DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bin/JellyCAD.app/Contents/MacOS)
+    set(CPACK_GENERATOR "DragNDrop")
+    set_target_properties(JellyCAD PROPERTIES
+            MACOSX_BUNDLE TRUE
+            MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/resource/Info.plist.in
+            MACOSX_BUNDLE_BUNDLE_NAME "JellyCAD"
+            MACOSX_BUNDLE_BUNDLE_VERSION ${TAG_VERSION}
+            MACOSX_BUNDLE_SHORT_VERSION_STRING ${TAG_VERSION}
+            MACOSX_BUNDLE_LONG_VERSION_STRING ${TAG_VERSION}
+            MACOSX_BUNDLE_EXECUTABLE_NAME "JellyCAD"
+            MACOSX_BUNDLE_GUI_IDENTIFIER "jelatine.github.io"
+            MACOSX_BUNDLE_COPYRIGHT "Copyright (c) 2024 Li Jianbin"
+            MACOSX_BUNDLE_ICON_FILE "mac_icon.icns"
+    )
+    # 如果有图标文件，复制到Resources目录
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/resource/mac_icon.icns")
+        set_source_files_properties(
+                "${CMAKE_CURRENT_SOURCE_DIR}/resource/mac_icon.icns"
+                PROPERTIES
+                MACOSX_PACKAGE_LOCATION "Resources"
+        )
+        target_sources(JellyCAD PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/resource/mac_icon.icns")
+    endif()
+    install(TARGETS JellyCAD BUNDLE DESTINATION .)
+    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/scripts
+            DESTINATION JellyCAD.app/Contents/MacOS/
+            USE_SOURCE_PERMISSIONS
+    )
+    set(CPACK_DMG_VOLUME_NAME "JellyCAD")
+    set(CPACK_DMG_FORMAT "UDBZ")  # 压缩格式
+else ()
+    set(CPACK_GENERATOR "STGZ")
+    install(TARGETS JellyCAD RUNTIME DESTINATION .)
+    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/scripts DESTINATION .)
+endif ()
 include(CPack)
