@@ -138,3 +138,42 @@ jobs:
             rm -rf "${{github.workspace}}/vcpkg/packages"
             echo "删除目录: ${{github.workspace}}/vcpkg/packages"
           fi
+
+  cache_macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 缓存vcpkg仓库(macos)
+        id: cache_vcpkg_macos
+        uses: actions/cache@v4
+        with:
+          path: ${{github.workspace}}/vcpkg
+          key: cache_vcpkg_macos
+
+      - name: 下载vcpkg仓库(macos)
+        if: steps.cache_vcpkg_macos.outputs.cache-hit != 'true'
+        run: |
+          cd ${{github.workspace}}
+          git clone https://github.com/Microsoft/vcpkg.git -b 2025.06.13
+          ${{github.workspace}}/vcpkg/bootstrap-vcpkg.sh
+
+      - name: vcpack安装(macos)
+        if: steps.cache_vcpkg_macos.outputs.cache-hit != 'true'
+        run: ${{github.workspace}}/vcpkg/vcpkg install qt5-base lua sol2 tinyxml2 opencascade gtest
+
+      - name: Clean Vcpkg
+        shell: bash
+        run: |
+          if [ -d "${{github.workspace}}/vcpkg/buildtrees" ]; then 
+            rm -rf "${{github.workspace}}/vcpkg/buildtrees"
+            echo "删除目录: ${{github.workspace}}/vcpkg/buildtrees"
+          fi
+          if [ -d "${{github.workspace}}/vcpkg/downloads" ]; then 
+            rm -rf "${{github.workspace}}/vcpkg/downloads"
+            echo "删除目录: ${{github.workspace}}/vcpkg/downloads"
+          fi
+          if [ -d "${{github.workspace}}/vcpkg/packages" ]; then 
+            rm -rf "${{github.workspace}}/vcpkg/packages"
+            echo "删除目录: ${{github.workspace}}/vcpkg/packages"
+          fi

@@ -9,7 +9,7 @@
 
 ## 特点
 
-- 支持`Windows`和`Linux`系统
+- 跨平台，支持`Windows`,`Linux`和`Macos`系统
 - 通过`lua`脚本语言构造三维模型
 - 可导出`STL`,`STEP`,`IGES`格式的文件
 
@@ -19,7 +19,7 @@
     - CMake 3.24.0-rc1
     - Visual Studio 17 2022
     - vcpkg(2025.06.13)
-      - qt5 5.15.16
+      - qt5-base 5.15.16
       - opencascade 7.9.0
       - sol2 3.5.0
       - lua 5.4
@@ -27,7 +27,10 @@
 - Ubuntu 22.04.5 LTS(WSL)
     - CMake 3.31.0
     - c++ (Ubuntu 11.4.0-1ubuntu1~22.04)
-    - vcpkg(2022.02.02-8233-g813a241fb)[qt5,lua,sol2,opencascade]
+    - vcpkg(2025.06.13)
+
+- macOS 15.5
+    - vcpkg(2025.06.13)
 
 ## 编译
 
