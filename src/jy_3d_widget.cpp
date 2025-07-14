@@ -34,7 +34,7 @@ Jy3DWidget::Jy3DWidget(QWidget *parent) : QWidget(parent) {
     setAttribute(Qt::WA_NoSystemBackground);
 }
 
-void Jy3DWidget::display(const JyShape &theIObj) {
+void Jy3DWidget::display(const JyShape &theIObj, const bool &with_coord) {
     if (!theIObj.data()) { return; }
     // 更新网格数据，保证网格的XY能覆盖模型
     const auto shape = theIObj.data();
@@ -62,6 +62,29 @@ void Jy3DWidget::display(const JyShape &theIObj) {
         y = std::ceil(y / step_new) * step_new + 0.01;
         m_viewer->SetRectangularGridValues(0, 0, step_new, step_new, 0);
         m_viewer->SetRectangularGridGraphicValues(x, y, 0);
+    }
+    if (with_coord) {
+        TopoDS_Shape topology = shape->Shape();
+        const auto bbox = shape->BoundingBox();
+        gp_Trsf transformation = topology.Location().Transformation();
+        gp_Ax2 ax2;
+        ax2.Transform(transformation);
+        Handle(Geom_Axis2Placement) axis = new Geom_Axis2Placement(ax2);
+        auto tri = new AIS_Trihedron(axis);
+        tri->SetDatumDisplayMode(Prs3d_DM_WireFrame);
+        tri->SetDrawArrows(false);
+        tri->Attributes()->DatumAspect()->LineAspect(Prs3d_DatumParts_XAxis)->SetWidth(2.5);
+        tri->Attributes()->DatumAspect()->LineAspect(Prs3d_DatumParts_YAxis)->SetWidth(2.5);
+        tri->Attributes()->DatumAspect()->LineAspect(Prs3d_DatumParts_ZAxis)->SetWidth(2.5);
+        tri->SetDatumPartColor(Prs3d_DatumParts_XAxis, Quantity_NOC_RED2);
+        tri->SetDatumPartColor(Prs3d_DatumParts_YAxis, Quantity_NOC_GREEN2);
+        tri->SetDatumPartColor(Prs3d_DatumParts_ZAxis, Quantity_NOC_BLUE2);
+        tri->SetLabel(Prs3d_DatumParts_XAxis, "");
+        tri->SetLabel(Prs3d_DatumParts_YAxis, "");
+        tri->SetLabel(Prs3d_DatumParts_ZAxis, "");
+        const auto &diagonal = 0.5 * std::sqrt(bbox.SquareExtent());
+        tri->SetSize(diagonal);
+        m_context->Display(tri, AIS_WireFrame, -1, Standard_True);
     }
     m_context->Display(shape, Standard_True);
     m_view->FitAll();

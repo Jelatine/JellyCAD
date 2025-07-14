@@ -51,6 +51,8 @@ cmake .. -DCMAKE_TOOLCHAIN_FILE=(your_vcpkg_dir)/scripts/buildsystems/vcpkg.cmak
 cmake --build .
 ```
 
+解决Ubuntu24的Emoji问题:`sudo apt install fonts-noto-color-emoji`
+
 ## 使用
 
 ### 命令行模式

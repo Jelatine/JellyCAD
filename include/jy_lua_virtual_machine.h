@@ -26,7 +26,7 @@ private:
 
 signals:
 
-    void display(const JyShape &theIObj);
+    void display(const JyShape &theIObj, const bool &with_coord = false);
 
     /**
      * show message in terminal window and status bar

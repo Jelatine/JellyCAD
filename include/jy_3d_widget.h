@@ -39,7 +39,7 @@ private:
 
 public slots:
 
-    void display(const JyShape &theIObj);
+    void display(const JyShape &theIObj, const bool &with_coord);
 
 protected:
     //!覆写绘图事件
