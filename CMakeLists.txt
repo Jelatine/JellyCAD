@@ -40,24 +40,11 @@ else ()
 endif ()
 add_definitions(-DJELLY_CAD_VERSION=\"${TAG_VERSION}\")
 
-set(SRC_FILES main.cpp
-        resource/res.qrc
-        include/jy_shape.h
-        src/jy_shape.cpp
-        include/jy_lua_virtual_machine.h
-        src/jy_lua_virtual_machine.cpp
-        include/jy_main_window.h
-        src/jy_main_window.cpp
-        include/jy_code_editor.h
-        src/jy_code_editor.cpp
-        include/jy_activity_bar.h
-        src/jy_activity_bar.cpp
-        src/jy_3d_widget.cpp
-        include/jy_3d_widget.h)
+file(GLOB_RECURSE SRC_FILES src/*.cpp src/*.h resource/*.qrc)
 
 add_executable(JellyCAD ${SRC_FILES} ${WIN32_RESOURCES})
 target_include_directories(JellyCAD PRIVATE ${OpenCASCADE_INCLUDE_DIR})
-target_include_directories(JellyCAD PRIVATE include)
+target_include_directories(JellyCAD PRIVATE src src/widgets src/shapes)
 target_link_libraries(JellyCAD PRIVATE
         Qt5::Widgets
         ${OpenCASCADE_LIBRARIES}
