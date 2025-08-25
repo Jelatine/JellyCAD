@@ -4,25 +4,22 @@
  */
 #include "jy_main_window.h"
 #include <QApplication>
+#include <QCommandLineParser>
+#include <QCommandLineOption>
 
 int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
-    bool script_mode{false};
-    QString path_script;
-    for (const auto &x: QApplication::arguments()) {
-        if (script_mode) {
-            path_script = x;
-            break;
-        }
-        if (x == "-f") { script_mode = true; }
-        if (x == "-V" || x == "--version") {
-            qDebug() << "JellyCAD Version:" << QString::fromStdString(JELLY_CAD_VERSION);
-            return 0;
-        }
-    }
+    QCoreApplication::setApplicationName("JellyCAD");
+    QCoreApplication::setApplicationVersion(JELLY_CAD_VERSION);
+    QCommandLineParser parser;
+    parser.addHelpOption();
+    parser.addVersionOption();
+    QCommandLineOption file_option(QStringList() << "f" << "file", "Script file to execute", "file");
+    parser.addOption(file_option);
+    parser.process(a);
     JyMainWindow w;
-    if (script_mode && !path_script.isEmpty()) {
-        w.run_script(path_script);
+    if (parser.isSet(file_option)) {
+        w.run_script(parser.value(file_option));
     } else {
         // 颜色样式
         QFile style_file(":/style.qss");
