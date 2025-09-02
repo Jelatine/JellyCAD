@@ -29,10 +29,10 @@ public:
         label_software->setText("JellyCAD " + QString::fromStdString(JELLY_CAD_VERSION));
 #endif
         layout()->addWidget(new QLabel(tr("Dependencies:")));
-#ifdef VERSION_DISPLAY_QT5
-        layout()->addWidget(new QLabel("\tQt5 " + QString::fromStdString(VERSION_DISPLAY_QT5)));
+#ifdef VERSION_DISPLAY_QT
+        layout()->addWidget(new QLabel("\tQt " + QString::fromStdString(VERSION_DISPLAY_QT)));
 #else
-        layout()->addWidget(new QLabel("\tQt5"));
+        layout()->addWidget(new QLabel("\tQt"));
 #endif
 #ifdef VERSION_DISPLAY_OCC
         layout()->addWidget(new QLabel("\tOpenCASCADE " + QString::fromStdString(VERSION_DISPLAY_OCC)));
