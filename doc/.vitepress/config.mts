@@ -18,7 +18,7 @@ export default defineConfig({
         text: '开始使用',
         items: [
           { text: '安装', link: '/guide/install' },
-          { text: '内置函数', link: '/guide/functions' },
+          { text: '使用脚本', link: '/guide/functions' },
         ]
       }
     ],

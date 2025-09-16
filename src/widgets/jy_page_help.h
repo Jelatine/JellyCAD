@@ -52,7 +52,7 @@ public:
         help_doc->setOpenExternalLinks(true);
 
 
-        QFile file_help_doc(":/help.md");
+        QFile file_help_doc(":/help.html");
         if(file_help_doc.open(QFile::ReadOnly)){
             help_doc->setHtml(file_help_doc.readAll());
             file_help_doc.close();

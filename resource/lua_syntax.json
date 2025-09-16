@@ -1,0 +1,96 @@
+{
+    "language": "Lua (Moonscript Style)",
+    "rules": [
+        {
+            "name": "keyword",
+            "pattern": "\\b(and|break|do|else|elseif|end|false|for|function|if|in|local|nil|not|or|repeat|return|then|true|until|while|goto)\\b",
+            "color": "#C586C0",
+            "bold": true
+        },
+        {
+            "name": "builtin_function",
+            "pattern": "\\b(assert|collectgarbage|dofile|error|getmetatable|ipairs|load|loadfile|next|pairs|pcall|print|rawequal|rawget|rawlen|rawset|require|select|setmetatable|tonumber|tostring|type|xpcall|_G|_VERSION)\\b",
+            "color": "#DCDCAA",
+            "bold": false
+        },
+        {
+            "name": "library_function",
+            "pattern": "\\b(coroutine\\.(create|isyieldable|resume|running|status|wrap|yield)|debug\\.(debug|gethook|getinfo|getlocal|getmetatable|getregistry|getupvalue|getuservalue|sethook|setlocal|setmetatable|setupvalue|setuservalue|traceback|upvalueid|upvaluejoin)|io\\.(close|flush|input|lines|open|output|popen|read|stderr|stdin|stdout|tmpfile|type|write)|math\\.(abs|acos|asin|atan|ceil|cos|deg|exp|floor|fmod|huge|log|max|maxinteger|min|mininteger|modf|pi|rad|random|randomseed|sin|sqrt|tan|tointeger|type|ult)|os\\.(clock|date|difftime|execute|exit|getenv|remove|rename|setlocale|time|tmpname)|package\\.(config|cpath|loaded|loadlib|path|preload|searchers|searchpath)|string\\.(byte|char|dump|find|format|gmatch|gsub|len|lower|match|pack|packsize|rep|reverse|sub|unpack|upper)|table\\.(concat|insert|move|pack|remove|sort|unpack)|utf8\\.(char|charpattern|codepoint|codes|len|offset))\\b",
+            "color": "#4EC9B0",
+            "italic": false
+        },
+        {
+            "name": "self_and_special",
+            "pattern": "\\b(self|_ENV|_G|_VERSION)\\b",
+            "color": "#569CD6",
+            "bold": true,
+            "italic": true
+        },
+        {
+            "name": "string",
+            "pattern": "\"([^\\\\\"]|\\\\.)*\"|'([^\\\\']|\\\\.)*'|\\[\\[([^\\]]|\\](?!\\]))*\\]\\]|\\[=+\\[([^\\]]|\\](?!=+\\]))*\\]=+\\]",
+            "color": "#CE9178",
+            "italic": false
+        },
+        {
+            "name": "number",
+            "pattern": "\\b[0-9]+\\.?[0-9]*([eE][+-]?[0-9]+)?\\b|\\b0[xX][0-9a-fA-F]+(\\.?[0-9a-fA-F]*)?([pP][+-]?[0-9]+)?\\b",
+            "color": "#B5CEA8"
+        },
+        {
+            "name": "boolean",
+            "pattern": "\\b(true|false|nil)\\b",
+            "color": "#569CD6",
+            "bold": true
+        },
+        {
+            "name": "operator",
+            "pattern": "(\\.\\.\\.|\\.\\.|\\.(?![0-9])|==|~=|<=|>=|<<|>>|//|[+\\-*/%^#<>&|~=])",
+            "color": "#D4D4D4",
+            "bold": false
+        },
+        {
+            "name": "function",
+            "pattern": "\\b([a-zA-Z_][a-zA-Z0-9_]*(?:\\.[a-zA-Z_][a-zA-Z0-9_]*)*(?::[a-zA-Z_][a-zA-Z0-9_]*)?)\\s*(?=\\()",
+            "color": "#DCDCAA"
+        },
+        {
+            "name": "metamethod",
+            "pattern": "\\b(__add|__sub|__mul|__div|__mod|__pow|__unm|__idiv|__band|__bor|__bxor|__bnot|__shl|__shr|__concat|__len|__eq|__lt|__le|__index|__newindex|__call|__tostring|__pairs|__ipairs|__gc|__close|__mode|__name)\\b",
+            "color": "#D7BA7D",
+            "italic": true
+        },
+        {
+            "name": "custom_function",
+            "pattern": ":(type|fuse|cut|common|fillet|chamfer|x|y|z|rx|ry|rz|pos|rot|translate|rotate|locate|color|transparency|prism|revol)\\s*(?=\\()",
+            "color": "#3466f6"
+        },
+        {
+            "name": "custom_classes",
+            "pattern": "\\b(shape|box|cylinder|cone|sphere|edge|wire|polygon|face)\\b",
+            "color": "#c679b3"
+        },
+        {
+            "name": "comment",
+            "pattern": "--(?!\\[\\[)[^\n]*|--\\[\\[([^\\]]|\\](?!\\]))*\\]\\]|--\\[=+\\[([^\\]]|\\](?!=+\\]))*\\]=+\\]",
+            "color": "#6A9955",
+            "italic": true
+        }
+    ],
+    "multilineRules": [
+        {
+            "name": "multiline_string",
+            "startPattern": "\\[\\[",
+            "endPattern": "\\]\\]",
+            "color": "#CE9178",
+            "italic": true
+        },
+        {
+            "name": "multiline_comment",
+            "startPattern": "--\\[\\[",
+            "endPattern": "--\\]\\]",
+            "color": "#6A9955",
+            "italic": true
+        }
+    ]
+}

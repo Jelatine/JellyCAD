@@ -7,7 +7,6 @@
 JyActivityBar::JyActivityBar(QWidget *parent) : QToolBar(parent) {
     setMovable(false); // 工具栏不可移动
     setContextMenuPolicy(Qt::CustomContextMenu);    // 禁止右键菜单
-    setStyleSheet("font-size: 20px;");
     const auto button_script = new QPushButton("📄");   // 创建脚本显示按钮
     button_script->setToolTip(tr("Script"));   // 设置提示文字
     const auto button_terminal = new QPushButton("🖥️");   // 创建终端页面选择按钮

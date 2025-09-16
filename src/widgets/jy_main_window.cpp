@@ -4,14 +4,15 @@
  */
 #include "jy_main_window.h"
 #include "jy_page_help.h"
-#include <QMessageBox>
-#include <QStatusBar>
-#include <QStackedWidget>
-#include <QLineEdit>
-#include <QTextBrowser>
-#include <QDateTime>
-#include <QCompleter>
 #include <QAbstractItemView>
+#include <QCompleter>
+#include <QDateTime>
+#include <QLineEdit>
+#include <QMessageBox>
+#include <QSettings>
+#include <QStackedWidget>
+#include <QStatusBar>
+#include <QTextBrowser>
 
 JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
                                               jy_3d_widget(new Jy3DWidget),
@@ -19,9 +20,15 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
                                               lvm(new JyLuaVirtualMachine),
                                               code_editor(new JyCodeEditor) {
     setWindowTitle("Unnamed - JellyCAD");
-    current_file_dir = QApplication::applicationDirPath() + "/scripts"; // 默认当前文件目录为应用程序目录下的scripts文件夹
-    QDir dir_current(current_file_dir);
+    const QString default_dir = QApplication::applicationDirPath() + "/scripts";// 默认当前文件目录为应用程序目录下的scripts文件夹
+    QDir dir_current(default_dir);
     if (!dir_current.exists()) { QDir(QApplication::applicationDirPath()).mkdir("scripts"); }
+    // 读取软件配置
+    settings = new QSettings("Jelatine", "JellyCAD", this);
+    current_file_dir = settings->value("lastDirectory", default_dir).toString();
+    if (!QDir(current_file_dir).exists()) { current_file_dir = default_dir; }
+    lvm->add_package_path(current_file_dir.toStdString() + "/?.lua");
+
     auto m_activity_bar = new JyActivityBar();
 
     const auto widget_editor_group = new QWidget;
@@ -77,7 +84,8 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
             statusBar()->showMessage(_result);
         } else if (_type == 0) {
             text_lua_message->setTextColor(Qt::gray);
-        } else {}
+        } else {
+        }
         text_lua_message->append(_result);
     });
 
@@ -87,13 +95,13 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     stack_widget->addWidget(widget_terminal);
     stack_widget->addWidget(new JyPageHelp);
     //!< 布局
-    addToolBar(Qt::LeftToolBarArea, m_activity_bar);    // 活动栏，放置在最左侧
-    auto central_widget = new QSplitter; // 可分割容器，水平分割脚本编辑器与三维显示窗，可拖动分割条调整两控件大小比例
+    addToolBar(Qt::LeftToolBarArea, m_activity_bar);// 活动栏，放置在最左侧
+    auto central_widget = new QSplitter;            // 可分割容器，水平分割脚本编辑器与三维显示窗，可拖动分割条调整两控件大小比例
     central_widget->setOrientation(Qt::Horizontal);
     central_widget->addWidget(stack_widget);
     central_widget->addWidget(jy_3d_widget);
     setCentralWidget(central_widget);
-    resize(800, 400);   // 初始界面大小800x400
+    resize(800, 400);// 初始界面大小800x400
     //!< 快捷键动作创建
     auto *acton_save = new QAction;
     acton_save->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_S));
@@ -110,11 +118,7 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     connect(m_activity_bar, &JyActivityBar::sig_set_side_bar_index, stack_widget, &QStackedWidget::setCurrentIndex);
     connect(code_editor, &QPlainTextEdit::modificationChanged, button_save, &QPushButton::setEnabled);
     connect(code_editor, &QPlainTextEdit::modificationChanged, [=](bool m) {
-        if (m) {
-            setWindowTitle("*" + windowTitle());
-        } else {
-            setWindowTitle(windowTitle().remove(0, 1));
-        }
+        m ? setWindowTitle("*" + windowTitle()) : setWindowTitle(windowTitle().remove(0, 1)); // 编辑器文档已被编辑时，标题前加*
     });
     connect(button_new, &QPushButton::clicked, this, &JyMainWindow::slot_button_new_clicked);
     connect(button_open, &QPushButton::clicked, this, &JyMainWindow::slot_button_open_clicked);
@@ -131,13 +135,14 @@ void JyMainWindow::slot_file_changed(const QString &path) {
         return;
     }
     if (!is_save_from_editor) {
-        int how_to_handle = 0; // 0 更新编辑器, 1 不更新
+        int how_to_handle = 0;// 0 更新编辑器, 1 不更新
         if (code_editor->document()->isModified()) {
             // 用户编辑过该文件，则弹出保存对话框，是否同步到编辑器
             how_to_handle = QMessageBox::question(this, tr("File Updated"),
                                                   tr("Do you want sync to editor?"),
                                                   tr("Yes"), tr("No"));
-        } else {}// 用户无编辑过该文件，则更新文件内容到编辑器
+        } else {
+        }// 用户无编辑过该文件，则更新文件内容到编辑器
         if (how_to_handle == 0) {
             QFile file_read(path);
             if (file_read.open(QIODevice::ReadOnly)) {
@@ -148,7 +153,7 @@ void JyMainWindow::slot_file_changed(const QString &path) {
             }
         }
     }
-    is_save_from_editor = false;    // 复位标志
+    is_save_from_editor = false;// 复位标志
     static int i = 0;
     qDebug() << "file changed: " << path << " " << i++;
     jy_3d_widget->remove_all();
@@ -156,22 +161,24 @@ void JyMainWindow::slot_file_changed(const QString &path) {
     const auto &str_prefix = QDateTime::currentDateTime().toString("[yyyy-MM-dd hh:mm:ss] ") + path;
     text_lua_message->setTextColor(Qt::white);
     text_lua_message->append(str_prefix);
-    lvm->run(path.toStdString()); // 执行脚本
+    lvm->run(path.toStdString());// 执行脚本
 }
 
 void JyMainWindow::slot_button_new_clicked() {
     qDebug() << "[BUTTON]new";
     // 如果文件被修改，询问是否保存
     const auto res = ask_whether_to_save();
-    if (res == 0) { slot_button_save_clicked(); } // [是]保存后新建
-    else if (res == 1) {}// [否]直接新建
+    if (res == 0) { slot_button_save_clicked(); }// [是]保存后新建
+    else if (res == 1) {
+    }// [否]直接新建
     else { return; }// [取消]不新建
     setWindowTitle("Unnamed - JellyCAD");
     code_editor->clear();
     if (!watcher->files().empty()) { watcher->removePaths(watcher->files()); }
     code_editor->document()->setModified(false);
     code_editor->modificationChanged(false);
-    jy_3d_widget->remove_all(); // 清空三维显示窗中的所有对象
+    code_editor->setFilePath();
+    jy_3d_widget->remove_all();// 清空三维显示窗中的所有对象
     statusBar()->clearMessage();
 }
 
@@ -187,11 +194,15 @@ void JyMainWindow::slot_button_open_clicked() {
     file_read.close();
     this->slot_file_changed(filename);
     code_editor->document()->setModified(false);
+    code_editor->setFilePath(filename);
     QDir dir(filename);
     QString title = dir.dirName();
     if (dir.cd("../")) {
         current_file_dir = dir.absolutePath();
         title += '[' + current_file_dir + ']';
+        lvm->add_package_path(current_file_dir.toStdString() + "/?.lua");
+        settings->setValue("lastDirectory", current_file_dir);
+        settings->sync();// 确保立即写入
     }
     setWindowTitle(title + " - JellyCAD");
 }
@@ -208,10 +219,12 @@ void JyMainWindow::slot_button_save_clicked() {
     } else if (files.size() == 1) {
         // 文件已打开，保存到打开的文件中
         save_filename = files[0];
-    } else { return; }
+    } else {
+        return;
+    }
     QFile file_save(save_filename);
     if (!file_save.open(QIODevice::WriteOnly)) { return; }
-    is_save_from_editor = true; // 标记为从编辑器保存
+    is_save_from_editor = true;// 标记为从编辑器保存
     file_save.write(code_editor->toPlainText().toUtf8());
     file_save.close();
     if (files.empty()) {
@@ -219,11 +232,15 @@ void JyMainWindow::slot_button_save_clicked() {
         this->slot_file_changed(save_filename);
     }
     code_editor->document()->setModified(false);
+    code_editor->setFilePath(save_filename);
     QDir dir(save_filename);
     QString title = dir.dirName();
     if (dir.cd("../")) {
         current_file_dir = dir.absolutePath();
         title += '[' + current_file_dir + ']';
+        lvm->add_package_path(current_file_dir.toStdString() + "/?.lua");
+        settings->setValue("lastDirectory", current_file_dir);
+        settings->sync();// 确保立即写入
     }
     setWindowTitle(title + " - JellyCAD");
 }
@@ -233,9 +250,10 @@ void JyMainWindow::closeEvent(QCloseEvent *event) {
     if (res == 0) {
         slot_button_save_clicked();// [是]保存后退出
         event->accept();
-    } else if (res == 1) { event->accept(); }// [否]直接退出
+    } else if (res == 1) {
+        event->accept();
+    }// [否]直接退出
     else { event->ignore(); }// [取消]忽略关闭事件
-
 }
 
 

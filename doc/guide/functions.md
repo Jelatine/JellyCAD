@@ -1,137 +1,446 @@
-# 内置函数
+# 🎨 JellyCAD
 
-## Global Functions
+> **免费开源的 CAD 应用程序**  
+> 开发者：Li Jianbin  
+> 许可证：MIT License
 
+[![GitHub](https://img.shields.io/badge/GitHub-源代码-black?logo=github)](https://github.com/Jelatine/JellyCAD)
+[![HomePage](https://img.shields.io/badge/HomePage-主页-blue)](https://jelatine.github.io/JellyCAD/)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+
+---
+
+## 📚 目录
+
+- [🌍 全局函数](#-全局函数)
+  - [显示与导出](#显示与导出)
+- [📦 形状对象](#-形状对象)
+  - [基础形状](#基础形状)
+  - [高级形状](#高级形状)
+- [⚙️ 形状方法](#️-形状方法)
+  - [基础操作](#基础操作)
+  - [布尔运算](#布尔运算)
+  - [几何变换](#几何变换)
+  - [位置与姿态](#位置与姿态)
+  - [外观设置](#外观设置)
+- [🎨 颜色名称](#-颜色名称)
+
+---
+
+## 🌍 全局函数
+
+### 显示与导出
+
+#### **`show()`** - 显示对象
 ```lua
-`show(object)`
-`show(object_list) `
-show the object in the scene
-object: shape object - the shape to be shown
-object_list: table - the list of shape objects to be shown{obj1, obj2,...}
+show(object)        -- 显示单个对象
+show(object_list)   -- 显示对象列表
+```
+**参数：**
+- `object` - *shape* - 要显示的形状对象
+- `object_list` - *table* - 形状对象列表 `{obj1, obj2, ...}`
 
-`export_stl(filename)`
-`export_stl(filename,option)`
-export the shape to the stl file
-filename: string - the path of the file to be exported
-option: table - {type[string](ascii/binary), radian[number](The smaller the curvature, the more triangles there are)}
+---
 
-`export_step(filename)`
-export the shape to the step file
-filename: string - the path of the file to be exported
+#### **`export_stl()`** - 导出 STL 文件
+```lua
+export_stl(filename)
+export_stl(filename, option)
+```
+**参数：**
+- `filename` - *string* - 导出文件路径
+- `option` - *table* - 可选参数
+  - `type` - *string* - 'ascii' 或 'binary'
+  - `radian` - *number* - 曲率值（越小三角形越多）
 
-`export_iges(filename)`
-export the shape to the iges file
-filename: string - the path of the file to be exported
+**示例：**
+```lua
+export_stl("model.stl")
+export_stl("model.stl", {type = "binary", radian = 0.01})
 ```
 
-## Shape Objects
+---
 
+#### **`export_step()`** - 导出 STEP 文件
 ```lua
-`shape.new(filename)`
-Base class for all shape
-filename: string - the path of the file to be loaded(support: *.step *.stl)
+export_step(filename)
+```
+**参数：**
+- `filename` - *string* - 导出文件路径
 
-`box.new()`
-`box.new(x, y, z)`
-`box.new(x, y, z, options)`
-`box.new(other_box_obj)`
-solid box, default x=y=z=1
-x/y/z: number - The diagonal of the box is from 0,0,0 to x, y, z
-options: table - see Shape Options
+---
 
-`cylinder.new()`
-`cylinder.new(r, h)`
-`cylinder.new(r, h, options)`
-`cylinder.new(other_cylinder_obj)`
-solid cylinder, default r=h=1
-r: number - radius
-h: number - height
-options: table - see Shape Options
+#### **`export_iges()`** - 导出 IGES 文件
+```lua
+export_iges(filename)
+```
+**参数：**
+- `filename` - *string* - 导出文件路径
 
-`cone.new()`
-`cone.new(r1, r2, h)`
-`cone.new(r1, r2, h, options)`
-`cone.new(other_cone_obj)`
-solid cone, default r1=r2=h=1
-r1: number - bottom radius
-r2: number - top radius
-h: number - height
-options: table - see Shape Options
+---
 
-`sphere.new()`
-`sphere.new(r)`
-`sphere.new(r, options)`
-`sphere.new(other_sphere_obj)`
-solid sphere, default r=1
-r: number - radius
-options: table - see Shape Options
+## 📦 形状对象
 
+### 基础形状
+
+#### **`shape.new()`** - 基础形状类
+```lua
+shape.new(filename)  -- 从文件加载（支持 *.step, *.stl）
+```
+
+所有形状的基类，可从文件加载现有模型。
+
+---
+
+#### **`box.new()`** - 长方体
+```lua
+box.new()              -- 默认: x=y=z=1
+box.new(x, y, z)       -- 自定义尺寸
+box.new(other_box)     -- 复制构造
+```
+**参数：**
+- `x, y, z` - *number* - 盒子对角线从 (0,0,0) 到 (x,y,z)
+
+**示例：**
+```lua
+local cube = box.new()           -- 单位立方体
+local rect = box.new(2, 1, 0.5)  -- 长方体
+```
+
+---
+
+#### **`cylinder.new()`** - 圆柱体
+```lua
+cylinder.new()            -- 默认: r=h=1
+cylinder.new(r, h)        -- 自定义尺寸
+cylinder.new(other_cyl)   -- 复制构造
+```
+**参数：**
+- `r` - *number* - 半径
+- `h` - *number* - 高度
+
+---
+
+#### **`cone.new()`** - 圆锥/圆台
+```lua
+cone.new()                -- 默认: r1=r2=h=1
+cone.new(r1, r2, h)       -- 自定义尺寸
+cone.new(other_cone)      -- 复制构造
+```
+**参数：**
+- `r1` - *number* - 底部半径
+- `r2` - *number* - 顶部半径（r2=0 为圆锥）
+- `h` - *number* - 高度
+
+---
+
+#### **`sphere.new()`** - 球体
+```lua
+sphere.new()              -- 默认: r=1
+sphere.new(r)             -- 自定义半径
+sphere.new(other_sphere)  -- 复制构造
+```
+**参数：**
+- `r` - *number* - 半径
+
+---
+
+### 高级形状
+
+#### **`edge.new()`** - 边缘
+```lua
 edge.new(type, vec1, vec2)
 edge.new(type, vec1, vec2, r1)
 edge.new(type, vec1, vec2, r1, r2)
-edge.new(other_edge_obj)
---type: string - lin/circ/elips/hypr/parab
---vec1: table - {x[number],y[number],z[number]}, point3d, all used
---vec2: table - {x[number],y[number],z[number]}, dir3d, all used
---r1: number - radius, circ/elips/hypr/parab used
---r2: number - radius, elips/hypr used
---other_edge_obj: edge - clone a edge
-
-`wire.new(list)`
-`wire.new(other_wire_obj)`
-list: table - {wire_or_edge_obj1, wire_or_edge_obj2, ...}
-other_wire_obj: wire - clone a wire
-
-`polygon.new(list_point_3d)`
-`polygon.new(other_polygon_obj)`
-A polygon wire
-list_point_3d: table - {{x1[number],y1[number],z1[number]}, {x2,y2,z2}, {x3,y3,z3}, ...}
-other_polygon_obj: polygon - clone a polygon
-
-`face.new(shape_object)`
-`face.new(other_face_obj)`
-shape_object: shape - make wire, edge or polygon to face
-other_face_obj: face - clone a face
+edge.new(other_edge)
 ```
 
-### Shape Options
+**参数：**
+- `type` - *string* - 边缘类型
+  - `"lin"` - 直线
+  - `"circ"` - 圆
+  - `"elips"` - 椭圆
+  - `"hypr"` - 双曲线
+  - `"parab"` - 抛物线
+- `vec1` - *table* - 3D点坐标 `{x, y, z}`
+- `vec2` - *table* - 3D方向向量 `{x, y, z}`
+- `r1` - *number* - 半径（circ/elips/hypr/parab 使用）
+- `r2` - *number* - 第二半径（elips/hypr 使用）
 
+---
+
+#### **`wire.new()`** - 线框
 ```lua
-color: string - color name or hex string, such as 'red','#FF0000'
-pos: table - position {x[number],y[number],z[number]}
-rot: table - orientation {rx[number],ry[number],rz[number]}
-rx/ry/rz: number - rotation angle in degrees
-x/y/z: number - position
+wire.new(list)         -- 从边缘列表创建
+wire.new(other_wire)   -- 复制构造
 ```
+**参数：**
+- `list` - *table* - 边缘或线框对象列表 `{edge1, edge2, ...}`
 
-#### Color Names
+---
 
+#### **`polygon.new()`** - 多边形
 ```lua
-color names: remove Quantity_NOC_ from the enum Quantity_NameOfColor
-see https://dev.opencascade.org/doc/refman/html/_quantity___name_of_color_8hxx.html
-`red, green, blue, yellow, cyan, magenta, black, white, gray, lightgray, ...`
+polygon.new(point_list)     -- 从点列表创建
+polygon.new(other_polygon)  -- 复制构造
 ```
+**参数：**
+- `point_list` - *table* - 3D点列表 `{{x1,y1,z1}, {x2,y2,z2}, ...}`
 
-### Shape Functions
-
+**示例：**
 ```lua
-`shape:type()`
-return the type of the shape, such as 'vertex', 'edge', 'face', 'shell', 'wire', 'solid', 'compound'
-shape:fuse(other_shape_object)
-shape:cut(other_shape_object)
-shape:common(other_shape_object)
-`shape:fillet(radius[number], conditions[table])`
-conditions: table - {type[string] `line / circle / ellipse / hyperbola / parabola / bezier_curve`, dir[string]`x / y / z`, min/max[table]`{x,y,z}`}
-shape:chamfer(distance[number], conditions[table])
-shape:translate(x[number], y[number], z[number])
-shape:rotate(rx[number], ry[number], rz[number])
-`shape:locate(pose[table])`
-pose: table - {x[number],y[number],z[number], rx[number], ry[number], rz[number]} or {pos={x,y,z},rot={rx,ry,rz}}
-
-`shape:color(name_or_hex[string])`
-name_or_hex: string - see Color Names
-
-`shape:transparency(value[number])`
-value: number - 0.0-1.0
-shape:prism(x[number], y[number], z[number])
+local triangle = polygon.new({
+    {0, 0, 0},
+    {1, 0, 0},
+    {0.5, 1, 0}
+})
 ```
+
+---
+
+#### **`face.new()`** - 面
+```lua
+face.new(shape_object)  -- 从线框/边缘/多边形创建面
+face.new(other_face)    -- 复制构造
+```
+**参数：**
+- `shape_object` - *shape* - wire、edge 或 polygon 对象
+
+---
+
+## ⚙️ 形状方法
+
+### 基础操作
+
+#### **`shape:type()`** - 获取类型
+返回形状类型字符串：
+- `"vertex"` - 顶点
+- `"edge"` - 边
+- `"face"` - 面
+- `"shell"` - 壳
+- `"wire"` - 线框
+- `"solid"` - 实体
+- `"compound"` - 复合体
+
+#### **`shape:copy()`** - 复制形状
+返回当前形状的副本。
+
+---
+
+### 布尔运算
+
+#### **`shape:fuse()`** - 融合（并集）
+```lua
+result = shape1:fuse(shape2)
+```
+
+#### **`shape:cut()`** - 切割（差集）
+```lua
+result = shape1:cut(shape2)
+```
+
+#### **`shape:common()`** - 交集
+```lua
+result = shape1:common(shape2)
+```
+
+**示例：**
+```lua
+local box1 = box.new(2, 2, 2)
+local box2 = box.new(1, 1, 1):pos(1, 1, 1)
+local union = box1:fuse(box2)      -- 并集
+local diff = box1:cut(box2)        -- 差集
+local inter = box1:common(box2)    -- 交集
+```
+
+---
+
+### 几何变换
+
+#### **`shape:fillet()`** - 圆角
+```lua
+shape:fillet(radius, conditions)
+```
+**参数：**
+- `radius` - *number* - 圆角半径
+- `conditions` - *table* - 条件参数
+  - `type` - 边缘类型筛选
+  - `dir` - 方向筛选 ('x'/'y'/'z')
+  - `min/max` - 位置范围 `{x, y, z}`
+
+---
+
+#### **`shape:chamfer()`** - 倒角
+```lua
+shape:chamfer(distance, conditions)
+```
+参数与 `fillet()` 类似。
+
+---
+
+#### **`shape:prism()`** - 拉伸
+```lua
+shape:prism(x, y, z)
+```
+沿指定方向拉伸形状。
+
+---
+
+#### **`shape:revol()`** - 旋转体
+```lua
+shape:revol(pos, dir, angle)
+```
+**参数：**
+- `pos` - *array3* - 旋转轴位置点 `{x, y, z}`
+- `dir` - *array3* - 旋转轴方向向量 `{x, y, z}`
+- `angle` - *number* - 旋转角度（度）
+
+**示例：**
+```lua
+local profile = polygon.new({{0,0,0}, {1,0,0}, {1,1,0}, {0,1,0}})
+local face = face.new(profile)
+local solid = face:revol({0,0,0}, {0,0,1}, 360)  -- 绕Z轴旋转360度
+```
+
+---
+
+### 位置与姿态
+
+#### **单轴设置**
+```lua
+shape:x(value)   -- 设置X坐标
+shape:y(value)   -- 设置Y坐标
+shape:z(value)   -- 设置Z坐标
+shape:rx(angle)  -- 绕X轴旋转（度）
+shape:ry(angle)  -- 绕Y轴旋转（度）
+shape:rz(angle)  -- 绕Z轴旋转（度）
+```
+
+#### **组合设置**
+```lua
+shape:pos(x, y, z)        -- 设置绝对位置
+shape:rot(rx, ry, rz)     -- 设置绝对角度（度）
+```
+
+#### **相对移动**
+```lua
+shape:move("pos", x, y, z)  -- 相对平移
+shape:move("rot", rx, ry, rz)  -- 相对旋转（度）
+```
+
+**示例：**
+```lua
+local obj = box.new()
+obj:pos(10, 20, 30)           -- 移动到 (10, 20, 30)
+obj:rot(0, 0, 45)             -- 绕Z轴旋转45度
+obj:move("pos", 5, 0, 0)      -- 沿X轴移动5个单位
+obj:move("rot", 0, 90, 0)     -- 绕Y轴再旋转90度
+```
+
+---
+
+### 外观设置
+
+#### **`shape:color()`** - 设置颜色
+```lua
+shape:color(name_or_hex)
+```
+**参数：**
+- `name_or_hex` - *string* - 颜色名称或十六进制值
+
+**示例：**
+```lua
+shape:color("red")
+shape:color("#FF5733")
+```
+
+#### **`shape:transparency()`** - 设置透明度
+```lua
+shape:transparency(value)
+```
+**参数：**
+- `value` - *number* - 透明度值 (0.0 ~ 1.0)
+  - `0.0` - 完全不透明
+  - `1.0` - 完全透明
+
+---
+
+## 🎨 颜色名称
+
+颜色名称参考 OpenCASCADE 的 `Quantity_NameOfColor` 枚举（移除 `Quantity_NOC_` 前缀）。
+
+### 基础颜色
+| 颜色名 | 说明 | 示例值 |
+|--------|------|--------|
+| `red` | 红色 | #FF0000 |
+| `green` | 绿色 | #00FF00 |
+| `blue` | 蓝色 | #0000FF |
+| `yellow` | 黄色 | #FFFF00 |
+| `cyan` | 青色 | #00FFFF |
+| `magenta` | 洋红 | #FF00FF |
+| `black` | 黑色 | #000000 |
+| `white` | 白色 | #FFFFFF |
+| `gray` | 灰色 | #808080 |
+| `lightgray` | 浅灰 | #D3D3D3 |
+
+> 📖 **更多颜色：** 完整颜色列表请参考 [OpenCASCADE 文档](https://dev.opencascade.org/doc/refman/html/_quantity___name_of_color_8hxx.html)
+
+---
+
+## 💡 使用示例
+
+### 创建简单模型
+```lua
+-- 创建一个带圆角的盒子
+local mybox = box.new(10, 10, 5)
+mybox:fillet(1, {})
+mybox:color("blue")
+mybox:transparency(0.3)
+show(mybox)
+
+-- 导出模型
+export_stl(mybox, "rounded_box.stl")
+```
+
+### 布尔运算示例
+```lua
+-- 创建一个开孔的立方体
+local cube = box.new(10, 10, 10)
+local hole = cylinder.new(3, 12):pos(5, 5, -1)
+local result = cube:cut(hole)
+result:color("green")
+show(result)
+```
+
+### 创建旋转体
+```lua
+-- 创建一个花瓶轮廓
+local profile = polygon.new({
+    {0, 0, 0},
+    {3, 0, 0},
+    {4, 2, 0},
+    {3.5, 5, 0},
+    {4, 8, 0},
+    {0, 8, 0}
+})
+
+-- 旋转生成花瓶
+local vase = face.new(profile):revol({0,0,0}, {0,1,0}, 360)
+vase:color("magenta")
+vase:transparency(0.2)
+show(vase)
+```
+
+---
+
+## 📝 许可证
+
+本项目采用 MIT 许可证。详情请参阅 [LICENSE](LICENSE) 文件。
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！项目地址：[GitHub](https://github.com/Jelatine/JellyCAD)
+
+---
+
+*文档版本：1.0.0 | 最后更新：2024*

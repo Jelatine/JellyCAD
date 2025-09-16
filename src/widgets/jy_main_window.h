@@ -17,6 +17,8 @@
 #include "jy_activity_bar.h"
 #include "jy_code_editor.h"
 
+class QSettings;
+
 class JyMainWindow : public QMainWindow {
 Q_OBJECT
     Jy3DWidget *jy_3d_widget;
@@ -26,6 +28,7 @@ Q_OBJECT
     bool is_save_from_editor{false}; //!< 从编辑器保存的标志, true 从本编辑器保存, false 外部保存
     QString current_file_dir; //!< 当前文件的路径
     QTextBrowser *text_lua_message;
+    QSettings *settings;
 public:
     explicit JyMainWindow(QWidget *parent = nullptr);
 

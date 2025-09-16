@@ -14,12 +14,14 @@
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <BRepFilletAPI_MakeChamfer.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
+#include <BRepGProp.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
 #include <BRepPrimAPI_MakeCone.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRepPrimAPI_MakeRevol.hxx>
 #include <BRepPrimAPI_MakeSphere.hxx>
+#include <GProp_GProps.hxx>
 #include <Geom_Line.hxx>
 #include <IGESControl_Writer.hxx>
 #include <STEPControl_Reader.hxx>
@@ -44,7 +46,7 @@ JyShape::JyShape(const std::string &_filename) {
         //加载step文件
         Standard_Integer NbRoots = reader.NbRootsForTransfer();
         Standard_Integer num = reader.TransferRoots();
-        s_ = new AIS_Shape(reader.OneShape());
+        s_ = reader.OneShape();
     } else if (ends_with(".stl") || ends_with(".STL")) {
         TopoDS_Shape topology_shape;
 #if 1
@@ -54,23 +56,14 @@ JyShape::JyShape(const std::string &_filename) {
         //!< DEPRECATED
         if (!StlAPI::Read(topology_shape, _filename.c_str())) { throw std::runtime_error("Failed Import STL file!"); }
 #endif
-        s_ = new AIS_Shape(topology_shape);
+        s_ = topology_shape;
     } else {
         throw std::runtime_error("Not support file!");
     }
 }
 
-void JyShape::process_opt(const sol::table &_opt) {
-    if (!_opt) { return; }
-    if (_opt["color"].is<std::string>()) {
-        color(_opt["color"]);
-    }
-    locate(_opt);
-}
-
 std::string JyShape::type() const {
-    if (!s_) { return "null"; }
-    const auto t = s_->Shape().ShapeType();
+    const auto t = s_.ShapeType();
     switch (t) {
         case TopAbs_VERTEX:
             return "vertex";
@@ -107,23 +100,22 @@ JyShape &JyShape::common(const JyShape &_other) {
 }
 
 JyShape &JyShape::fillet(const double &_r, const sol::table &_cond) {
-    BRepFilletAPI_MakeFillet MF(s_->Shape());
-    for (TopExp_Explorer ex(s_->Shape(), TopAbs_EDGE); ex.More(); ex.Next()) {
+    BRepFilletAPI_MakeFillet MF(s_);
+    for (TopExp_Explorer ex(s_, TopAbs_EDGE); ex.More(); ex.Next()) {
         TopoDS_Edge edge = TopoDS::Edge(ex.Current());
         if (edge_filter(edge, _cond)) { MF.Add(_r, TopoDS::Edge(ex.Current())); }
     }
     if (MF.NbContours() == 0) { return *this; }
     MF.Build();
     if (!MF.IsDone()) { return *this; }
-    s_->SetShape(MF.Shape());
-    s_->Redisplay();
+    s_ = MF.Shape();
     return *this;
 }
 
 JyShape &JyShape::chamfer(const double &_dis, const sol::table &_cond) {
-    BRepFilletAPI_MakeChamfer MC(s_->Shape());
+    BRepFilletAPI_MakeChamfer MC(s_);
     TopTools_IndexedDataMapOfShapeListOfShape M;
-    TopExp::MapShapesAndAncestors(s_->Shape(), TopAbs_EDGE, TopAbs_FACE, M);
+    TopExp::MapShapesAndAncestors(s_, TopAbs_EDGE, TopAbs_FACE, M);
     for (Standard_Integer i = 1; i < M.Extent(); i++) {
         TopoDS_Edge E = TopoDS::Edge(M.FindKey(i));
         TopoDS_Face F = TopoDS::Face(M.FindFromIndex(i).First());
@@ -132,40 +124,28 @@ JyShape &JyShape::chamfer(const double &_dis, const sol::table &_cond) {
     if (MC.NbContours() == 0) { return *this; }
     MC.Build();
     if (!MC.IsDone()) { return *this; }
-    s_->SetShape(MC.Shape());
-    s_->Redisplay();
+    s_ = MC.Shape();
     return *this;
 }
 
 
 bool JyShape::edge_filter(const TopoDS_Edge &_edge, const sol::table &_cond) {
+    static const std::unordered_map<int, std::string> type_map = {
+            {GeomAbs_Line, "line"},
+            {GeomAbs_Circle, "circle"},
+            {GeomAbs_Ellipse, "ellipse"},
+            {GeomAbs_Hyperbola, "hyperbola"},
+            {GeomAbs_Parabola, "parabola"},
+            {GeomAbs_BezierCurve, "bezier_curve"},
+            {GeomAbs_BSplineCurve, "bspline_curve"},
+            {GeomAbs_OffsetCurve, "offset_curve"},
+            {GeomAbs_OtherCurve, "other_curve"}};
     //!< 过滤曲线类型
     if (_cond["type"].is<std::string>()) {
         const std::string type_name = _cond["type"];
-        BRepAdaptor_Curve C;
-        C.Initialize(_edge);
-        switch (C.GetType()) {
-            case GeomAbs_Line:
-                if (type_name != "line") { return false; }
-                break;
-            case GeomAbs_Circle:
-                if (type_name != "circle") { return false; }
-                break;
-            case GeomAbs_Ellipse:
-                if (type_name != "ellipse") { return false; }
-                break;
-            case GeomAbs_Hyperbola:
-                if (type_name != "hyperbola") { return false; }
-                break;
-            case GeomAbs_Parabola:
-                if (type_name != "parabola") { return false; }
-                break;
-            case GeomAbs_BezierCurve:
-                if (type_name != "bezier_curve") { return false; }
-                break;
-            default:
-                return false;
-        }
+        BRepAdaptor_Curve C(_edge);
+        auto it = type_map.find(C.GetType());
+        if (it == type_map.end() || it->second != type_name) { return false; }
     }
     //!< 曲线方向
     if (_cond["dir"].is<std::string>()) {
@@ -217,48 +197,19 @@ bool JyShape::get_double_vector(const sol::table &_t, std::vector<double> &_v) {
     return true;
 }
 
-gp_Pnt JyShape::get_point_3d(const sol::table &_t) {
-    if (!_t[1].is<double>() || !_t[2].is<double>() || !_t[3].is<double>()) {
-        throw std::invalid_argument("Invalid point data");
+JyShape &JyShape::move(const std::string &_move_type, const double &_x, const double &_y, const double &_z) {
+    if (_move_type == "pos") {
+        return locate_base(LocateType::TRANSLATE_ALL, _x, _y, _z, false);
+    } else if (_move_type == "rot") {
+        return locate_base(LocateType::ROTATE_ALL, _x, _y, _z, false);
+    } else {
+        throw std::invalid_argument("move_type must be 'pos' or 'rot'");
     }
-    return {_t[1], _t[2], _t[3]};
-}
-
-gp_Dir JyShape::get_dir_3d(const sol::table &_t) {
-    if (!_t[1].is<double>() || !_t[2].is<double>() || !_t[3].is<double>()) {
-        throw std::invalid_argument("Invalid directory data");
-    }
-    return {_t[1], _t[2], _t[3]};
-}
-
-JyShape &JyShape::locate(const sol::table &_t) {
-    if (_t["pos"].is<sol::table>()) {
-        sol::table pos3 = _t["pos"];
-        std::vector<double> pos_data;
-        if (get_double_vector(pos3, pos_data) && pos_data.size() == 3) {
-            locate_base(LocateType::TRANSLATE_ALL, pos_data[0], pos_data[1], pos_data[2]);
-        }
-    }
-    if (_t["rot"].is<sol::table>()) {
-        sol::table rot3 = _t["rot"];
-        std::vector<double> rot_data;
-        if (get_double_vector(rot3, rot_data) && rot_data.size() == 3) {
-            locate_base(LocateType::ROTATE_ALL, rot_data[0], rot_data[1], rot_data[2]);
-        }
-    }
-    if (_t["x"].is<double>()) { locate_base(LocateType::TRANSLATE_X, _t["x"], 0, 0); }
-    if (_t["y"].is<double>()) { locate_base(LocateType::TRANSLATE_Y, 0, _t["y"], 0); }
-    if (_t["z"].is<double>()) { locate_base(LocateType::TRANSLATE_Z, 0, 0, _t["z"]); }
-    if (_t["rx"].is<double>()) { locate_base(LocateType::ROTATE_X, _t["rx"], 0, 0); }
-    if (_t["ry"].is<double>()) { locate_base(LocateType::ROTATE_Y, 0, _t["ry"], 0); }
-    if (_t["rz"].is<double>()) { locate_base(LocateType::ROTATE_Z, 0, 0, _t["rz"]); }
     return *this;
 }
 
-void JyShape::locate_base(const LocateType &_type, const double &_x, const double &_y, const double &_z,
-                          const bool &_abs) const {
-    TopoDS_Shape topology = s_->Shape();
-    gp_Trsf transformation = _abs ? topology.Location().Transformation() : gp_Trsf();
+JyShape &JyShape::locate_base(const LocateType &_type, const double &_x, const double &_y, const double &_z, const bool &_abs) {
+    gp_Trsf transformation = _abs ? s_.Location().Transformation() : gp_Trsf();
     gp_XYZ pos;
     transformation.Transforms(pos);
     gp_Quaternion quaternion = transformation.GetRotation();
@@ -304,68 +255,62 @@ void JyShape::locate_base(const LocateType &_type, const double &_x, const doubl
             break;
     }
     if (_abs) {
-        TopLoc_Location location(transformation);
-        s_->SetShape(topology.Located(location));
+        const TopLoc_Location location(transformation);
+        s_.Location(location);
     } else {
-        TopLoc_Location location(transformation);
-        s_->SetShape(topology.Moved(location));
+        const TopLoc_Location location(transformation);
+        s_.Move(location);
     }
-    s_->Redisplay();
-    if (s_->InteractiveContext()) { s_->InteractiveContext()->Update(s_, true); }
+    return *this;
+    // s_->Redisplay();
+    // if (s_->InteractiveContext()) { s_->InteractiveContext()->Update(s_, true); }
 }
 
 JyShape &JyShape::prism(const double &_x, const double &_y, const double &_z) {
     gp_Vec prism_dir{_x, _y, _z};
-    if (!s_) { return *this; }
-    TopoDS_Shape result = BRepPrimAPI_MakePrism(s_->Shape(), prism_dir);
-    s_->SetShape(result);
-    s_->Redisplay();
+    if (s_.IsNull()) { return *this; }
+    TopoDS_Shape result = BRepPrimAPI_MakePrism(s_, prism_dir);
+    s_ = result;
     return *this;
 }
 
 JyShape &JyShape::revol(const std::array<double, 3> _pos, const std::array<double, 3> _dir, const double &_angle) {
-    if (!s_) { return *this; }
+    if (s_.IsNull()) { return *this; }
     gp_Ax1 axis{gp_Pnt(_pos[0], _pos[1], _pos[2]), gp_Dir(_dir[0], _dir[1], _dir[2])};
-    TopoDS_Shape result = BRepPrimAPI_MakeRevol(s_->Shape(), axis, _angle * M_PI / 180.0);
-    s_->SetShape(result);
-    s_->Redisplay();
-    return *this;
-}
-
-JyShape &JyShape::translate(const double &_x, const double &_y, const double &_z) {
-    locate_base(LocateType::TRANSLATE_ALL, _x, _y, _z, false);
-    return *this;
-}
-
-JyShape &JyShape::rotate(const double &_rx, const double &_ry, const double &_rz) {
-    locate_base(LocateType::ROTATE_ALL, _rx, _ry, _rz, false);
+    TopoDS_Shape result = BRepPrimAPI_MakeRevol(s_, axis, _angle * M_PI / 180.0);
+    s_ = result;
     return *this;
 }
 
 JyShape &JyShape::color(const std::string &_name_or_hex) {
-    if (!s_) { return *this; }
+    if (s_.IsNull()) { return *this; }
     Quantity_Color target_color;
     if (Quantity_Color::ColorFromHex(_name_or_hex.c_str(), target_color)) {
-        s_->SetColor(target_color);
+        color_ = target_color;
     } else if (Quantity_Color::ColorFromName(_name_or_hex.c_str(), target_color)) {
-        s_->SetColor(target_color);
+        color_ = target_color;
     } else {
     }
-    if (s_->InteractiveContext()) { s_->InteractiveContext()->Update(s_, true); }
+    // if (s_->InteractiveContext()) { s_->InteractiveContext()->Update(s_, true); }
     return *this;
 }
 
 JyShape &JyShape::transparency(const double &_value) {
     if ((_value < 0) || (_value > 1)) { throw std::invalid_argument("Invalid transparency value![0,1]"); }
-    s_->SetTransparency(_value);
-    if (s_->InteractiveContext()) { s_->InteractiveContext()->Update(s_, true); }
+    transparency_ = _value;
     return *this;
 }
 
-void JyShape::set_stl_radian(const sol::table &_opt) const {
-    if (_opt["radian"].is<double>()) {
-        s_->SetAngleAndDeviation(_opt["radian"]);
-    }
+
+JyShape &JyShape::mass(const double &_mass) {
+    if (_mass <= 0) { throw std::invalid_argument("Invalid mass value!"); }
+    if (s_.IsNull()) { return *this; }
+    GProp_GProps system;
+    BRepGProp::VolumeProperties(s_, system);
+    const double current_mass = system.Mass();
+    if (current_mass <= 0) { throw std::runtime_error("Current mass is zero!"); }
+    density_ = _mass / current_mass;
+    return *this;
 }
 
 void JyShape::export_stl(const std::string &_filename, const sol::table &_opt) const {
@@ -379,82 +324,89 @@ void JyShape::export_stl(const std::string &_filename, const sol::table &_opt) c
         } else {
         }
     }
-    if (StlAPI::Write(s_->Shape(), _filename.c_str(), theAsciiMode)) { return; }// 成功
+    if (StlAPI::Write(s_, _filename.c_str(), theAsciiMode)) { return; }// 成功
     throw std::runtime_error("Failed to export stl!");
 }
 
 void JyShape::export_step(const std::string &_filename) const {
     STEPControl_Writer writer;
-    writer.Transfer(s_->Shape(), STEPControl_AsIs);
+    writer.Transfer(s_, STEPControl_AsIs);
     if (writer.Write(_filename.c_str())) { return; }// 成功
     throw std::runtime_error("Failed to export STEP!");
 }
 
 void JyShape::export_iges(const std::string &_filename) const {
     IGESControl_Writer writer;
-    if (!writer.AddShape(s_->Shape())) {
+    if (!writer.AddShape(s_)) {
         throw std::runtime_error("Failed to add shape!");
     }
     if (writer.Write(_filename.c_str())) { return; }// 成功
     throw std::runtime_error("Failed to export IGES!");
 }
 
-JyShapeBox::JyShapeBox(const double &_x, const double &_y, const double &_z, const sol::table &_opt) {
+double JyShape::group_mass_properties(const std::vector<JyShape> &_shapes) {
+    GProp_GProps system;
+    for (const auto &shape: _shapes) {
+        if (shape.s_.IsNull()) { continue; }
+        GProp_GProps one_system;
+        BRepGProp::VolumeProperties(shape.s_, one_system);
+        system.Add(one_system, shape.density_);
+    }
+    return system.Mass();
+}
+
+JyShapeBox::JyShapeBox(const double &_x, const double &_y, const double &_z) {
     BRepPrimAPI_MakeBox make_box(_x, _y, _z);
     if (make_box.Wedge().IsDegeneratedShape()) { throw std::runtime_error("Is Degenerated Shape!"); }
-    s_ = new AIS_Shape(make_box);
-    process_opt(_opt);
+    s_ = make_box;
 }
 
-JyCylinder::JyCylinder(const double &_r, const double &_h, const sol::table &_opt) {
+JyCylinder::JyCylinder(const double &_r, const double &_h) {
     BRepPrimAPI_MakeCylinder make_cylinder(_r, _h);
-    s_ = new AIS_Shape(make_cylinder);
-    process_opt(_opt);
+    s_ = make_cylinder;
 }
 
-JyCone::JyCone(const double &R1, const double &R2, const double &H, const sol::table &_opt) {
+JyCone::JyCone(const double &R1, const double &R2, const double &H) {
     BRepPrimAPI_MakeCone make_cone(R1, R2, H);
-    s_ = new AIS_Shape(make_cone);
-    process_opt(_opt);
+    s_ = make_cone;
 }
 
-JySphere::JySphere(const double &_r, const sol::table &_opt) {
+JySphere::JySphere(const double &_r) {
     BRepPrimAPI_MakeSphere make_sphere(_r);
-    s_ = new AIS_Shape(make_sphere);
-    process_opt(_opt);
+    s_ = make_sphere;
 }
 
-JyEdge::JyEdge(const std::string &_type, const sol::table &_vec1, const sol::table &_vec2,
+JyEdge::JyEdge(const std::string &_type, const std::array<double, 3> _vec1, const std::array<double, 3> _vec2,
                const double &_r1, const double &_r2) {
+    const auto pos = gp_Pnt(_vec1[0], _vec1[1], _vec1[2]);
+    const auto dir = gp_Dir(_vec2[0], _vec2[1], _vec2[2]);
     if (_type == "lin") {
-        const auto p1 = get_point_3d(_vec1);
-        const auto p2 = get_point_3d(_vec2);
-        BRepBuilderAPI_MakeEdge make_edge_lin(p1, p2);
-        s_ = new AIS_Shape(make_edge_lin);
+        const auto end = gp_Pnt(_vec2[0], _vec2[1], _vec2[2]);
+        BRepBuilderAPI_MakeEdge make_edge_lin(pos, end);
+        s_ = make_edge_lin;
     } else if (_type == "circ") {
-        const auto pos = get_point_3d(_vec1);
-        const auto dir = get_dir_3d(_vec2);
+        // 示例：edge.new('circ', { 0, 0, 0 }, { 0, 0, 1 }, 1);
+        if (_r1 <= 0) { throw std::invalid_argument("Invalid circle radius!"); }
         gp_Circ circ({pos, dir}, _r1);
         BRepBuilderAPI_MakeEdge make_edge_circ(circ);
-        s_ = new AIS_Shape(make_edge_circ);
+        s_ = make_edge_circ;
     } else if (_type == "elips") {
-        const auto pos = get_point_3d(_vec1);
-        const auto dir = get_dir_3d(_vec2);
+        // R1: 大半轴  R2: 小半轴，R1必须大于R2
+        if (_r1 <= 0 || _r2 <= 0 || _r1 < _r2) {
+            throw std::invalid_argument("Invalid ellipse parameters! R1 > R2 > 0");
+        }
+        // 示例：edge.new('elips', { 0, 0, 0 }, { 0, 0, 1 }, 4, 2);
         gp_Elips elips({pos, dir}, _r1, _r2);
         BRepBuilderAPI_MakeEdge make_edge_elips(elips);
-        s_ = new AIS_Shape(make_edge_elips);
+        s_ = make_edge_elips;
     } else if (_type == "hypr") {
-        const auto pos = get_point_3d(_vec1);
-        const auto dir = get_dir_3d(_vec2);
         gp_Hypr hypr({pos, dir}, _r1, _r2);
         BRepBuilderAPI_MakeEdge make_edge_hypr(hypr);
-        s_ = new AIS_Shape(make_edge_hypr);
+        s_ = make_edge_hypr;
     } else if (_type == "parab") {
-        const auto pos = get_point_3d(_vec1);
-        const auto dir = get_dir_3d(_vec2);
         gp_Parab parab({pos, dir}, _r1);
         BRepBuilderAPI_MakeEdge make_edge_parab(parab);
-        s_ = new AIS_Shape(make_edge_parab);
+        s_ = make_edge_parab;
     } else {
         throw std::runtime_error("Edge: wrong type!");
     }
@@ -467,19 +419,19 @@ JyWire::JyWire(const sol::table &_param) {
         if (!p.first.is<int>()) { continue; }
         if (p.second.is<JyEdge>()) {
             const auto shape = p.second.as<JyEdge>();
-            if (!shape.s_) { continue; }
-            const auto edge = TopoDS::Edge(shape.s_->Shape());
+            if (shape.s_.IsNull()) { continue; }
+            const auto edge = TopoDS::Edge(shape.s_);
             make_wire.Add(edge);
         } else if (p.second.is<JyWire>()) {
             const auto shape = p.second.as<JyWire>();
-            if (!shape.s_) { continue; }
-            const auto wire = TopoDS::Wire(shape.s_->Shape());
+            if (shape.s_.IsNull()) { continue; }
+            const auto wire = TopoDS::Wire(shape.s_);
             make_wire.Add(wire);
         } else {
         }
     }
     if (!make_wire.IsDone()) { return; }
-    s_ = new AIS_Shape(make_wire);
+    s_ = make_wire;
 }
 
 JyPolygon::JyPolygon(const sol::table &_param) {
@@ -497,22 +449,22 @@ JyPolygon::JyPolygon(const sol::table &_param) {
     }
     if (!make_polygon.Added()) { throw std::runtime_error("Polygon Last Vertex NOT Added!"); }
     make_polygon.Close();
-    s_ = new AIS_Shape(make_polygon);
+    s_ = make_polygon;
 }
 
 JyFace::JyFace(const JyShape &_shape) {
-    const auto shape_type = _shape.s_->Shape().ShapeType();
+    const auto shape_type = _shape.s_.ShapeType();
     if (shape_type == TopAbs_WIRE) {
-        const auto wire = TopoDS::Wire(_shape.s_->Shape());
+        const auto wire = TopoDS::Wire(_shape.s_);
         BRepBuilderAPI_MakeFace make_face(wire);
-        s_ = new AIS_Shape(make_face);
+        s_ = make_face;
     } else if (shape_type == TopAbs_EDGE) {
-        const auto edge = TopoDS::Edge(_shape.s_->Shape());
+        const auto edge = TopoDS::Edge(_shape.s_);
         BRepBuilderAPI_MakeWire make_wire;
         make_wire.Add(edge);
         if (!make_wire.IsDone()) { throw std::runtime_error("Failed make wire!"); }
         BRepBuilderAPI_MakeFace make_face(make_wire);
-        s_ = new AIS_Shape(make_face);
+        s_ = make_face;
     } else {
         throw std::runtime_error("Face: Not Support Shape Type!");
     }

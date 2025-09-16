@@ -21,8 +21,12 @@ public:
 
     void exec_code(const std::string &_code);
 
+    void add_package_path(const std::string &_path);
+
 private:
     void lua_print(const sol::object &v);
+
+    std::string current_path_;
 
 signals:
 
