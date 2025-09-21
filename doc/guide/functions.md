@@ -175,7 +175,7 @@ polygon.new(point_list)     -- 从点列表创建
 polygon.new(other_polygon)  -- 复制构造
 ```
 **参数：**
-- `point_list` - *table* - 3D点列表 `{{x1,y1,z1}, {x2,y2,z2}, ...}`
+- `point_list` - *table* - 3D点列表 `{point1, point2, ...}`, 其中point:`{x,y,z}`
 
 **示例：**
 ```lua
@@ -281,8 +281,8 @@ shape:prism(x, y, z)
 shape:revol(pos, dir, angle)
 ```
 **参数：**
-- `pos` - *array3* - 旋转轴位置点 {x, y, z}
-- `dir` - *array3* - 旋转轴方向向量 {x, y, z}
+- `pos` - *array3* - 旋转轴位置点 `{x, y, z}`
+- `dir` - *array3* - 旋转轴方向向量 `{x, y, z}`
 - `angle` - *number* - 旋转角度（度）
 
 **示例：**
@@ -422,15 +422,3 @@ show(vase)
 ```
 
 ---
-
-## 📝 许可证
-
-本项目采用 MIT 许可证。详情请参阅 [LICENSE](LICENSE) 文件。
-
-## 🤝 贡献
-
-欢迎提交 Issue 和 Pull Request！项目地址：[GitHub](https://github.com/Jelatine/JellyCAD)
-
----
-
-*文档版本：1.0.0 | 最后更新：2024*
