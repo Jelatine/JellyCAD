@@ -41,15 +41,16 @@ void Jy3DWidget::display(const JyShape &theIObj, const bool &with_coord) {
     // 模型包围盒计算
     Bnd_Box bounding;
     BRepBndLib::Add(shape, bounding);
-    Standard_Real bnd_x_min, bnd_y_min, bnd_z_min, bnd_x_max, bnd_y_max, bnd_z_max;
-    bounding.Get(bnd_x_min, bnd_y_min, bnd_z_min, bnd_x_max, bnd_y_max, bnd_z_max);
-    const auto max = std::max(std::abs(bnd_x_max - bnd_x_min), std::abs(bnd_y_max - bnd_y_min));
+    std::array<Standard_Real, 4> bndXY;
+    Standard_Real bndMinZ, bndMaxinZ;
+    bounding.Get(bndXY[0], bndXY[1], bndMinZ, bndXY[2], bndXY[3], bndMaxinZ);
+    const auto max = *std::max_element(bndXY.begin(), bndXY.end());
     Standard_Real x_size_old, y_size_old, offset_old;
     m_viewer->RectangularGridGraphicValues(x_size_old, y_size_old, offset_old);
-    if (max > std::max(x_size_old, y_size_old)) {
+    if (max > x_size_old) {
         const double logValue = std::log10(std::abs(max));
         const auto step = std::pow(10.0, std::floor(logValue));
-        const auto x = std::ceil(max / 2 / step) * step + 1e-3;
+        const auto x = std::ceil(max / step) * step + 1e-3;
         m_viewer->SetRectangularGridValues(0, 0, step, step, 0);
         m_viewer->SetRectangularGridGraphicValues(x, x, 0);
     }
