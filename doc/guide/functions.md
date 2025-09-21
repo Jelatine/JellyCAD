@@ -1,14 +1,4 @@
-# 🎨 JellyCAD
-
-> **免费开源的 CAD 应用程序**  
-> 开发者：Li Jianbin  
-> 许可证：MIT License
-
-[![GitHub](https://img.shields.io/badge/GitHub-源代码-black?logo=github)](https://github.com/Jelatine/JellyCAD)
-[![HomePage](https://img.shields.io/badge/HomePage-主页-blue)](https://jelatine.github.io/JellyCAD/)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-
----
+# 使用脚本
 
 ## 📚 目录
 
@@ -291,8 +281,8 @@ shape:prism(x, y, z)
 shape:revol(pos, dir, angle)
 ```
 **参数：**
-- `pos` - *array3* - 旋转轴位置点 `{x, y, z}`
-- `dir` - *array3* - 旋转轴方向向量 `{x, y, z}`
+- `pos` - *array3* - 旋转轴位置点 {x, y, z}
+- `dir` - *array3* - 旋转轴方向向量 {x, y, z}
 - `angle` - *number* - 旋转角度（度）
 
 **示例：**

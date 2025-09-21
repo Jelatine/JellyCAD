@@ -13,6 +13,7 @@
 #include <QStandardPaths>
 #include <QStyleOption>
 #include <QTextStream>
+#include <QDesktopServices>
 
 JyCodeEditor::JyCodeEditor(QWidget *parent) : QPlainTextEdit(parent), number_area_(new NumberArea(this)) {
 #ifdef Q_OS_WIN
