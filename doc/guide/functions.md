@@ -238,9 +238,9 @@ result = shape1:common(shape2)
 ```lua
 local box1 = box.new(2, 2, 2)
 local box2 = box.new(1, 1, 1):pos(1, 1, 1)
-local union = box1:fuse(box2)      -- 并集
-local diff = box1:cut(box2)        -- 差集
-local inter = box1:common(box2)    -- 交集
+local union = box1:copy():fuse(box2)      -- 并集
+local diff = box1:copy():cut(box2)        -- 差集
+local inter = box1:copy():common(box2)    -- 交集
 ```
 
 ---
@@ -254,8 +254,8 @@ shape:fillet(radius, conditions)
 **参数：**
 - `radius` - *number* - 圆角半径
 - `conditions` - *table* - 条件参数
-  - `type` - 边缘类型筛选
-  - `dir` - 方向筛选 ('x'/'y'/'z')
+  - `type` - 边缘类型筛选(line/circle/ellipse/hyperbola/parabola/bezier_curve/bspline_curve/offset_curve/other_curve)
+  - `dir` - 方向筛选 `{x, y, z}`
   - `min/max` - 位置范围 `{x, y, z}`
 
 ---
