@@ -7,37 +7,54 @@
 
 #define SOL_ALL_SAFETIES_ON 1
 
-#include <sol/sol.hpp>
-#include <QObject>
+#include "jy_axes.h"
 #include "jy_shape.h"
+#include <QAtomicInt>
+#include <QMutex>
+#include <QThread>
+#include <sol/sol.hpp>
 
-class JyLuaVirtualMachine : public QObject {
-Q_OBJECT
+class JyLuaVirtualMachine : public QThread {
+    Q_OBJECT
     sol::state lua;
+
 public:
     explicit JyLuaVirtualMachine();
 
-    void run(const std::string &_file_path);
+    void runScript(const QString &_file_path);
 
-    void exec_code(const std::string &_code);
+    void exec_code(const QString &_code);
 
     void add_package_path(const std::string &_path);
+
+    void executeScript(const QString &fileName);
+    void stopScript();
+    bool isRunning() const;
+
+signals:
+    void scriptStarted(const QString &fileName);
+    void scriptFinished(const QString &message);
+    void scriptError(const QString &error);
+    void scriptOutput(const QString &output);
+
+
+protected:
+    void run() override;
 
 private:
     void lua_print(const sol::object &v);
 
     std::string current_path_;
 
+    QString m_fileName;
+    QAtomicInt script_mode; // 文件模式: 0 文件, 1 字符串
+    QMutex m_mutex;
+
 signals:
 
     void display(const JyShape &theIObj, const bool &with_coord = false);
 
-    /**
-     * show message in terminal window and status bar
-     * @param _result
-     * @param _type -2:error(code), -1:error(file), 0:info, 1:success
-     */
-    void sig_show_message(const QString &_result, const int &_type);
+    void displayAxes(const JyAxes &theAxes);
 };
 
-#endif //JY_LUA_VIRTUAL_MACHINE
+#endif//JY_LUA_VIRTUAL_MACHINE

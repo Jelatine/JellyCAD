@@ -10,6 +10,43 @@
 #include <TopoDS_Edge.hxx>
 #include <sol/table.hpp>
 
+class JyTopoShape : public TopoDS_Shape {
+public:
+    // 默认构造函数
+    JyTopoShape() {}
+
+    // 从基类构造
+    JyTopoShape(const TopoDS_Shape &shape) : TopoDS_Shape(shape) {}
+
+    // 拷贝构造函数（如果需要特殊处理）
+    JyTopoShape(const JyTopoShape &other) : TopoDS_Shape(other) {}
+
+    // 赋值操作符 - 从基类赋值
+    JyTopoShape &operator=(const TopoDS_Shape &shape) {
+        if (this != &shape) {              // 自赋值检查
+            TopoDS_Shape::operator=(shape);// 调用基类赋值操作符
+        }
+        return *this;
+    }
+
+    // 赋值操作符 - 从同类赋值
+    JyTopoShape &operator=(const JyTopoShape &other) {
+        if (this != &other) {              // 自赋值检查
+            TopoDS_Shape::operator=(other);// 调用基类赋值操作符
+        }
+        return *this;
+    }
+
+    // 如果基类的析构函数不是虚函数，可能需要虚析构函数
+    // virtual ~JyTopoShape() {}
+};
+
+struct InertialProperties {
+    double mass;
+    std::array<double, 3> center_of_mass;
+    std::array<double, 6> inertia_tensor;
+};
+
 /**
  * @brief 三维形状基类
  * 
@@ -22,14 +59,12 @@ public:
      * @brief 获取形状数据
      * @return TopoDS_Shape 形状数据
      */
-    [[nodiscard]] TopoDS_Shape data() const { return s_; }
+    [[nodiscard]] JyTopoShape data() const { return s_; }
 
-    TopoDS_Shape s_;//!< OpenCASCADE形状对象
+    JyTopoShape s_;//!< OpenCASCADE形状对象
 
     Quantity_Color color_{Quantity_NOC_ORANGE3};//!< 形状颜色，默认为橙色
     Standard_Real transparency_{0};             //!< 透明度，0为不透明，1为完全透明
-    Standard_Real deviation_{0.01};             //!< 网格化质量参数，值越小精度越高
-    bool need_update_deviation_{false};         //!< 是否需要更新网格化参数
     Standard_Real density_{1.0};                //!< 密度，用于计算质量，质量=体积*密度
 
 public:
@@ -113,6 +148,9 @@ public:
      */
     JyShape &revol(const std::array<double, 3> _pos, const std::array<double, 3> _dir, const double &_angle);//!< 旋转面
 
+    //!< 按比例缩放
+    JyShape &scale(const double &factor);
+
     // ==================== 位置姿态调整 ====================
     /**
      * @param x 绝对位置
@@ -148,6 +186,8 @@ public:
      */
     JyShape &move(const std::string &_move_type, const double &_x, const double &_y, const double &_z);
 
+    JyShape &zero();
+
     // ==================== 属性设置 ====================
     /**
      * @brief 设置颜色
@@ -177,6 +217,7 @@ public:
      * @param _opt 导出选项表
      */
     void export_stl(const std::string &_filename, const sol::table &_opt) const;
+    void export_stl(const std::string &_filename) const { export_stl(_filename, {}); }
 
     /**
      * @brief 导出为STEP格式文件
@@ -190,12 +231,11 @@ public:
      */
     void export_iges(const std::string &_filename) const;
 
-    /**
-     * @brief 计算形状组的质量属性
-     * @param _shapes 形状向量
-     * @return double 总质量
-     */
-    static double group_mass_properties(const std::vector<JyShape> &_shapes);
+    std::array<double, 4> rgba() const;
+
+    static InertialProperties inertial(const JyShape &_shape);
+
+    static InertialProperties inertial(const std::vector<JyShape> &_shapes);
 
 private:
     /**
@@ -295,7 +335,7 @@ public:
      * @param R2 顶部半径
      * @param H 高度
      */
-    explicit JyCone(const double &R1 = 1, const double &R2 = 1, const double &H = 1);
+    explicit JyCone(const double &R1 = 1, const double &R2 = 0, const double &H = 1);
 };
 
 /**
@@ -308,6 +348,30 @@ public:
      * @param _r 半径
      */
     explicit JySphere(const double &_r = 1);
+};
+
+class JyTorus : public JyShape {
+public:
+    /**
+     * @brief 构造指定主半径、次半径和角度的圆环
+     * @param R1 从管道中心到环面中心的距离
+     * @param R2 管道半径
+     * @param angle 角度(deg)
+     */
+    explicit JyTorus(const double &R1 = 2, const double &R2 = 1, const double &angle = 360);
+};
+class JyWedge : public JyShape {
+public:
+    /**
+     * @brief 楔形
+     * @param dx X方向长度
+     * @param dy Y方向长度
+     * @param dz Z方向长度
+     * @param ltx 楔形中心到X轴的距离
+     */
+    explicit JyWedge(const double &dx = 1, const double &dy = 1, const double &dz = 1, const double &ltx = 0);
+
+    explicit JyWedge(const double &dx, const double &dy, const double &dz, const double &xmin, const double &zmin, const double &xmax, const double &zmax);
 };
 
 /**
@@ -371,6 +435,19 @@ public:
      * @param _shape 形状对象
      */
     explicit JyFace(const JyShape &_shape);
+};
+
+/**
+ * @brief 文本形状类
+ */
+class JyText : public JyShape {
+public:
+    /**
+     * @brief 构造指定文本和字体大小的文本形状
+     * @param _text 文本内容
+     * @param _size 字体大小
+     */
+    explicit JyText(const std::string &_text = "", const double &_size = 1);
 };
 
 #endif//JY_SHAPE_H

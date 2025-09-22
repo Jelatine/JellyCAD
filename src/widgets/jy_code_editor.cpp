@@ -3,6 +3,7 @@
  * MIT License
  */
 #include "jy_code_editor.h"
+#include <QDesktopServices>
 #include <QDir>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -13,7 +14,6 @@
 #include <QStandardPaths>
 #include <QStyleOption>
 #include <QTextStream>
-#include <QDesktopServices>
 
 JyCodeEditor::JyCodeEditor(QWidget *parent) : QPlainTextEdit(parent), number_area_(new NumberArea(this)) {
 #ifdef Q_OS_WIN
@@ -96,6 +96,23 @@ void JyCodeEditor::init_highlighter() {
         }
         file.close();
     }
+}
+
+
+void JyCodeEditor::set_text(const QString &text) {
+    is_CRLF = text.contains("\r\n");
+    setPlainText(text);
+}
+
+QString JyCodeEditor::get_text() const {
+    if (is_CRLF) {
+        QString result = toPlainText();
+        // 先统一为LF，再转为CRLF
+        result.replace("\r\n", "\n");// 防止重复转换
+        result.replace("\n", "\r\n");
+        return result;
+    }
+    return toPlainText();
 }
 
 int JyCodeEditor::number_area_width() {

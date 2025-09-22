@@ -16,9 +16,11 @@
 #include <QMainWindow>
 #include <QSplitter>
 #include <QTextBrowser>
+#include <QProgressDialog>
+#include <QTreeWidget>
 
 class QSettings;
-class SearchWidget;
+class JySearchWidget;
 
 class JyMainWindow : public QMainWindow {
     Q_OBJECT
@@ -26,20 +28,16 @@ class JyMainWindow : public QMainWindow {
     QFileSystemWatcher *watcher;
     JyLuaVirtualMachine *lvm;
     JyCodeEditor *code_editor;
-    SearchWidget *search_widget;
+    JySearchWidget *search_widget;
     bool is_save_from_editor{false};//!< 从编辑器保存的标志, true 从本编辑器保存, false 外部保存
     QString current_file_dir;       //!< 当前文件的路径
     QTextBrowser *text_lua_message;
     QSettings *settings;
-
+    QProgressDialog *m_progressDialog;
+    QTreeWidget *treeShapeInfo;
 public:
     explicit JyMainWindow(QWidget *parent = nullptr);
-
-    inline void run_script(const QString &path) {
-        jy_3d_widget->initialize_context();
-        lvm->run(path.toStdString());
-    }
-
+    
 public slots:
 
     void slot_file_changed(const QString &path);
@@ -50,6 +48,8 @@ public slots:
 
     void slot_button_save_clicked();
 
+    void slot_shape_info(const QString &info);
+
 private slots:
     void showSearchWidget();
     void hideSearchWidget();
@@ -57,11 +57,20 @@ private slots:
     void findPrevious();
     void onSearchTextChanged(const QString &text);
 
+    void onScriptStarted(const QString &fileName);
+    void onScriptFinished(const QString &message);
+    void onScriptError(const QString &error);
+    void onScriptOutput(const QString &output);
+    void onStopScript();
+
+
 private:
     int ask_whether_to_save();//!< 询问是否保存已修改的文件 return 0 if save, 1 if not save, 2 if cancel
 
     void performSearch(bool backward = false);
     QString lastSearchText;
+
+    void addJsonValue(QTreeWidgetItem *parent, const QString &key, const QJsonValue &value);
 
 protected:
     void closeEvent(QCloseEvent *event) override;

@@ -5,11 +5,20 @@
 #include "jy_3d_widget.h"
 #include <AIS_Shape.hxx>
 #include <Aspect_DisplayConnection.hxx>
+#include <BRepAdaptor_Curve.hxx>
 #include <BRepBndLib.hxx>
+#include <BRep_Tool.hxx>
 #include <Geom_Axis2Placement.hxx>
+#include <Geom_Line.hxx>
 #include <Graphic3d_GraphicDriver.hxx>
 #include <OpenGl_GraphicDriver.hxx>
+#include <QApplication>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QMouseEvent>
+#include <StdSelect_BRepOwner.hxx>
+#include <TopExp.hxx>
+#include <TopoDS.hxx>
 #include <V3d_View.hxx>
 
 #ifdef _WIN32
@@ -30,8 +39,7 @@ Jy3DWidget::Jy3DWidget(QWidget *parent) : QWidget(parent) {
     setAttribute(Qt::WA_PaintOnScreen);
     setAttribute(Qt::WA_NoSystemBackground);
     setFocusPolicy(Qt::StrongFocus);
-    setAttribute(Qt::WA_PaintOnScreen);
-    setAttribute(Qt::WA_NoSystemBackground);
+    createContextMenu();
 }
 
 void Jy3DWidget::display(const JyShape &theIObj, const bool &with_coord) {
@@ -80,12 +88,14 @@ void Jy3DWidget::display(const JyShape &theIObj, const bool &with_coord) {
     }
     ais_shape->SetColor(theIObj.color_);
     ais_shape->SetTransparency(theIObj.transparency_);
-    if (theIObj.need_update_deviation_) {
-        ais_shape->SetAngleAndDeviation(theIObj.deviation_);
-    }
     ais_shape->SetMaterial(Graphic3d_NameOfMaterial_Stone);
     m_context->Display(ais_shape, Standard_True);
     m_view->FitAll();
+}
+
+
+void Jy3DWidget::displayAxes(const JyAxes &theAxes) {
+    m_context->Display(theAxes.data(), Standard_True);
 }
 
 void Jy3DWidget::remove_all() {
@@ -235,10 +245,21 @@ void Jy3DWidget::mousePressEvent(QMouseEvent *event) {
         if (QApplication::keyboardModifiers() == Qt::ControlModifier) {
             m_context->SelectDetected(AIS_SelectionScheme_Add);// 多选
         } else {
-            m_context->SelectDetected();// 单选
+            const auto pick_status = m_context->SelectDetected();// 单选
+            if (pick_status == AIS_SOP_OneSelected) {
+                Handle(SelectMgr_EntityOwner) owner = m_context->DetectedOwner();
+                if (owner) {
+                    Handle(StdSelect_BRepOwner) brepOwner = Handle(StdSelect_BRepOwner)::DownCast(owner);
+                    if (!brepOwner.IsNull()) {
+                        TopoDS_Shape shape = brepOwner->Shape();
+                        handleSelectedShape(shape);
+                    }
+                }
+            }
         }
         m_view->Update();
     } else if (event->buttons() & Qt::RightButton) {
+        m_isDragging = false;
         // 鼠标滚轮键：初始化平移
         m_x_max = event->x();
         m_y_max = event->y();
@@ -262,13 +283,121 @@ void Jy3DWidget::mouseMoveEvent(QMouseEvent *event) {
         // 鼠标滚轮键：执行旋转
         m_view->Rotation(event->x(), event->y());
         light_direction->SetDirection(m_view->Camera()->Direction());
+        m_isDragging = true;
     } else {
         // 将鼠标位置传递到交互环境
         m_context->MoveTo(event->pos().x(), event->pos().y(), m_view, Standard_True);
     }
 }
-
 void Jy3DWidget::wheelEvent(QWheelEvent *event) {
     m_view->StartZoomAtPoint((int) event->position().x(), (int) event->position().y());
     m_view->ZoomAtPoint(0, 0, event->angleDelta().y(), 0);//执行缩放
+}
+
+void Jy3DWidget::contextMenuEvent(QContextMenuEvent *event) {
+    if (m_isDragging) {
+        event->ignore();
+    } else {
+        m_contextMenu->exec(event->globalPos());
+    }
+}
+
+
+void Jy3DWidget::createContextMenu() {
+    m_contextMenu = new QMenu(this);
+    m_selectionModeGroup = new QActionGroup(this);
+    // 选择形状 (Shapes)
+    const auto selectShapes = m_selectionModeGroup->addAction("Select Shapes");
+    selectShapes->setData(static_cast<int>(TopAbs_SHAPE));
+    // 选择顶点 (Vertices)
+    const auto selectVector = m_selectionModeGroup->addAction("Select Vertices");
+    selectVector->setData(static_cast<int>(TopAbs_VERTEX));
+    // 选择边缘 (Edges)
+    m_selectionModeGroup->addAction("Select Edges")->setData(static_cast<int>(TopAbs_EDGE));
+    // 选择线框 (Wires)
+    m_selectionModeGroup->addAction("Select Wires")->setData(static_cast<int>(TopAbs_WIRE));
+    // 选择面 (Faces)
+    m_selectionModeGroup->addAction("Select Faces")->setData(static_cast<int>(TopAbs_FACE));
+    // 选择壳体 (Shells)
+    m_selectionModeGroup->addAction("Select Shells")->setData(static_cast<int>(TopAbs_SHELL));
+    // 选择实体 (Solids)
+    m_selectionModeGroup->addAction("Select Solids")->setData(static_cast<int>(TopAbs_SOLID));
+    // 选择复合实体 (CompSolids)
+    m_selectionModeGroup->addAction("Select CompSolids")->setData(static_cast<int>(TopAbs_COMPSOLID));
+    // 选择复合体 (Compounds)
+    m_selectionModeGroup->addAction("Select Compounds")->setData(static_cast<int>(TopAbs_COMPOUND));
+
+    const auto action_list = m_selectionModeGroup->actions();
+    for (const auto &action: action_list) {
+        action->setCheckable(true);
+    }
+    selectShapes->setChecked(true);// Shapes 默认选中
+    // 添加动作到菜单
+    m_contextMenu->addActions(action_list);
+    m_contextMenu->insertSeparator(selectVector);
+    connect(m_contextMenu, &QMenu::triggered, this, &Jy3DWidget::selectActionTriggered);
+}
+
+void Jy3DWidget::setSelectionMode(TopAbs_ShapeEnum mode) {
+    if (!m_context.IsNull()) {
+        // 清除当前选择
+        m_context->ClearSelected(Standard_False);
+        // 设置新的选择模式
+        m_context->Deactivate();
+        m_context->Activate(AIS_Shape::SelectionMode(mode));
+        m_view->Redraw();
+        qDebug() << "选择模式已切换到:" << static_cast<int>(mode);
+    }
+}
+
+void Jy3DWidget::handleSelectedShape(const TopoDS_Shape &shape) {
+    if (shape.ShapeType() == TopAbs_EDGE) {
+        static const std::unordered_map<int, std::string> type_map = {
+                {GeomAbs_Line, "line"},
+                {GeomAbs_Circle, "circle"},
+                {GeomAbs_Ellipse, "ellipse"},
+                {GeomAbs_Hyperbola, "hyperbola"},
+                {GeomAbs_Parabola, "parabola"},
+                {GeomAbs_BezierCurve, "bezier_curve"},
+                {GeomAbs_BSplineCurve, "bspline_curve"},
+                {GeomAbs_OffsetCurve, "offset_curve"},
+                {GeomAbs_OtherCurve, "other_curve"}};
+        const TopoDS_Edge edge = TopoDS::Edge(shape);
+        BRepAdaptor_Curve C(edge);
+        const std::string type_str = type_map.find(C.GetType()) != type_map.end() ? type_map.at(C.GetType()) : "";
+        QString type = QString::fromStdString(type_str);
+        QJsonObject jsonObj;
+        QJsonObject edgeObj;
+        edgeObj["type"] = type;
+        TopLoc_Location aLoc;
+        Standard_Real first, last;
+        Handle(Geom_Curve) curve = BRep_Tool::Curve(edge, aLoc, first, last);
+        if (curve->IsKind(STANDARD_TYPE(Geom_Line))) {
+            Handle(Geom_Line) line = Handle(Geom_Line)::DownCast(curve);
+            QJsonObject dirObj;
+            dirObj["x"] = line->Position().Direction().X();
+            dirObj["y"] = line->Position().Direction().Y();
+            dirObj["z"] = line->Position().Direction().Z();
+            edgeObj["dir"] = dirObj;
+        }
+        const gp_Pnt &start_point = BRep_Tool::Pnt(TopExp::FirstVertex(edge));
+        const gp_Pnt &end_point = BRep_Tool::Pnt(TopExp::LastVertex(edge));
+        QJsonObject spObj;
+        spObj["x"] = start_point.X();
+        spObj["y"] = start_point.Y();
+        spObj["z"] = start_point.Z();
+        edgeObj["start_point"] = spObj;
+        QJsonObject epObj;
+        epObj["x"] = end_point.X();
+        epObj["y"] = end_point.Y();
+        epObj["z"] = end_point.Z();
+        edgeObj["end_point"] = epObj;
+        jsonObj["edge"] = edgeObj;
+        QJsonDocument doc(jsonObj);
+        emit selectedShapeInfo(doc.toJson(QJsonDocument::Compact));
+    } else {
+        std::stringstream ss;
+        shape.DumpJson(ss);
+        emit selectedShapeInfo("{" + QString::fromStdString(ss.str()) + "}");
+    }
 }

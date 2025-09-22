@@ -4,137 +4,375 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JellyCAD Documentation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f1f5f9;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            padding: 48px 32px;
+            text-align: center;
+            border-radius: 16px;
+            margin-bottom: 48px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 50%, rgba(255, 255, 255, 0.1), transparent 50%);
+            pointer-events: none;
+        }
+
+        .header h1 {
+            font-size: 48px;
+            margin: 0;
+            margin-bottom: 16px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.9);
+            position: relative;
+            z-index: 1;
+            margin: 0;
+        }
+
+        .header p:last-of-type {
+            margin-top: 8px;
+        }
+
+        .header-links {
+            margin-top: 24px;
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-link {
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .navigation {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 32px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            position: sticky;
+            top: 20px;
+            z-index: 100;
+        }
+
+        .nav-title {
+            color: #60a5fa;
+            margin: 0;
+            margin-bottom: 16px;
+            font-size: 20px;
+        }
+
+        .nav-list {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav-link {
+            color: #cbd5e1;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            background: #0f172a;
+        }
+
+        .section {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 32px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .section-title {
+            color: #60a5fa;
+            font-size: 32px;
+            margin: 0;
+            margin-bottom: 24px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #334155;
+        }
+
+        .function-block {
+            background: #0f172a;
+            border-left: 4px solid #2563eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            transition: all 0.3s ease;
+        }
+
+        .function-code {
+            display: block;
+            margin-bottom: 8px;
+            background: transparent;
+            border: none;
+            color: #60a5fa;
+            font-size: 16px;
+            font-family: 'Fira Code', 'Consolas', monospace;
+        }
+
+        .function-description {
+            color: #cbd5e1;
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+
+        .function-params {
+            margin-top: 8px;
+            padding-left: 16px;
+            color: #cbd5e1;
+            font-size: 15px;
+        }
+
+        .subsection-title {
+            color: #3b82f6;
+            font-size: 24px;
+            margin: 24px 0 16px 0;
+        }
+
+        .color-info {
+            color: #cbd5e1;
+        }
+
+        .color-link {
+            color: #60a5fa;
+        }
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .color-item {
+            background: #0f172a;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .color-square {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto;
+            border-radius: 8px;
+        }
+
+        .color-code {
+            background: transparent;
+            color: #AAAAAA;
+            padding: 0.32px 8px;
+            border-radius: 4px;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 16px;
+            border: 1px solid #334155;
+        }
+
+        .color-red { background: red; }
+        .color-green { background: green; }
+        .color-blue { background: blue; }
+        .color-yellow { background: yellow; }
+        .color-cyan { background: cyan; }
+        .color-magenta { background: magenta; }
+        .color-black { background: black; }
+        .color-white { background: white; }
+        .color-gray { background: gray; }
+        .color-lightgray { background: lightgray; }
+
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #2563eb;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+    </style>
 </head>
-<body style="margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #f1f5f9; line-height: 1.6; min-height: 100vh;">
-    <div style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
+<body>
+    <div class="container">
         <!-- Header -->
-        <header style="background: linear-gradient(135deg, #2563eb, #3b82f6); padding: 3rem 2rem; text-align: center; border-radius: 16px; margin-bottom: 3rem; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); position: relative; overflow: hidden;">
-            <div style="content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at 30% 50%, rgba(255, 255, 255, 0.1), transparent 50%); pointer-events: none;"></div>
-            <h1 style="font-size: 3rem; margin: 0; margin-bottom: 1rem; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); position: relative; z-index: 1;">🎯 JellyCAD</h1>
-            <p style="font-size: 1.2rem; color: rgba(255, 255, 255, 0.9); position: relative; z-index: 1; margin: 0;">Free and Open-Source CAD Application</p>
-            <p style="margin: 0; margin-top: 0.5rem; position: relative; z-index: 1;">Developed by Li Jianbin | MIT License</p>
-            <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center; position: relative; z-index: 1;">
-                <a href="https://github.com/Jelatine/JellyCAD" target="_blank" style="color: white; text-decoration: none; padding: 0.75rem 1.5rem; background: rgba(255, 255, 255, 0.2); border-radius: 8px; transition: all 0.3s ease; backdrop-filter: blur(10px);">📦 GitHub</a>
-                <a href="https://jelatine.github.io/JellyCAD/" target="_blank" style="color: white; text-decoration: none; padding: 0.75rem 1.5rem; background: rgba(255, 255, 255, 0.2); border-radius: 8px; transition: all 0.3s ease; backdrop-filter: blur(10px);">🏠 HomePage</a>
+        <header class="header">
+            <p>Free and Open-Source CAD Application</p>
+            <p>Developed by Li Jianbin | MIT License</p>
+            <div class="header-links">
+                <a href="https://github.com/Jelatine/JellyCAD" target="_blank" class="header-link">📦 GitHub</a>
+                <a href="https://jelatine.github.io/JellyCAD/" target="_blank" class="header-link">🏠 HomePage</a>
             </div>
         </header>
 
         <!-- Navigation -->
-        <nav style="background: #1e293b; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); position: sticky; top: 20px; z-index: 100;" id="navigation">
-            <h3 style="color: #60a5fa; margin: 0; margin-bottom: 1rem; font-size: 1.2rem;">Quick Navigation</h3>
-            <ul style="list-style: none; display: flex; flex-wrap: wrap; gap: 1rem; margin: 0; padding: 0;">
-                <li><a href="#global-functions" style="color: #cbd5e1; text-decoration: none; padding: 0.5rem 1rem; border-radius: 6px; transition: all 0.3s ease; background: #0f172a;">Global Functions</a></li>
-                <li><a href="#shape-objects" style="color: #cbd5e1; text-decoration: none; padding: 0.5rem 1rem; border-radius: 6px; transition: all 0.3s ease; background: #0f172a;">Shape Objects</a></li>
-                <li><a href="#shape-functions" style="color: #cbd5e1; text-decoration: none; padding: 0.5rem 1rem; border-radius: 6px; transition: all 0.3s ease; background: #0f172a;">Shape Functions</a></li>
-                <li><a href="#boolean-ops" style="color: #cbd5e1; text-decoration: none; padding: 0.5rem 1rem; border-radius: 6px; transition: all 0.3s ease; background: #0f172a;">Boolean Operations</a></li>
-                <li><a href="#geometric-trans" style="color: #cbd5e1; text-decoration: none; padding: 0.5rem 1rem; border-radius: 6px; transition: all 0.3s ease; background: #0f172a;">Geometric Transformation</a></li>
-                <li><a href="#position-adjust" style="color: #cbd5e1; text-decoration: none; padding: 0.5rem 1rem; border-radius: 6px; transition: all 0.3s ease; background: #0f172a;">Position & Attitude</a></li>
-                <li><a href="#colors" style="color: #cbd5e1; text-decoration: none; padding: 0.5rem 1rem; border-radius: 6px; transition: all 0.3s ease; background: #0f172a;">Colors</a></li>
+        <nav class="navigation" id="navigation">
+            <h3 class="nav-title">Quick Navigation</h3>
+            <ul class="nav-list">
+                <li><a href="#global-functions" class="nav-link">Global Functions</a></li>
+                <li><a href="#shape-objects" class="nav-link">Shape Objects</a></li>
+                <li><a href="#shape-functions" class="nav-link">Shape Functions</a></li>
+                <li><a href="#boolean-ops" class="nav-link">Boolean Operations</a></li>
+                <li><a href="#geometric-trans" class="nav-link">Geometric Transformation</a></li>
+                <li><a href="#position-adjust" class="nav-link">Position & Attitude</a></li>
+                <li><a href="#colors" class="nav-link">Colors</a></li>
             </ul>
         </nav>
     
         <!-- Global Functions -->
-        <section style="background: #1e293b; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);" id="global-functions">
-            <h2 style="color: #60a5fa; font-size: 2rem; margin: 0; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 2px solid #334155;">📚 Global Functions</h2>
+        <section class="section" id="global-functions">
+            <h2 class="section-title">📚 Global Functions</h2>
             
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">show(object)</code>
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">show(object_list)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Show the object in the scene</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">show(object)</div>
+                <div class="function-code">show(object_list)</div>
+                <div class="function-description">Show the object in the scene</div>
+                <div class="function-params">
                     • object: shape object - the shape to be shown<br>
                     • object_list: table - list of shape objects {obj1, obj2,...}
                 </div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">export_stl(filename)</code>
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">export_stl(filename, option)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Export the shape to STL file</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">export_stl(filename)</div>
+                <div class="function-code">export_stl(filename, option)</div>
+                <div class="function-description">Export the shape to STL file</div>
+                <div class="function-params">
                     • filename: string - path of the file to be exported<br>
                     • option: table - {type: "ascii"/"binary", radian: number}
                 </div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">export_step(filename)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Export the shape to STEP file</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">export_step(filename)</div>
+                <div class="function-description">Export the shape to STEP file</div>
+                <div class="function-params">
                     • filename: string - path of the file to be exported
                 </div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">export_iges(filename)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Export the shape to IGES file</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">export_iges(filename)</div>
+                <div class="function-description">Export the shape to IGES file</div>
+                <div class="function-params">
                     • filename: string - path of the file to be exported
                 </div>
             </div>
         </section>
     
         <!-- Shape Objects -->
-        <section style="background: #1e293b; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);" id="shape-objects">
-            <h2 style="color: #60a5fa; font-size: 2rem; margin: 0; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 2px solid #334155;">🔷 Shape Objects</h2>
+        <section class="section" id="shape-objects">
+            <h2 class="section-title">🔷 Shape Objects</h2>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape.new(filename)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Base class for all shapes</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">shape.new(filename)</div>
+                <div class="function-description">Base class for all shapes</div>
+                <div class="function-params">
                     • filename: string - path of file to load (*.step, *.stl)
                 </div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">box.new()</code>
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">box.new(x, y, z)</code>
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">box.new(other_box_obj)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Create a solid box (default: x=y=z=1)</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">box.new()</div>
+                <div class="function-code">box.new(x, y, z)</div>
+                <div class="function-code">box.new(other_box_obj)</div>
+                <div class="function-description">Create a solid box (default: x=y=z=1)</div>
+                <div class="function-params">
                     • x/y/z: number - diagonal from (0,0,0) to (x,y,z)
                 </div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">cylinder.new()</code>
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">cylinder.new(r, h)</code>
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">cylinder.new(other_cylinder_obj)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Create a solid cylinder (default: r=h=1)</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">cylinder.new()</div>
+                <div class="function-code">cylinder.new(r, h)</div>
+                <div class="function-code">cylinder.new(other_cylinder_obj)</div>
+                <div class="function-description">Create a solid cylinder (default: r=h=1)</div>
+                <div class="function-params">
                     • r: number - radius<br>
                     • h: number - height
                 </div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">cone.new()</code>
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">cone.new(r1, r2, h)</code>
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">cone.new(other_cone_obj)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Create a solid cone (default: r1=r2=h=1)</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">cone.new()</div>
+                <div class="function-code">cone.new(r1, r2, h)</div>
+                <div class="function-code">cone.new(other_cone_obj)</div>
+                <div class="function-description">Create a solid cone (default: r1=r2=h=1)</div>
+                <div class="function-params">
                     • r1: number - bottom radius<br>
                     • r2: number - top radius<br>
                     • h: number - height
                 </div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">sphere.new()</code>
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">sphere.new(r)</code>
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">sphere.new(other_sphere_obj)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Create a solid sphere (default: r=1)</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">sphere.new()</div>
+                <div class="function-code">sphere.new(r)</div>
+                <div class="function-code">sphere.new(other_sphere_obj)</div>
+                <div class="function-description">Create a solid sphere (default: r=1)</div>
+                <div class="function-params">
                     • r: number - radius
                 </div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">edge.new(type, vec1, vec2)</code>
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">edge.new(type, vec1, vec2, r1)</code>
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">edge.new(type, vec1, vec2, r1, r2)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Create an edge</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">edge.new(type, vec1, vec2)</div>
+                <div class="function-code">edge.new(type, vec1, vec2, r1)</div>
+                <div class="function-code">edge.new(type, vec1, vec2, r1, r2)</div>
+                <div class="function-description">Create an edge</div>
+                <div class="function-params">
                     • type: string - lin/circ/elips/hypr/parab<br>
                     • vec1: table - {x, y, z} point3d<br>
                     • vec2: table - {x, y, z} dir3d<br>
@@ -143,217 +381,223 @@
                 </div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">wire.new(list)</code>
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">wire.new(other_wire_obj)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Create a wire</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">wire.new(list)</div>
+                <div class="function-code">wire.new(other_wire_obj)</div>
+                <div class="function-description">Create a wire</div>
+                <div class="function-params">
                     • list: table - {wire_or_edge_obj1, wire_or_edge_obj2, ...}
                 </div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">polygon.new(list_point_3d)</code>
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">polygon.new(other_polygon_obj)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Create a polygon wire</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">polygon.new(list_point_3d)</div>
+                <div class="function-code">polygon.new(other_polygon_obj)</div>
+                <div class="function-description">Create a polygon wire</div>
+                <div class="function-params">
                     • list_point_3d: table - {{x1, y1, z1}, {x2, y2, z2}, ...}
                 </div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">face.new(shape_object)</code>
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">face.new(other_face_obj)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Create a face from wire, edge or polygon</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">face.new(shape_object)</div>
+                <div class="function-code">face.new(other_face_obj)</div>
+                <div class="function-description">Create a face from wire, edge or polygon</div>
+                <div class="function-params">
                     • shape_object: shape - wire, edge or polygon to convert
                 </div>
             </div>
         </section>
     
         <!-- Shape Functions -->
-        <section style="background: #1e293b; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);" id="shape-functions">
-            <h2 style="color: #60a5fa; font-size: 2rem; margin: 0; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 2px solid #334155;">⚙️ Shape Functions</h2>
+        <section class="section" id="shape-functions">
+            <h2 class="section-title">⚙️ Shape Functions</h2>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:type()</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Return the type of shape</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">shape:type()</div>
+                <div class="function-description">Return the type of shape</div>
+                <div class="function-params">
                     Returns: 'vertex', 'edge', 'face', 'shell', 'wire', 'solid', 'compound'
                 </div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:copy()</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Return a copied shape</div>
+            <div class="function-block">
+                <div class="function-code">shape:copy()</div>
+                <div class="function-description">Return a copied shape</div>
             </div>
     
-            <h3 style="color: #3b82f6; font-size: 1.5rem; margin: 1.5rem 0 1rem 0;" id="boolean-ops">Boolean Operations</h3>
+            <h3 class="subsection-title" id="boolean-ops">Boolean Operations</h3>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:fuse(other_shape_object)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Fusion operation (union)</div>
+            <div class="function-block">
+                <div class="function-code">shape:fuse(other_shape_object)</div>
+                <div class="function-description">Fusion operation (union)</div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:cut(other_shape_object)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Cutting operation (difference set)</div>
+            <div class="function-block">
+                <div class="function-code">shape:cut(other_shape_object)</div>
+                <div class="function-description">Cutting operation (difference set)</div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:common(other_shape_object)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Intersection operation</div>
+            <div class="function-block">
+                <div class="function-code">shape:common(other_shape_object)</div>
+                <div class="function-description">Intersection operation</div>
             </div>
     
-            <h3 style="color: #3b82f6; font-size: 1.5rem; margin: 1.5rem 0 1rem 0;" id="geometric-trans">Geometric Transformation</h3>
+            <h3 class="subsection-title" id="geometric-trans">Geometric Transformation</h3>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:fillet(radius, conditions)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Rounded corner operation</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">shape:fillet(radius, conditions)</div>
+                <div class="function-description">Rounded corner operation</div>
+                <div class="function-params">
                     • radius: number - fillet radius<br>
                     • conditions: table - {type, dir, min/max}
                 </div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:chamfer(distance, conditions)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Chamfering operation</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">shape:chamfer(distance, conditions)</div>
+                <div class="function-description">Chamfering operation</div>
+                <div class="function-params">
                     • distance: number - chamfer distance<br>
                     • conditions: table - conditions for chamfering
                 </div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:prism(x, y, z)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Stretching operation</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">shape:prism(x, y, z)</div>
+                <div class="function-description">Stretching operation</div>
+                <div class="function-params">
                     • x/y/z: number - stretch dimensions
                 </div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:revol(pos, dir, angle)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Rotation body generation operation</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">shape:revol(pos, dir, angle)</div>
+                <div class="function-description">Rotation body generation operation</div>
+                <div class="function-params">
                     • pos: array3 - position point of rotation axis<br>
                     • dir: array3 - direction vector of rotation axis<br>
                     • angle: number - rotation angle (degree)
                 </div>
             </div>
     
-            <h3 style="color: #3b82f6; font-size: 1.5rem; margin: 1.5rem 0 1rem 0;" id="position-adjust">Position and Attitude Adjustment</h3>
-    
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:x(x)</code>
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:y(y)</code>
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:z(z)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Set position on single axis</div>
+            <div class="function-block">
+                <div class="function-code">shape:scale(factor)</div>
+                <div class="function-description">Scaling shape</div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:rx(x)</code>
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:ry(y)</code>
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:rz(z)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Set rotation on single axis</div>
+            <h3 class="subsection-title" id="position-adjust">Position and Attitude Adjustment</h3>
+    
+            <div class="function-block">
+                <div class="function-code">shape:x(x)</div>
+                <div class="function-code">shape:y(y)</div>
+                <div class="function-code">shape:z(z)</div>
+                <div class="function-description">Set position on single axis</div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:pos(x, y, z)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Set absolute position</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">shape:rx(x)</div>
+                <div class="function-code">shape:ry(y)</div>
+                <div class="function-code">shape:rz(z)</div>
+                <div class="function-description">Set rotation on single axis</div>
+            </div>
+    
+            <div class="function-block">
+                <div class="function-code">shape:pos(x, y, z)</div>
+                <div class="function-description">Set absolute position</div>
+                <div class="function-params">
                     • x/y/z: number - position coordinates
                 </div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:rot(rx, ry, rz)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Set absolute rotation angle</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">shape:rot(rx, ry, rz)</div>
+                <div class="function-description">Set absolute rotation angle</div>
+                <div class="function-params">
                     • rx/ry/rz: number - rotation angles (degree)
                 </div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:move(type, x, y, z)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Relative translation or rotation</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">shape:move(type, x, y, z)</div>
+                <div class="function-description">Relative translation or rotation</div>
+                <div class="function-params">
                     • type: string - 'pos' or 'rot'<br>
                     • x/y/z: number - translation distance or rotation angle
                 </div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:color(name_or_hex)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Set shape color</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">shape:color(name_or_hex)</div>
+                <div class="function-description">Set shape color</div>
+                <div class="function-params">
                     • name_or_hex: string - color name or hex value
                 </div>
             </div>
     
-            <div style="background: #0f172a; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1rem; margin: 1rem 0; transition: all 0.3s ease;">
-                <code style="display: block; margin-bottom: 0.5rem; background: transparent; border: none; color: #60a5fa; font-size: 1em; font-family: 'Fira Code', 'Consolas', monospace;">shape:transparency(value)</code>
-                <div style="color: #cbd5e1; margin-top: 0.5rem; line-height: 1.5;">Set shape transparency</div>
-                <div style="margin-top: 0.5rem; padding-left: 1rem; color: #cbd5e1; font-size: 0.95em;">
+            <div class="function-block">
+                <div class="function-code">shape:transparency(value)</div>
+                <div class="function-description">Set shape transparency</div>
+                <div class="function-params">
                     • value: number - 0.0 to 1.0
                 </div>
             </div>
         </section>
     
         <!-- Colors -->
-        <section style="background: #1e293b; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);" id="colors">
-            <h2 style="color: #60a5fa; font-size: 2rem; margin: 0; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 2px solid #334155;">🎨 Color Names</h2>
-            <p>Color names are derived from the OpenCASCADE Quantity_NameOfColor enum.</p>
-            <p>Reference: <a href="https://dev.opencascade.org/doc/refman/html/_quantity___name_of_color_8hxx.html" target="_blank" style="color: #60a5fa;">OpenCASCADE Documentation</a></p>
+        <section class="section" id="colors">
+            <h2 class="section-title">🎨 Color Names</h2>
+            <p class="color-info">Color names are derived from the OpenCASCADE Quantity_NameOfColor enum.</p>
+            <p class="color-info">Reference: <a href="https://dev.opencascade.org/doc/refman/html/_quantity___name_of_color_8hxx.html" target="_blank" class="color-link">OpenCASCADE Documentation</a></p>
             
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem;">
-                <div style="background: #0f172a; padding: 1rem; border-radius: 8px; text-align: center; transition: transform 0.3s ease;">
-                    <div style="width: 50px; height: 50px; background: red; margin: 0 auto; border-radius: 8px;"></div>
-                    <code style="background: #0f172a; color: #10b981; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: 'Fira Code', 'Consolas', monospace; font-size: 0.9em; border: 1px solid #334155;">red</code>
+            <div class="color-grid">
+                <div class="color-item">
+                    <div class="color-square color-red"></div>
+                    <code class="color-code">red</code>
                 </div>
-                <div style="background: #0f172a; padding: 1rem; border-radius: 8px; text-align: center; transition: transform 0.3s ease;">
-                    <div style="width: 50px; height: 50px; background: green; margin: 0 auto; border-radius: 8px;"></div>
-                    <code style="background: #0f172a; color: #10b981; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: 'Fira Code', 'Consolas', monospace; font-size: 0.9em; border: 1px solid #334155;">green</code>
+                <div class="color-item">
+                    <div class="color-square color-green"></div>
+                    <code class="color-code">green</code>
                 </div>
-                <div style="background: #0f172a; padding: 1rem; border-radius: 8px; text-align: center; transition: transform 0.3s ease;">
-                    <div style="width: 50px; height: 50px; background: blue; margin: 0 auto; border-radius: 8px;"></div>
-                    <code style="background: #0f172a; color: #10b981; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: 'Fira Code', 'Consolas', monospace; font-size: 0.9em; border: 1px solid #334155;">blue</code>
+                <div class="color-item">
+                    <div class="color-square color-blue"></div>
+                    <code class="color-code">blue</code>
                 </div>
-                <div style="background: #0f172a; padding: 1rem; border-radius: 8px; text-align: center; transition: transform 0.3s ease;">
-                    <div style="width: 50px; height: 50px; background: yellow; margin: 0 auto; border-radius: 8px;"></div>
-                    <code style="background: #0f172a; color: #10b981; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: 'Fira Code', 'Consolas', monospace; font-size: 0.9em; border: 1px solid #334155;">yellow</code>
+                <div class="color-item">
+                    <div class="color-square color-yellow"></div>
+                    <code class="color-code">yellow</code>
                 </div>
-                <div style="background: #0f172a; padding: 1rem; border-radius: 8px; text-align: center; transition: transform 0.3s ease;">
-                    <div style="width: 50px; height: 50px; background: cyan; margin: 0 auto; border-radius: 8px;"></div>
-                    <code style="background: #0f172a; color: #10b981; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: 'Fira Code', 'Consolas', monospace; font-size: 0.9em; border: 1px solid #334155;">cyan</code>
+                <div class="color-item">
+                    <div class="color-square color-cyan"></div>
+                    <code class="color-code">cyan</code>
                 </div>
-                <div style="background: #0f172a; padding: 1rem; border-radius: 8px; text-align: center; transition: transform 0.3s ease;">
-                    <div style="width: 50px; height: 50px; background: magenta; margin: 0 auto; border-radius: 8px;"></div>
-                    <code style="background: #0f172a; color: #10b981; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: 'Fira Code', 'Consolas', monospace; font-size: 0.9em; border: 1px solid #334155;">magenta</code>
+                <div class="color-item">
+                    <div class="color-square color-magenta"></div>
+                    <code class="color-code">magenta</code>
                 </div>
-                <div style="background: #0f172a; padding: 1rem; border-radius: 8px; text-align: center; transition: transform 0.3s ease;">
-                    <div style="width: 50px; height: 50px; background: black; margin: 0 auto; border-radius: 8px;"></div>
-                    <code style="background: #0f172a; color: #10b981; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: 'Fira Code', 'Consolas', monospace; font-size: 0.9em; border: 1px solid #334155;">black</code>
+                <div class="color-item">
+                    <div class="color-square color-black"></div>
+                    <code class="color-code">black</code>
                 </div>
-                <div style="background: #0f172a; padding: 1rem; border-radius: 8px; text-align: center; transition: transform 0.3s ease;">
-                    <div style="width: 50px; height: 50px; background: white; margin: 0 auto; border-radius: 8px;"></div>
-                    <code style="background: #0f172a; color: #10b981; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: 'Fira Code', 'Consolas', monospace; font-size: 0.9em; border: 1px solid #334155;">white</code>
+                <div class="color-item">
+                    <div class="color-square color-white"></div>
+                    <code class="color-code">white</code>
                 </div>
-                <div style="background: #0f172a; padding: 1rem; border-radius: 8px; text-align: center; transition: transform 0.3s ease;">
-                    <div style="width: 50px; height: 50px; background: gray; margin: 0 auto; border-radius: 8px;"></div>
-                    <code style="background: #0f172a; color: #10b981; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: 'Fira Code', 'Consolas', monospace; font-size: 0.9em; border: 1px solid #334155;">gray</code>
+                <div class="color-item">
+                    <div class="color-square color-gray"></div>
+                    <code class="color-code">gray</code>
                 </div>
-                <div style="background: #0f172a; padding: 1rem; border-radius: 8px; text-align: center; transition: transform 0.3s ease;">
-                    <div style="width: 50px; height: 50px; background: lightgray; margin: 0 auto; border-radius: 8px;"></div>
-                    <code style="background: #0f172a; color: #10b981; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: 'Fira Code', 'Consolas', monospace; font-size: 0.9em; border: 1px solid #334155;">lightgray</code>
+                <div class="color-item">
+                    <div class="color-square color-lightgray"></div>
+                    <code class="color-code">lightgray</code>
                 </div>
             </div>
-            <p style="margin-top: 1rem; color: #cbd5e1;">And many more colors available...</p>
+            <p class="color-info">And many more colors available...</p>
         </section>
     </div>
     
     <!-- Back to Top Button -->
-    <a href="#navigation" style="position: fixed; bottom: 30px; right: 30px; background: #2563eb; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3); transition: all 0.3s ease; z-index: 1000;">↑</a>
+    <br>
+    <a href="#navigation" class="back-to-top">↑</a>
 </body>
 </html>

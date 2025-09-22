@@ -8,6 +8,10 @@
 #include <QAbstractItemView>
 #include <QCompleter>
 #include <QDateTime>
+#include <QHeaderView>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QJsonParseError>
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QSettings>
@@ -20,7 +24,7 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
                                               jy_3d_widget(new Jy3DWidget),
                                               watcher(new QFileSystemWatcher),
                                               lvm(new JyLuaVirtualMachine),
-                                              search_widget(new SearchWidget),
+                                              search_widget(new JySearchWidget),
                                               code_editor(new JyCodeEditor) {
     setWindowTitle("Unnamed - JellyCAD");
     const QString default_dir = QApplication::applicationDirPath() + "/scripts";// 默认当前文件目录为应用程序目录下的scripts文件夹
@@ -53,15 +57,10 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     layout_editor_group->addWidget(search_widget);
     widget_editor_group->setLayout(layout_editor_group);
 
-    // 文本搜索框
-    QShortcut *searchShortcut = new QShortcut(QKeySequence::Find, this);
-    connect(searchShortcut, &QShortcut::activated, this, &JyMainWindow::showSearchWidget);
-    QShortcut *escShortcut = new QShortcut(Qt::Key_Escape, search_widget);
-    connect(escShortcut, &QShortcut::activated, this, &JyMainWindow::hideSearchWidget);
-    connect(search_widget, &SearchWidget::findNext, this, &JyMainWindow::findNext);
-    connect(search_widget, &SearchWidget::findPrevious, this, &JyMainWindow::findPrevious);
-    connect(search_widget, &SearchWidget::searchTextChanged, this, &JyMainWindow::onSearchTextChanged);
-    connect(search_widget, &SearchWidget::closed, this, &JyMainWindow::hideSearchWidget);
+    connect(search_widget, &JySearchWidget::findNext, this, &JyMainWindow::findNext);
+    connect(search_widget, &JySearchWidget::findPrevious, this, &JyMainWindow::findPrevious);
+    connect(search_widget, &JySearchWidget::searchTextChanged, this, &JyMainWindow::onSearchTextChanged);
+    connect(search_widget, &JySearchWidget::closed, this, &JyMainWindow::hideSearchWidget);
 
     //!< 终端
     auto widget_terminal = new QWidget;
@@ -83,30 +82,22 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
         qDebug() << "run lua cmd: " << script_text;
         text_lua_message->setTextColor(Qt::cyan);
         text_lua_message->append(script_text);
-        lvm->exec_code(script_text.toStdString());
+        lvm->exec_code(script_text);
         edit_lua_cmd->clear();
     });
-    connect(lvm, &JyLuaVirtualMachine::sig_show_message, [=](const QString &_result, const int &_type) {
-        // 日期时间 和等级
-        if (_type == -2) {
-            text_lua_message->setTextColor(Qt::red);
-        } else if (_type == -1) {
-            text_lua_message->setTextColor(Qt::red);
-            statusBar()->showMessage(_result);
-        } else if (_type == 1) {
-            text_lua_message->setTextColor(Qt::green);
-            statusBar()->showMessage(_result);
-        } else if (_type == 0) {
-            text_lua_message->setTextColor(Qt::gray);
-        } else {
-        }
-        text_lua_message->append(_result);
-    });
+    //!< 形状信息
+    auto widget_shape_info = new QWidget;
+    widget_shape_info->setLayout(new QVBoxLayout);
+    treeShapeInfo = new QTreeWidget;
+    treeShapeInfo->header()->hide();
+    connect(jy_3d_widget, &Jy3DWidget::selectedShapeInfo, this, &JyMainWindow::slot_shape_info);
+    widget_shape_info->layout()->addWidget(treeShapeInfo);
 
     //!< 工作台: PAGE1: 脚本编辑器  PAGE2: 终端 PAGE3: 帮助
     auto stack_widget = new QStackedWidget;
     stack_widget->addWidget(widget_editor_group);
     stack_widget->addWidget(widget_terminal);
+    stack_widget->addWidget(widget_shape_info);
     stack_widget->addWidget(new JyPageHelp);
     //!< 布局
     addToolBar(Qt::LeftToolBarArea, m_activity_bar);// 活动栏，放置在最左侧
@@ -116,16 +107,6 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     central_widget->addWidget(jy_3d_widget);
     setCentralWidget(central_widget);
     resize(800, 400);// 初始界面大小800x400
-    //!< 快捷键动作创建
-    auto *acton_save = new QAction;
-    acton_save->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_S));
-    addAction(acton_save);
-    auto *acton_new = new QAction;
-    acton_new->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_N));
-    addAction(acton_new);
-    auto *acton_open = new QAction;
-    acton_open->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_O));
-    addAction(acton_open);
     //!< 信号槽连接
     connect(watcher, &QFileSystemWatcher::fileChanged, this, &JyMainWindow::slot_file_changed);
     connect(m_activity_bar, &JyActivityBar::sig_set_side_bar_visible, stack_widget, &QStackedWidget::setVisible);
@@ -137,10 +118,28 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     connect(button_new, &QPushButton::clicked, this, &JyMainWindow::slot_button_new_clicked);
     connect(button_open, &QPushButton::clicked, this, &JyMainWindow::slot_button_open_clicked);
     connect(button_save, &QPushButton::clicked, this, &JyMainWindow::slot_button_save_clicked);
-    connect(acton_new, &QAction::triggered, button_new, &QPushButton::click);
-    connect(acton_open, &QAction::triggered, button_open, &QPushButton::click);
-    connect(acton_save, &QAction::triggered, button_save, &QPushButton::click);
-    connect(lvm, &JyLuaVirtualMachine::display, jy_3d_widget, &Jy3DWidget::display);
+    connect(lvm, &JyLuaVirtualMachine::display, jy_3d_widget, &Jy3DWidget::display, Qt::BlockingQueuedConnection);
+    connect(lvm, &JyLuaVirtualMachine::displayAxes, jy_3d_widget, &Jy3DWidget::displayAxes, Qt::BlockingQueuedConnection);
+    connect(lvm, &JyLuaVirtualMachine::scriptStarted, this, &JyMainWindow::onScriptStarted);
+    connect(lvm, &JyLuaVirtualMachine::scriptFinished, this, &JyMainWindow::onScriptFinished);
+    connect(lvm, &JyLuaVirtualMachine::scriptError, this, &JyMainWindow::onScriptError);
+    connect(lvm, &JyLuaVirtualMachine::scriptOutput, this, &JyMainWindow::onScriptOutput, Qt::BlockingQueuedConnection);
+
+    // 创建快捷键 ref:https://doc.qt.io/archives/qt-5.15/qkeysequence.html
+    QShortcut *findNextShortcut = new QShortcut(QKeySequence::FindNext, this);
+    connect(findNextShortcut, &QShortcut::activated, this, &JyMainWindow::findNext);
+    QShortcut *findPrevShortcut = new QShortcut(QKeySequence::FindPrevious, this);
+    connect(findPrevShortcut, &QShortcut::activated, this, &JyMainWindow::findPrevious);
+    QShortcut *searchShortcut = new QShortcut(QKeySequence::Find, this);
+    connect(searchShortcut, &QShortcut::activated, this, &JyMainWindow::showSearchWidget);
+    QShortcut *escShortcut = new QShortcut(Qt::Key_Escape, search_widget);
+    connect(escShortcut, &QShortcut::activated, this, &JyMainWindow::hideSearchWidget);
+    QShortcut *newShortcut = new QShortcut(QKeySequence::New, this);  // Ctrl+N
+    QShortcut *openShortcut = new QShortcut(QKeySequence::Open, this);// Ctrl+O
+    QShortcut *saveShortcut = new QShortcut(QKeySequence::Save, this);// Ctrl+S
+    connect(newShortcut, &QShortcut::activated, button_new, &QPushButton::click);
+    connect(openShortcut, &QShortcut::activated, button_open, &QPushButton::click);
+    connect(saveShortcut, &QShortcut::activated, button_save, &QPushButton::click);
 }
 
 void JyMainWindow::slot_file_changed(const QString &path) {
@@ -160,7 +159,7 @@ void JyMainWindow::slot_file_changed(const QString &path) {
         if (how_to_handle == 0) {
             QFile file_read(path);
             if (file_read.open(QIODevice::ReadOnly)) {
-                code_editor->setPlainText(file_read.readAll());
+                code_editor->set_text(file_read.readAll());
                 file_read.close();
                 code_editor->document()->setModified(false);
                 code_editor->modificationChanged(false);
@@ -175,7 +174,7 @@ void JyMainWindow::slot_file_changed(const QString &path) {
     const auto &str_prefix = QDateTime::currentDateTime().toString("[yyyy-MM-dd hh:mm:ss] ") + path;
     text_lua_message->setTextColor(Qt::white);
     text_lua_message->append(str_prefix);
-    lvm->run(path.toStdString());// 执行脚本
+    lvm->executeScript(path);// 执行脚本
 }
 
 void JyMainWindow::slot_button_new_clicked() {
@@ -202,7 +201,7 @@ void JyMainWindow::slot_button_open_clicked() {
     if (filename.isEmpty()) { return; }
     QFile file_read(filename);
     if (!file_read.open(QIODevice::ReadOnly)) { return; }
-    code_editor->setPlainText(file_read.readAll());
+    code_editor->set_text(file_read.readAll());
     if (!watcher->files().empty()) { watcher->removePaths(watcher->files()); }
     watcher->addPath(filename);
     file_read.close();
@@ -223,28 +222,19 @@ void JyMainWindow::slot_button_open_clicked() {
 
 void JyMainWindow::slot_button_save_clicked() {
     qDebug() << "[BUTTON]save";
-    QString save_filename;
-    const auto files = watcher->files();
-    if (files.empty()) {
+    QString save_filename = code_editor->getFilePath();
+    if (save_filename.isEmpty()) {
         // 文件空时，弹出保存对话框，创建文件
         QString default_filename = current_file_dir + "/unnamed";
         save_filename = QFileDialog::getSaveFileName(this, "save file", default_filename, "lua (*.lua)");
         if (save_filename.isEmpty()) { return; }
-    } else if (files.size() == 1) {
-        // 文件已打开，保存到打开的文件中
-        save_filename = files[0];
-    } else {
-        return;
     }
+    if (!watcher->files().empty()) { watcher->removePaths(watcher->files()); }// 清除观察文件
     QFile file_save(save_filename);
     if (!file_save.open(QIODevice::WriteOnly)) { return; }
     is_save_from_editor = true;// 标记为从编辑器保存
-    file_save.write(code_editor->toPlainText().toUtf8());
+    file_save.write(code_editor->get_text().toUtf8());
     file_save.close();
-    if (files.empty()) {
-        watcher->addPath(save_filename);
-        this->slot_file_changed(save_filename);
-    }
     code_editor->document()->setModified(false);
     code_editor->setFilePath(save_filename);
     QDir dir(save_filename);
@@ -257,6 +247,72 @@ void JyMainWindow::slot_button_save_clicked() {
         settings->sync();// 确保立即写入
     }
     setWindowTitle(title + " - JellyCAD");
+    watcher->addPath(save_filename);
+    this->slot_file_changed(save_filename);
+}
+
+void JyMainWindow::addJsonValue(QTreeWidgetItem *parent, const QString &key, const QJsonValue &value) {
+    QTreeWidgetItem *item = new QTreeWidgetItem();
+
+    switch (value.type()) {
+        case QJsonValue::Object: {
+            item->setText(0, key + " {}");
+            QJsonObject obj = value.toObject();
+            for (auto it = obj.begin(); it != obj.end(); ++it) {
+                addJsonValue(item, it.key(), it.value());
+            }
+            break;
+        }
+        case QJsonValue::Array: {
+            QJsonArray array = value.toArray();
+            item->setText(0, key + " [" + QString::number(array.size()) + "]");
+            for (int i = 0; i < array.size(); ++i) {
+                addJsonValue(item, "[" + QString::number(i) + "]", array[i]);
+            }
+            break;
+        }
+        case QJsonValue::String:
+            item->setText(0, key + ": \"" + value.toString() + "\"");
+            break;
+        case QJsonValue::Double:
+            item->setText(0, key + ": " + QString::number(value.toDouble()));
+            break;
+        case QJsonValue::Bool:
+            item->setText(0, key + ": " + (value.toBool() ? "true" : "false"));
+            break;
+        case QJsonValue::Null:
+            item->setText(0, key + ": null");
+            break;
+        default:
+            item->setText(0, key + ": undefined");
+            break;
+    }
+    if (parent) {
+        parent->addChild(item);
+    } else {
+        treeShapeInfo->addTopLevelItem(item);
+    }
+}
+void JyMainWindow::slot_shape_info(const QString &info) {
+    treeShapeInfo->clear();
+    QJsonParseError error;
+    QJsonDocument doc = QJsonDocument::fromJson(info.toUtf8(), &error);
+    if (error.error != QJsonParseError::NoError) {
+        QMessageBox::warning(this, "JSON 解析错误", "错误位置: " + QString::number(error.offset) + "\n" + "错误信息: " + error.errorString());
+        return;
+    }
+    if (doc.isObject()) {
+        QJsonObject obj = doc.object();
+        for (auto it = obj.begin(); it != obj.end(); ++it) {
+            addJsonValue(nullptr, it.key(), it.value());
+        }
+    } else if (doc.isArray()) {
+        QJsonArray array = doc.array();
+        for (int i = 0; i < array.size(); ++i) {
+            addJsonValue(nullptr, "[" + QString::number(i) + "]", array[i]);
+        }
+    }
+    treeShapeInfo->expandAll();
 }
 
 void JyMainWindow::closeEvent(QCloseEvent *event) {
@@ -358,5 +414,49 @@ void JyMainWindow::performSearch(bool backward) {
         search_widget->setFoundStatus(true);
     } else {
         search_widget->setFoundStatus(false);
+    }
+}
+
+void JyMainWindow::onScriptStarted(const QString &fileName) {
+    // 创建进度对话框
+    m_progressDialog = new QProgressDialog("正在执行脚本...", "终止脚本", 0, 0, this);
+    m_progressDialog->setWindowModality(Qt::WindowModal);
+    m_progressDialog->setMinimumDuration(200);
+    // 连接终止按钮
+    connect(m_progressDialog, &QProgressDialog::canceled, this, &JyMainWindow::onStopScript);
+    m_progressDialog->setValue(0);
+}
+
+void JyMainWindow::onScriptFinished(const QString &message) {
+    if (m_progressDialog) {
+        m_progressDialog->close();
+        m_progressDialog->deleteLater();
+        m_progressDialog = nullptr;
+    }
+    if (message.isEmpty()) return;
+    statusBar()->showMessage(message);
+    text_lua_message->setTextColor(Qt::green);
+    text_lua_message->append(message);
+}
+
+void JyMainWindow::onScriptError(const QString &error) {
+    if (m_progressDialog) {
+        m_progressDialog->close();
+        m_progressDialog->deleteLater();
+        m_progressDialog = nullptr;
+    }
+    statusBar()->showMessage(error);
+    text_lua_message->setTextColor(Qt::red);
+    text_lua_message->append(error);
+}
+
+void JyMainWindow::onScriptOutput(const QString &output) {
+    text_lua_message->setTextColor(Qt::gray);
+    text_lua_message->append(output);
+}
+
+void JyMainWindow::onStopScript() {
+    if (lvm && lvm->isRunning()) {
+        lvm->stopScript();
     }
 }

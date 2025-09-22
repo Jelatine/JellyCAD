@@ -27,12 +27,6 @@
             "italic": true
         },
         {
-            "name": "string",
-            "pattern": "\"([^\\\\\"]|\\\\.)*\"|'([^\\\\']|\\\\.)*'|\\[\\[([^\\]]|\\](?!\\]))*\\]\\]|\\[=+\\[([^\\]]|\\](?!=+\\]))*\\]=+\\]",
-            "color": "#CE9178",
-            "italic": false
-        },
-        {
             "name": "number",
             "pattern": "\\b[0-9]+\\.?[0-9]*([eE][+-]?[0-9]+)?\\b|\\b0[xX][0-9a-fA-F]+(\\.?[0-9a-fA-F]*)?([pP][+-]?[0-9]+)?\\b",
             "color": "#B5CEA8"
@@ -61,13 +55,19 @@
             "italic": true
         },
         {
+            "name": "string",
+            "pattern": "\"([^\\\\\"]|\\\\.)*\"|'([^\\\\']|\\\\.)*'|\\[\\[([^\\]]|\\](?!\\]))*\\]\\]|\\[=+\\[([^\\]]|\\](?!=+\\]))*\\]=+\\]",
+            "color": "#CE9178",
+            "italic": false
+        },
+        {
             "name": "custom_function",
-            "pattern": ":(type|fuse|cut|common|fillet|chamfer|x|y|z|rx|ry|rz|pos|rot|translate|rotate|locate|color|transparency|prism|revol)\\s*(?=\\()",
+            "pattern": ":(type|fuse|cut|common|fillet|chamfer|scale|x|y|z|rx|ry|rz|pos|rot|translate|rotate|locate|color|transparency|prism|revol|show|export_stl|export_step|export_iges|mass|copy|next|add|export)\\s*(?=\\()",
             "color": "#3466f6"
         },
         {
             "name": "custom_classes",
-            "pattern": "\\b(shape|box|cylinder|cone|sphere|edge|wire|polygon|face)\\b",
+            "pattern": "\\b(shape|box|cylinder|cone|sphere|torus|wedge|edge|wire|polygon|face|text|axes|link|joint)\\b",
             "color": "#c679b3"
         },
         {

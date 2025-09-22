@@ -73,7 +73,7 @@ export_iges(filename)
 
 ### 基础形状
 
-#### **`shape.new()`** - 基础形状类
+#### **`shape`** - 基础形状类
 ```lua
 shape.new(filename)  -- 从文件加载（支持 *.step, *.stl）
 ```
@@ -82,7 +82,7 @@ shape.new(filename)  -- 从文件加载（支持 *.step, *.stl）
 
 ---
 
-#### **`box.new()`** - 长方体
+#### **`box`** - 长方体
 ```lua
 box.new()              -- 默认: x=y=z=1
 box.new(x, y, z)       -- 自定义尺寸
@@ -99,7 +99,7 @@ local rect = box.new(2, 1, 0.5)  -- 长方体
 
 ---
 
-#### **`cylinder.new()`** - 圆柱体
+#### **`cylinder`** - 圆柱体
 ```lua
 cylinder.new()            -- 默认: r=h=1
 cylinder.new(r, h)        -- 自定义尺寸
@@ -111,20 +111,21 @@ cylinder.new(other_cyl)   -- 复制构造
 
 ---
 
-#### **`cone.new()`** - 圆锥/圆台
+#### **`cone`** - 圆锥/圆台
 ```lua
-cone.new()                -- 默认: r1=r2=h=1
+cone.new()                -- 默认: r1=1,r2=0,h=1
 cone.new(r1, r2, h)       -- 自定义尺寸
 cone.new(other_cone)      -- 复制构造
 ```
 **参数：**
+
 - `r1` - *number* - 底部半径
 - `r2` - *number* - 顶部半径（r2=0 为圆锥）
 - `h` - *number* - 高度
 
 ---
 
-#### **`sphere.new()`** - 球体
+#### **`sphere`** - 球体
 ```lua
 sphere.new()              -- 默认: r=1
 sphere.new(r)             -- 自定义半径
@@ -133,11 +134,42 @@ sphere.new(other_sphere)  -- 复制构造
 **参数：**
 - `r` - *number* - 半径
 
+#### **`torus`** - 圆环
+
+```lua
+torus.new()              -- 默认: R1=2,R2=1,angle=360
+torus.new(R1, R2, angle)
+torus.new(other_torus)
+```
+
+**参数：**
+
+- `R1` - *number* - 从管道中心到环面中心的距离
+- `R2` - *number* - 管道半径
+- `angle` - *number* - 角度(deg)
+
+#### **`wedge`** - 楔形
+
+```lua
+wedge.new()              -- 默认: dx=dy=dz=1,ltx=0
+wedge.new(dx, dy, dz, ltx)
+wedge.new(dx, dy, dz, xmin, zmin, xmax, zmax)
+wedge.new(other_wedge)
+```
+
+**参数：**
+
+- `dx, dy, dz` - *number* - 各个方向的长度
+- `ltx` - *number* - 楔形中心到X轴的距离
+- `xmin, zmin, xmax, zmax` - *number* - 面在`dy`的最大最小值
+
+
+
 ---
 
 ### 高级形状
 
-#### **`edge.new()`** - 边缘
+#### **`edge`** - 边缘
 ```lua
 edge.new(type, vec1, vec2)
 edge.new(type, vec1, vec2, r1)
@@ -159,7 +191,7 @@ edge.new(other_edge)
 
 ---
 
-#### **`wire.new()`** - 线框
+#### **`wire`** - 线框
 ```lua
 wire.new(list)         -- 从边缘列表创建
 wire.new(other_wire)   -- 复制构造
@@ -169,7 +201,7 @@ wire.new(other_wire)   -- 复制构造
 
 ---
 
-#### **`polygon.new()`** - 多边形
+#### **`polygon`** - 多边形
 ```lua
 polygon.new(point_list)     -- 从点列表创建
 polygon.new(other_polygon)  -- 复制构造
@@ -178,6 +210,7 @@ polygon.new(other_polygon)  -- 复制构造
 - `point_list` - *table* - 3D点列表 `{point1, point2, ...}`, 其中point:`{x,y,z}`
 
 **示例：**
+
 ```lua
 local triangle = polygon.new({
     {0, 0, 0},
@@ -188,13 +221,31 @@ local triangle = polygon.new({
 
 ---
 
-#### **`face.new()`** - 面
+#### **`face`** - 面
 ```lua
 face.new(shape_object)  -- 从线框/边缘/多边形创建面
 face.new(other_face)    -- 复制构造
 ```
 **参数：**
 - `shape_object` - *shape* - wire、edge 或 polygon 对象
+
+#### **`text`** - 文本
+
+```lua
+text.new(str)
+text.new(str, size)
+```
+
+**参数：**
+
+- `str` - *string* - 要显示的文本内容
+- `size` - *number* - 字体大小
+
+**示例：**
+
+```lua
+text.new('hello', 1):x(2):show()
+```
 
 ---
 
@@ -336,6 +387,7 @@ obj:move("rot", 0, 90, 0)     -- 绕Y轴再旋转90度
 shape:color(name_or_hex)
 ```
 **参数：**
+
 - `name_or_hex` - *string* - 颜色名称或十六进制值
 
 **示例：**
@@ -376,6 +428,88 @@ shape:transparency(value)
 > 📖 **更多颜色：** 完整颜色列表请参考 [OpenCASCADE 文档](https://dev.opencascade.org/doc/refman/html/_quantity___name_of_color_8hxx.html)
 
 ---
+
+## 📍坐标系
+
+#### **`axes`** - 坐标系类
+
+```lua
+axes.new(pose, length)
+```
+
+**说明：**
+
+用于URDF导出时，配置关节`joint`位姿
+
+**参数：**
+
+- `pose` - *array* - 位姿数组，6个数据分别为位置`x,y,z`和RPY姿态`rx,ry,rz`(角度)
+- `length` - number - 所有坐标轴长度(用于显示效果)
+
+**方法：**
+
+- `show()` - 显示坐标系到界面中
+
+**示例：**
+
+```lua
+j1 = axes.new({ 0, 0, 2.5, 90, 0, 0 }, 3)
+j1:show()
+```
+
+## 🤖URDF导出
+
+有两个相关类`link`和`joint`
+
+#### **`link`** - 连杆类
+
+```lua
+link.new(name, shape)
+link.new(name, shape_list)
+```
+
+**参数：**
+
+- `name` - *string* - 连杆名称
+- `shape` - shape - 形状
+- `shape_list` - table - 形状列表
+
+**方法：**
+
+- `add(j)` - `j`参数为`joint`对象，增加指定关节到连杆中
+- `export(params)` - 生成一个ROS2的URDF包，`params`参数是一个`table`，内容为{name， path}，name[string]为机器人名称，path[string]为导出路径
+
+#### **`joint`** - 关节类
+
+```lua
+link.new(name, axes, type, limits)
+```
+
+**参数：**
+
+- `name` - *string* - 关节名称
+- `axes` - *axes* - 坐标系
+- `type` - *string* - 关节类型：`fixed, revolute, continuous, prismatic, floating, planar`
+- `limits` - *table* - 关节限制：`lower, upper, effort, velocity`，全为number
+
+**示例：**
+
+```lua
+bx = box.new():color('green')
+b1 = cylinder.new()
+link1 = b1:copy():pos(0, 0, 2):color('#456789')
+link2 = b1:copy():pos(0, 0, 3):color('#987654')
+j1 = axes.new({ 0, 0, 2.5, 90, 0, 0 }, 3)
+j2 = axes.new({ 0, 0, 3.5, 90, 0, 0 }, 3)
+j1:show()
+j2:show()
+bx:mass(1) -- 组合形状时可以设置各自的质量
+b1:mass(2)
+show({bx,b1,link1,link2})
+urdf = link.new("base", { bx, b1 })
+urdf:add("joint1", j1, "revolute"):next('link1', link1):add("joint2", j2, "revolute"):next('link2', link2)
+urdf:export({name='myrobot', path="d:/"})
+```
 
 ## 💡 使用示例
 

@@ -12,15 +12,20 @@
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakePolygon.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
+#include <BRepBuilderAPI_Transform.hxx>
 #include <BRepFilletAPI_MakeChamfer.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepGProp.hxx>
+#include <BRepMesh_IncrementalMesh.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
 #include <BRepPrimAPI_MakeCone.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRepPrimAPI_MakeRevol.hxx>
 #include <BRepPrimAPI_MakeSphere.hxx>
+#include <BRepPrimAPI_MakeTorus.hxx>
+#include <BRepPrimAPI_MakeWedge.hxx>
+#include <Font_BRepTextBuilder.hxx>
 #include <GProp_GProps.hxx>
 #include <Geom_Line.hxx>
 #include <IGESControl_Writer.hxx>
@@ -208,6 +213,11 @@ JyShape &JyShape::move(const std::string &_move_type, const double &_x, const do
     return *this;
 }
 
+JyShape &JyShape::zero() {
+    pos(0, 0, 0);
+    return rot(0, 0, 0);
+}
+
 JyShape &JyShape::locate_base(const LocateType &_type, const double &_x, const double &_y, const double &_z, const bool &_abs) {
     gp_Trsf transformation = _abs ? s_.Location().Transformation() : gp_Trsf();
     gp_XYZ pos;
@@ -282,6 +292,14 @@ JyShape &JyShape::revol(const std::array<double, 3> _pos, const std::array<doubl
     return *this;
 }
 
+JyShape &JyShape::scale(const double &factor) {
+    gp_Trsf transformation;
+    transformation.SetScale(gp_Pnt(0, 0, 0), factor);
+    BRepBuilderAPI_Transform transformer(s_, transformation);
+    s_ = transformer.Shape();
+    return *this;
+}
+
 JyShape &JyShape::color(const std::string &_name_or_hex) {
     if (s_.IsNull()) { return *this; }
     Quantity_Color target_color;
@@ -322,8 +340,11 @@ void JyShape::export_stl(const std::string &_filename, const sol::table &_opt) c
         } else if (type_name == "binary") {
             theAsciiMode = Standard_False;
         } else {
+            throw std::runtime_error("Invalid type!");
         }
     }
+    const double theLinDeflection = (_opt && _opt["radian"].is<double>()) ? _opt["radian"] : 0.1;
+    BRepMesh_IncrementalMesh aMesh(s_, theLinDeflection);
     if (StlAPI::Write(s_, _filename.c_str(), theAsciiMode)) { return; }// 成功
     throw std::runtime_error("Failed to export stl!");
 }
@@ -344,7 +365,29 @@ void JyShape::export_iges(const std::string &_filename) const {
     throw std::runtime_error("Failed to export IGES!");
 }
 
-double JyShape::group_mass_properties(const std::vector<JyShape> &_shapes) {
+std::array<double, 4> JyShape::rgba() const {
+    return {color_.Red(), color_.Green(), color_.Blue(), (1.0 - transparency_)};
+}
+
+InertialProperties JyShape::inertial(const JyShape &_shape) {
+    GProp_GProps props;
+    BRepGProp::VolumeProperties(_shape.s_, props);
+    gp_Pnt centerOfMass = props.CentreOfMass();
+    gp_Mat inertiaMatrix = props.MatrixOfInertia();
+    Standard_Real Ixx, Iyy, Izz, Ixy, Ixz, Iyz;
+    Ixx = inertiaMatrix.Value(1, 1);
+    Iyy = inertiaMatrix.Value(2, 2);
+    Izz = inertiaMatrix.Value(3, 3);
+    Ixy = inertiaMatrix.Value(1, 2);
+    Ixz = inertiaMatrix.Value(1, 3);
+    Iyz = inertiaMatrix.Value(2, 3);
+    return {
+            props.Mass(),
+            {centerOfMass.X(), centerOfMass.Y(), centerOfMass.Z()},
+            {Ixx, Iyy, Izz, Ixy, Ixz, Iyz}};
+}
+
+InertialProperties JyShape::inertial(const std::vector<JyShape> &_shapes) {
     GProp_GProps system;
     for (const auto &shape: _shapes) {
         if (shape.s_.IsNull()) { continue; }
@@ -352,7 +395,19 @@ double JyShape::group_mass_properties(const std::vector<JyShape> &_shapes) {
         BRepGProp::VolumeProperties(shape.s_, one_system);
         system.Add(one_system, shape.density_);
     }
-    return system.Mass();
+    gp_Pnt centerOfMass = system.CentreOfMass();
+    gp_Mat inertiaMatrix = system.MatrixOfInertia();
+    Standard_Real Ixx, Iyy, Izz, Ixy, Ixz, Iyz;
+    Ixx = inertiaMatrix.Value(1, 1);
+    Iyy = inertiaMatrix.Value(2, 2);
+    Izz = inertiaMatrix.Value(3, 3);
+    Ixy = inertiaMatrix.Value(1, 2);
+    Ixz = inertiaMatrix.Value(1, 3);
+    Iyz = inertiaMatrix.Value(2, 3);
+    return {
+            system.Mass(),
+            {centerOfMass.X(), centerOfMass.Y(), centerOfMass.Z()},
+            {Ixx, Iyy, Izz, Ixy, Ixz, Iyz}};
 }
 
 JyShapeBox::JyShapeBox(const double &_x, const double &_y, const double &_z) {
@@ -367,6 +422,7 @@ JyCylinder::JyCylinder(const double &_r, const double &_h) {
 }
 
 JyCone::JyCone(const double &R1, const double &R2, const double &H) {
+    if (std::abs(R1 - R2) < 1e-4) { throw std::runtime_error("R1==R2"); }
     BRepPrimAPI_MakeCone make_cone(R1, R2, H);
     s_ = make_cone;
 }
@@ -374,6 +430,21 @@ JyCone::JyCone(const double &R1, const double &R2, const double &H) {
 JySphere::JySphere(const double &_r) {
     BRepPrimAPI_MakeSphere make_sphere(_r);
     s_ = make_sphere;
+}
+
+JyTorus::JyTorus(const double &R1, const double &R2, const double &angle) {
+    BRepPrimAPI_MakeTorus make_torus(R1, R2, angle * M_PI / 180);
+    s_ = make_torus;
+}
+
+JyWedge::JyWedge(const double &dx, const double &dy, const double &dz, const double &ltx) {
+    BRepPrimAPI_MakeWedge make_wedge(dx, dy, dz, ltx);
+    s_ = make_wedge;
+}
+
+JyWedge::JyWedge(const double &dx, const double &dy, const double &dz, const double &xmin, const double &zmin, const double &xmax, const double &zmax) {
+    BRepPrimAPI_MakeWedge make_wedge(dx, dy, dz, xmin, zmin, xmax, zmax);
+    s_ = make_wedge;
 }
 
 JyEdge::JyEdge(const std::string &_type, const std::array<double, 3> _vec1, const std::array<double, 3> _vec2,
@@ -468,4 +539,17 @@ JyFace::JyFace(const JyShape &_shape) {
     } else {
         throw std::runtime_error("Face: Not Support Shape Type!");
     }
+}
+JyText::JyText(const std::string &_text, const double &_size) {
+    // 创建3D文本
+    StdPrs_BRepFont aFont;
+    const NCollection_String aFontName("Arial");
+    // 尝试加载字体
+    if (!aFont.Init(aFontName, Font_FontAspect_Regular, _size)) {
+        throw std::runtime_error("Failed init font!");
+    }
+    // 使用Font_BRepTextBuilder创建文本形状
+    Font_BRepTextBuilder aTextBuilder;
+    NCollection_String aText(_text.c_str());
+    s_ = aTextBuilder.Perform(aFont, aText);
 }

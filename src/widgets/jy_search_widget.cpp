@@ -8,7 +8,7 @@
 #include <QShortcut>
 #include <QStyle>
 
-SearchWidget::SearchWidget(QWidget *parent) : QWidget(parent) {
+JySearchWidget::JySearchWidget(QWidget *parent) : QWidget(parent) {
     hide();
     setStyleSheet("QPushButton{min-width: 28px; min-height: 28px;font-size: 22px;padding: 4px;}");
 
@@ -21,51 +21,44 @@ SearchWidget::SearchWidget(QWidget *parent) : QWidget(parent) {
     closeButton->setIcon(style()->standardIcon(QStyle::SP_TitleBarCloseButton));
     closeButton->setFlat(true);
     closeButton->setToolTip("Close the search box (Esc)");
-    connect(closeButton, &QPushButton::clicked, this, &SearchWidget::closed);
+    connect(closeButton, &QPushButton::clicked, this, &JySearchWidget::closed);
 
     // Search input box
     searchLineEdit = new QLineEdit(this);
     searchLineEdit->setPlaceholderText("Enter search text...");
     searchLineEdit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
-    connect(searchLineEdit, &QLineEdit::textChanged, this, &SearchWidget::searchTextChanged);
-    connect(searchLineEdit, &QLineEdit::returnPressed, this, &SearchWidget::findNext);
+    connect(searchLineEdit, &QLineEdit::textChanged, this, &JySearchWidget::searchTextChanged);
+    connect(searchLineEdit, &QLineEdit::returnPressed, this, &JySearchWidget::findNext);
 
     // Previous button
     prevButton = new QPushButton("⬆️", this);
     prevButton->setFlat(true);
     prevButton->setToolTip("Find previous (Shift+F3)");
-    connect(prevButton, &QPushButton::clicked, this, &SearchWidget::findPrevious);
+    connect(prevButton, &QPushButton::clicked, this, &JySearchWidget::findPrevious);
 
     // Next button
     nextButton = new QPushButton("⬇️", this);
     nextButton->setFlat(true);
     nextButton->setToolTip("Find next (F3)");
-    connect(nextButton, &QPushButton::clicked, this, &SearchWidget::findNext);
+    connect(nextButton, &QPushButton::clicked, this, &JySearchWidget::findNext);
     // 添加到布局
     layout->addWidget(closeButton);
     layout->addWidget(searchLineEdit);
     layout->addWidget(prevButton);
     layout->addWidget(nextButton);
-
-    // 创建快捷键
-    QShortcut *findNextShortcut = new QShortcut(Qt::Key_F3, this);
-    connect(findNextShortcut, &QShortcut::activated, this, &SearchWidget::findNext);
-
-    QShortcut *findPrevShortcut = new QShortcut(Qt::SHIFT + Qt::Key_F3, this);
-    connect(findPrevShortcut, &QShortcut::activated, this, &SearchWidget::findPrevious);
 }
 
-void SearchWidget::focusSearchBox() {
+void JySearchWidget::focusSearchBox() {
     searchLineEdit->setFocus();
     searchLineEdit->selectAll();
 }
 
-void SearchWidget::setSearchText(const QString &text) {
+void JySearchWidget::setSearchText(const QString &text) {
     searchLineEdit->setText(text);
     searchLineEdit->selectAll();
 }
 
-void SearchWidget::setFoundStatus(bool found) {
+void JySearchWidget::setFoundStatus(bool found) {
     if (found) {
         searchLineEdit->setStyleSheet("");
     } else {

@@ -10,11 +10,11 @@
 #include <QPushButton>
 #include <QWidget>
 
-class SearchWidget : public QWidget {
+class JySearchWidget : public QWidget {
     Q_OBJECT
 
 public:
-    explicit SearchWidget(QWidget *parent = nullptr);
+    explicit JySearchWidget(QWidget *parent = nullptr);
 
     void focusSearchBox();
 

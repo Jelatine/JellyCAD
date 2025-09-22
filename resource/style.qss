@@ -97,7 +97,7 @@ QToolBar {
     border-right: 1px solid #3C3F44;
     spacing: 2px;
     padding: 4px;
-    min-width: 54px;
+    min-width: 40px;
 }
 
 QToolBar QWidget {
@@ -105,15 +105,15 @@ QToolBar QWidget {
 }
 
 QToolBar QPushButton {
-    min-width: 46px;
-    min-height: 38px;
-    padding: 6px;
+    min-width: 30px;
+    min-height: 30px;
+    padding: 4px;
     margin: 2px;
     border: 1px solid transparent;
     border-radius: 6px;
     background: transparent;
-    color: #B8BCC5;
-    font-size: 24px;
+    color: transparent;
+    font-size: 22px;
 }
 
 QToolBar QPushButton:hover {
@@ -319,62 +319,111 @@ QMenu::separator {
 /* =============================================================================
    滚动条样式
    ============================================================================= */
-
+/* 垂直滚动条 */
 QScrollBar:vertical {
-    background: #2B2D30;
+    background-color: #2b2b2b;
     width: 12px;
+    border: none;
     border-radius: 6px;
-    margin: 0;
+    margin: 0px;
 }
 
+/* 垂直滚动条滑块 */
 QScrollBar::handle:vertical {
-    background: #5C5F66;
-    min-height: 20px;
+    background-color: #555555;
     border-radius: 6px;
+    min-height: 20px;
     margin: 2px;
 }
 
+/* 垂直滚动条滑块悬停效果 */
 QScrollBar::handle:vertical:hover {
-    background: #7C7F86;
+    background-color: #666666;
 }
 
+/* 垂直滚动条滑块按下效果 */
 QScrollBar::handle:vertical:pressed {
-    background: #3369FF;
+    background-color: #777777;
 }
 
-QScrollBar::add-line:vertical,
+/* 垂直滚动条上箭头按钮 */
+QScrollBar::add-line:vertical {
+    border: none;
+    background: none;
+    height: 0px;
+    subcontrol-position: bottom;
+    subcontrol-origin: margin;
+}
+
+/* 垂直滚动条下箭头按钮 */
 QScrollBar::sub-line:vertical {
     border: none;
     background: none;
+    height: 0px;
+    subcontrol-position: top;
+    subcontrol-origin: margin;
 }
 
+/* 垂直滚动条上下页区域 */
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+/* 水平滚动条 */
 QScrollBar:horizontal {
-    background: #2B2D30;
+    background-color: #2b2b2b;
     height: 12px;
+    border: none;
     border-radius: 6px;
-    margin: 0;
+    margin: 0px;
 }
 
+/* 水平滚动条滑块 */
 QScrollBar::handle:horizontal {
-    background: #5C5F66;
-    min-width: 20px;
+    background-color: #555555;
     border-radius: 6px;
+    min-width: 20px;
     margin: 2px;
 }
 
+/* 水平滚动条滑块悬停效果 */
 QScrollBar::handle:horizontal:hover {
-    background: #7C7F86;
+    background-color: #666666;
 }
 
+/* 水平滚动条滑块按下效果 */
 QScrollBar::handle:horizontal:pressed {
-    background: #3369FF;
+    background-color: #777777;
 }
 
-QScrollBar::add-line:horizontal,
+/* 水平滚动条左箭头按钮 */
+QScrollBar::add-line:horizontal {
+    border: none;
+    background: none;
+    width: 0px;
+    subcontrol-position: right;
+    subcontrol-origin: margin;
+}
+
+/* 水平滚动条右箭头按钮 */
 QScrollBar::sub-line:horizontal {
     border: none;
     background: none;
+    width: 0px;
+    subcontrol-position: left;
+    subcontrol-origin: margin;
 }
+
+/* 水平滚动条左右页区域 */
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+    background: none;
+}
+
+/* 滚动条交汇处的角落 */
+QScrollBar::corner {
+    background-color: #2b2b2b;
+}
+
 
 QTextBrowser {
     /* 基础背景和文字颜色 */
@@ -394,57 +443,93 @@ QTextBrowser {
     selection-color: #ffffff;
 }
 
-/* 滚动条样式 */
-QTextBrowser QScrollBar:vertical {
-    background-color: #404040;
-    width: 12px;
+
+QProgressDialog {
+    background-color: #2b2b2b;
+    border: 1px solid #404040;
+    border-radius: 8px;
+    color: #ffffff;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 14px;
+}
+
+/* 对话框标题栏 */
+QProgressDialog QLabel {
+    color: #ffffff;
+    background-color: transparent;
+    font-weight: 500;
+    margin: 8px;
+    padding: 4px;
+}
+
+/* 进度条样式 */
+QProgressDialog QProgressBar {
+    border: 1px solid #404040;
     border-radius: 6px;
-    margin: 0;
+    text-align: center;
+    background-color: #1a1a1a;
+    color: #ffffff;
+    font-weight: bold;
+    height: 20px;
+    margin: 8px;
 }
 
-QTextBrowser QScrollBar::handle:vertical {
-    background-color: #606060;
+QProgressDialog QProgressBar::chunk {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                stop:0 #0078d4,
+                                stop:0.5 #106ebe,
+                                stop:1 #005a9e);
+    border-radius: 5px;
+    margin: 1px;
+}
+
+/* 取消按钮样式 */
+QProgressDialog QPushButton {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #404040,
+                                stop:1 #2b2b2b);
+    border: 1px solid #555555;
     border-radius: 6px;
-    min-height: 20px;
-    margin: 2px;
+    color: #ffffff;
+    font-weight: 500;
+    padding: 8px 16px;
+    margin: 8px;
+    min-width: 80px;
 }
 
-QTextBrowser QScrollBar::handle:vertical:hover {
-    background-color: #707070;
+QProgressDialog QPushButton:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #4a4a4a,
+                                stop:1 #353535);
+    border-color: #666666;
 }
 
-QTextBrowser QScrollBar::handle:vertical:pressed {
-    background-color: #808080;
+QProgressDialog QPushButton:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #2b2b2b,
+                                stop:1 #404040);
+    border-color: #777777;
 }
 
-QTextBrowser QScrollBar::add-line:vertical,
-QTextBrowser QScrollBar::sub-line:vertical {
-    height: 0px;
+QProgressDialog QPushButton:focus {
+    outline: none;
+    border: 2px solid #0078d4;
 }
 
-QTextBrowser QScrollBar:horizontal {
-    background-color: #404040;
-    height: 12px;
-    border-radius: 6px;
-    margin: 0;
+QProgressDialog QPushButton:disabled {
+    background-color: #1a1a1a;
+    border-color: #333333;
+    color: #666666;
 }
 
-QTextBrowser QScrollBar::handle:horizontal {
-    background-color: #606060;
-    border-radius: 6px;
-    min-width: 20px;
-    margin: 2px;
+/* 进度条文本样式 */
+QProgressDialog QProgressBar:chunk {
+    color: #ffffff;
 }
 
-QTextBrowser QScrollBar::handle:horizontal:hover {
-    background-color: #707070;
-}
-
-QTextBrowser QScrollBar::handle:horizontal:pressed {
-    background-color: #808080;
-}
-
-QTextBrowser QScrollBar::add-line:horizontal,
-QTextBrowser QScrollBar::sub-line:horizontal {
-    width: 0px;
+QProgressDialog {
+    border: 2px solid #404040;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #323232,
+                                stop:1 #2b2b2b);
 }

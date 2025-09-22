@@ -65,13 +65,21 @@ class JyCodeEditor : public QPlainTextEdit {
 public:
     explicit JyCodeEditor(QWidget *parent = nullptr);
 
+    void set_text(const QString &text);
+
+    QString get_text() const;
+
+    void setFilePath(const QString &filePath = {}) { m_filePath = filePath; }
+
+    QString getFilePath() const { return m_filePath; }
+    
     [[nodiscard]] QStringList keyword_list() const { return keyword_list_; }
+
+private:
 
     int number_area_width();
 
     void paint_line_number(QPaintEvent *event);
-
-    void setFilePath(const QString &filePath = {}) { m_filePath = filePath; }
 
     void resizeEvent(QResizeEvent *event) override;
 
@@ -101,6 +109,8 @@ private slots:
     void showInExplorer();
 
 private:
+    bool is_CRLF{false};
+
     QString m_filePath;
     QString m_vscodeCmd;
 

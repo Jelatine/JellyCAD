@@ -5,25 +5,29 @@
 #ifndef JY_3D_WIDGET_H
 #define JY_3D_WIDGET_H
 
-#include <QApplication>
-#include <QWidget>
+#include "jy_axes.h"
+#include "jy_shape.h"
 #include <AIS_InteractiveContext.hxx>
 #include <AIS_Shape.hxx>
-#include <AIS_ViewCube.hxx>
 #include <AIS_Trihedron.hxx>
+#include <AIS_ViewCube.hxx>
+#include <QAction>
+#include <QActionGroup>
+#include <QContextMenuEvent>
+#include <QMenu>
+#include <QWidget>
 #include <V3d_Light.hxx>
-#include "jy_shape.h"
 
 class Jy3DWidget : public QWidget {
-Q_OBJECT
-    Handle(AIS_InteractiveContext) m_context; //!交互式上下文能够管理一个或多个查看器(viewer)中的图形行为和交互式对象的选择
-    Handle(V3d_Viewer) m_viewer; //!定义查看器(viewer)类型对象上的服务
-    Handle(V3d_View) m_view; //!创建一个视图
-    Handle(AIS_ViewCube) view_cube; //!视方体
-    Handle(AIS_Trihedron) origin_coord; //!基坐标系
-    Handle(V3d_Light) light_direction; //! 定向光源
-    Standard_Integer m_x_max{};    //!记录鼠标平移坐标X
-    Standard_Integer m_y_max{};    //!记录鼠标平移坐标Y
+    Q_OBJECT
+    Handle(AIS_InteractiveContext) m_context;//!交互式上下文能够管理一个或多个查看器(viewer)中的图形行为和交互式对象的选择
+    Handle(V3d_Viewer) m_viewer;             //!定义查看器(viewer)类型对象上的服务
+    Handle(V3d_View) m_view;                 //!创建一个视图
+    Handle(AIS_ViewCube) view_cube;          //!视方体
+    Handle(AIS_Trihedron) origin_coord;      //!基坐标系
+    Handle(V3d_Light) light_direction;       //! 定向光源
+    Standard_Integer m_x_max{};              //!记录鼠标平移坐标X
+    Standard_Integer m_y_max{};              //!记录鼠标平移坐标Y
 public:
     explicit Jy3DWidget(QWidget *parent = nullptr);
 
@@ -33,13 +37,18 @@ public:
     void initialize_context();
 
 private:
-    void create_view_cube(); //!< 创建视方体
+    void create_view_cube();//!< 创建视方体
 
-    void create_origin_coord(); //!< 创建基坐标系
+    void create_origin_coord();//!< 创建基坐标系
+
+signals:
+    void selectedShapeInfo(const QString &info);
 
 public slots:
 
     void display(const JyShape &theIObj, const bool &with_coord);
+
+    void displayAxes(const JyAxes &theAxes);
 
 protected:
     //!覆写绘图事件
@@ -62,6 +71,25 @@ protected:
 
     //!覆写鼠标滚轮事件
     void wheelEvent(QWheelEvent *event) override;
+
+    void contextMenuEvent(QContextMenuEvent *event) override;
+
+private:
+    void createContextMenu();
+    // Qt 菜单组件
+    QMenu *m_contextMenu;
+    QActionGroup *m_selectionModeGroup;
+
+    // 右键菜单控制
+    bool m_isDragging{false};
+    void setSelectionMode(TopAbs_ShapeEnum mode);
+
+    void handleSelectedShape(const TopoDS_Shape &shape);
+private slots:
+    // 槽函数实现
+    void selectActionTriggered(QAction *act) {
+        setSelectionMode(static_cast<TopAbs_ShapeEnum>(act->data().toInt()));
+    }
 };
 
-#endif //JY_3D_WIDGET_H
+#endif//JY_3D_WIDGET_H

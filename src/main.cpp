@@ -17,9 +17,11 @@ int main(int argc, char *argv[]) {
     QCommandLineOption file_option(QStringList() << "f" << "file", "Script file to execute", "file");
     parser.addOption(file_option);
     parser.process(a);
+    qRegisterMetaType<JyShape>("JyShape");
     JyMainWindow w;
     if (parser.isSet(file_option)) {
-        w.run_script(parser.value(file_option));
+        const auto lvm = new JyLuaVirtualMachine();
+        lvm->runScript(parser.value(file_option));
     } else {
         // 颜色样式
         QFile style_file(":/style.qss");

@@ -13,6 +13,7 @@ if (MSVC)
     # 解决UTF-8存在中文时，MSVC编译失败
     add_compile_options("/source-charset:utf-8")
     add_compile_options("/execution-charset:utf-8")
+    add_compile_options(/bigobj) # 对象文件（.obj）包含的节（sections）数量超过了标准对象文件格式的限制
 endif ()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY $<1:${CMAKE_CURRENT_BINARY_DIR}/bin>)
 
