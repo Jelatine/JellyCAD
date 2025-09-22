@@ -4,12 +4,14 @@
  */
 #include "jy_main_window.h"
 #include "jy_page_help.h"
+#include "jy_search_widget.h"
 #include <QAbstractItemView>
 #include <QCompleter>
 #include <QDateTime>
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QSettings>
+#include <QShortcut>
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QTextBrowser>
@@ -18,6 +20,7 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
                                               jy_3d_widget(new Jy3DWidget),
                                               watcher(new QFileSystemWatcher),
                                               lvm(new JyLuaVirtualMachine),
+                                              search_widget(new SearchWidget),
                                               code_editor(new JyCodeEditor) {
     setWindowTitle("Unnamed - JellyCAD");
     const QString default_dir = QApplication::applicationDirPath() + "/scripts";// 默认当前文件目录为应用程序目录下的scripts文件夹
@@ -47,7 +50,18 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     layout_buttons->addWidget(button_save);
     layout_editor_group->addLayout(layout_buttons);
     layout_editor_group->addWidget(code_editor);
+    layout_editor_group->addWidget(search_widget);
     widget_editor_group->setLayout(layout_editor_group);
+
+    // 文本搜索框
+    QShortcut *searchShortcut = new QShortcut(QKeySequence::Find, this);
+    connect(searchShortcut, &QShortcut::activated, this, &JyMainWindow::showSearchWidget);
+    QShortcut *escShortcut = new QShortcut(Qt::Key_Escape, search_widget);
+    connect(escShortcut, &QShortcut::activated, this, &JyMainWindow::hideSearchWidget);
+    connect(search_widget, &SearchWidget::findNext, this, &JyMainWindow::findNext);
+    connect(search_widget, &SearchWidget::findPrevious, this, &JyMainWindow::findPrevious);
+    connect(search_widget, &SearchWidget::searchTextChanged, this, &JyMainWindow::onSearchTextChanged);
+    connect(search_widget, &SearchWidget::closed, this, &JyMainWindow::hideSearchWidget);
 
     //!< 终端
     auto widget_terminal = new QWidget;
@@ -118,7 +132,7 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     connect(m_activity_bar, &JyActivityBar::sig_set_side_bar_index, stack_widget, &QStackedWidget::setCurrentIndex);
     connect(code_editor, &QPlainTextEdit::modificationChanged, button_save, &QPushButton::setEnabled);
     connect(code_editor, &QPlainTextEdit::modificationChanged, [=](bool m) {
-        m ? setWindowTitle("*" + windowTitle()) : setWindowTitle(windowTitle().remove(0, 1)); // 编辑器文档已被编辑时，标题前加*
+        m ? setWindowTitle("*" + windowTitle()) : setWindowTitle(windowTitle().remove(0, 1));// 编辑器文档已被编辑时，标题前加*
     });
     connect(button_new, &QPushButton::clicked, this, &JyMainWindow::slot_button_new_clicked);
     connect(button_open, &QPushButton::clicked, this, &JyMainWindow::slot_button_open_clicked);
@@ -265,4 +279,84 @@ int JyMainWindow::ask_whether_to_save() {
                                      tr("Yes"), tr("No"), tr("Cancel"));
     }
     return 1;// 文件未修改
+}
+
+void JyMainWindow::showSearchWidget() {
+    if (search_widget->isVisible()) {
+        // 如果已经显示，则隐藏
+        hideSearchWidget();
+    } else {
+        search_widget->show();
+        search_widget->focusSearchBox();
+
+        // 如果有选中的文本，将其作为搜索关键词
+        QTextCursor cursor = code_editor->textCursor();
+        if (cursor.hasSelection()) {
+            search_widget->setSearchText(cursor.selectedText());
+        }
+    }
+}
+
+void JyMainWindow::hideSearchWidget() {
+    search_widget->hide();
+    code_editor->setFocus();
+
+    // 清除高亮
+    QTextCursor cursor = code_editor->textCursor();
+    cursor.clearSelection();
+    code_editor->setTextCursor(cursor);
+}
+
+void JyMainWindow::findNext() {
+    performSearch(false);
+}
+
+void JyMainWindow::findPrevious() {
+    performSearch(true);
+}
+
+void JyMainWindow::onSearchTextChanged(const QString &text) {
+    lastSearchText = text;
+    if (!text.isEmpty()) {
+        // 从当前位置开始搜索
+        performSearch(false);
+    } else {
+        // 清除选择
+        search_widget->setFoundStatus(true);
+        QTextCursor cursor = code_editor->textCursor();
+        cursor.clearSelection();
+        code_editor->setTextCursor(cursor);
+    }
+}
+
+void JyMainWindow::performSearch(bool backward) {
+    if (lastSearchText.isEmpty()) {
+        return;
+    }
+
+    QTextDocument::FindFlags flags;
+    if (backward) {
+        flags |= QTextDocument::FindBackward;
+    }
+
+    QTextCursor cursor = code_editor->textCursor();
+    QTextCursor newCursor = code_editor->document()->find(lastSearchText, cursor, flags);
+
+    if (newCursor.isNull()) {
+        // 如果没找到，从头/尾开始搜索
+        if (backward) {
+            newCursor = code_editor->document()->find(lastSearchText,
+                                                      code_editor->document()->characterCount(),
+                                                      flags);
+        } else {
+            newCursor = code_editor->document()->find(lastSearchText, 0, flags);
+        }
+    }
+
+    if (!newCursor.isNull()) {
+        code_editor->setTextCursor(newCursor);
+        search_widget->setFoundStatus(true);
+    } else {
+        search_widget->setFoundStatus(false);
+    }
 }
