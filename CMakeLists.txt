@@ -19,16 +19,17 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY $<1:${CMAKE_CURRENT_BINARY_DIR}/bin>)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 find_package(OpenCASCADE CONFIG REQUIRED)
-find_package(Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Lua CONFIG REQUIRED)
-find_package(sol2 CONFIG REQUIRED)
-
+find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets REQUIRED)
+find_package(Lua REQUIRED)
+include_directories(${LUA_INCLUDE_DIR})
+find_package(sol2 REQUIRED)
 message(STATUS "occ version:${OpenCASCADE_VERSION}")
-message(STATUS "qt5 version:${Qt5_VERSION}")
+message(STATUS "qt version:${QT_VERSION}")
 message(STATUS "sol2 version:${sol2_VERSION}")
 
 add_definitions(-DVERSION_DISPLAY_OCC=\"${OpenCASCADE_VERSION}\")
-add_definitions(-DVERSION_DISPLAY_QT5=\"${Qt5_VERSION}\")
+add_definitions(-DVERSION_DISPLAY_QT=\"${QT_VERSION}\")
 add_definitions(-DVERSION_DISPLAY_SOL2=\"${sol2_VERSION}\")
 
 if (TAG_VERSION)
@@ -46,7 +47,7 @@ add_executable(JellyCAD ${SRC_FILES} ${WIN32_RESOURCES})
 target_include_directories(JellyCAD PRIVATE ${OpenCASCADE_INCLUDE_DIR})
 target_include_directories(JellyCAD PRIVATE src src/widgets src/shapes)
 target_link_libraries(JellyCAD PRIVATE
-        Qt5::Widgets
+        Qt${QT_VERSION_MAJOR}::Widgets
         ${OpenCASCADE_LIBRARIES}
         ${LUA_LIBRARIES})
 
