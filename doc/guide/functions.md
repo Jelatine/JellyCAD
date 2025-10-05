@@ -92,10 +92,17 @@ box.new(other_box)     -- 复制构造
 - `x, y, z` - *number* - 盒子对角线从 (0,0,0) 到 (x,y,z)
 
 **示例：**
+
 ```lua
-local cube = box.new()           -- 单位立方体
-local rect = box.new(2, 1, 0.5)  -- 长方体
+box.new():show()                -- 单位立方体
+box.new(2, 1, 0.5):y(3):show()  -- 长方体
+-- 边长信息文本
+text.new('x=2', 0.5):x(0.5):y(2.5):color('red'):show()
+text.new('y=1', 0.5):x(2.5):y(3):rz(90):color('green'):show()
+text.new('z=0.5', 0.2):x(0):y(3):rx(90):ry(-90):color('blue'):show()
 ```
+
+<img src="../example_box.png" style="zoom: 33%;" />
 
 ---
 
@@ -108,6 +115,15 @@ cylinder.new(other_cyl)   -- 复制构造
 **参数：**
 - `r` - *number* - 半径
 - `h` - *number* - 高度
+
+**示例：**
+
+```lua
+cylinder.new():show()
+cylinder.new(0.5, 2):y(3):show()
+```
+
+<img src="../example_cylinder.png" style="zoom: 33%;" />
 
 ---
 
@@ -122,6 +138,15 @@ cone.new(other_cone)      -- 复制构造
 - `r1` - *number* - 底部半径
 - `r2` - *number* - 顶部半径（r2=0 为圆锥）
 - `h` - *number* - 高度
+
+**示例：**
+
+```lua
+cone.new():show()
+cone.new(1, 0.5, 2):y(3):show()
+```
+
+<img src="../example_cone.png" style="zoom: 33%;" />
 
 ---
 
@@ -147,6 +172,15 @@ torus.new(other_torus)
 - `R1` - *number* - 从管道中心到环面中心的距离
 - `R2` - *number* - 管道半径
 - `angle` - *number* - 角度(deg)
+
+**示例：**
+
+```lua
+torus.new(1, 0.5):show()
+torus.new(1, 0.2, 180):y(3):show()
+```
+
+<img src="../example_torus.png" style="zoom: 33%;" />
 
 #### **`wedge`** - 楔形
 
