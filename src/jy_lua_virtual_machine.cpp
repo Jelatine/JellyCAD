@@ -193,7 +193,7 @@ void JyLuaVirtualMachine::lua_print(const sol::object &v) {
         msg = v.is<int>() ? QString::number(v.as<int>()) : QString::number(v.as<double>());
     } else if (v.get_type() == sol::type::table) {
         msg = "table: " + QString::number((qulonglong) v.as<sol::table>().pointer(), 16).toUpper();
-    } else if (v.get_type() == sol::type::nil) {
+    } else if (v.get_type() == sol::type::lua_nil) {
         msg = "nil";
     } else if (v.get_type() == sol::type::boolean) {
         msg = v.as<bool>() ? "true" : "false";
