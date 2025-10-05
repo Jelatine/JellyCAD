@@ -142,9 +142,9 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
     link_user["add"] = sol::overload(
             static_cast<Joint &(Link::*) (const Joint &)>(&Link::add),
             static_cast<Joint &(Link::*) (const std::string &, const JyAxes &, const std::string &)>(&Link::add),
-            static_cast<Joint &(Link::*) (const std::string &, const JyAxes &, const std::string &, sol::table &)>(&Link::add));
+            static_cast<Joint &(Link::*) (const std::string &, const JyAxes &, const std::string &, const sol::table &)>(&Link::add));
     auto joint_user = lua.new_usertype<Joint>("joint", sol::constructors<Joint(const std::string &, const JyAxes &, const std::string &),
-                                                                         Joint(const std::string &, const JyAxes &, const std::string &, sol::table &)>());
+                                                                         Joint(const std::string &, const JyAxes &, const std::string &, const sol::table &)>());
     joint_user["next"] = sol::overload(
             static_cast<Link &(Joint::*) (const Link &)>(&Joint::next),
             static_cast<Link &(Joint::*) (const std::string &, const JyShape &)>(&Joint::next));

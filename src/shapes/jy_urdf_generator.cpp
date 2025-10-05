@@ -67,7 +67,7 @@ Joint &Link::add(const std::string &name, const JyAxes &axes, const std::string 
     return add(name, axes, type, sol::table());
 }
 
-Joint &Link::add(const std::string &name, const JyAxes &axes, const std::string &type, sol::table &limits) {
+Joint &Link::add(const std::string &name, const JyAxes &axes, const std::string &type, const sol::table &limits) {
     std::shared_ptr<Joint> joint = std::make_shared<Joint>(name, axes, type, limits);
     joints_.push_back(joint);
     return *joint;

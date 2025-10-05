@@ -27,7 +27,7 @@ public:
 
     Joint(const std::string &name, const JyAxes &axes, const std::string &type) : name_(name), axes_(axes), type_(type) {}
 
-    Joint(const std::string &name, const JyAxes &axes, const std::string &type, sol::table &limits) : name_(name), axes_(axes), type_(type) {
+    Joint(const std::string &name, const JyAxes &axes, const std::string &type, const sol::table &limits) : name_(name), axes_(axes), type_(type) {
         if (!limits) return;
         if (limits["lower"].is<double>()) { limits_.lower = limits["lower"].get<double>(); }
         if (limits["upper"].is<double>()) { limits_.upper = limits["upper"].get<double>(); }
@@ -61,7 +61,7 @@ public:
 
     Joint &add(const std::string &name, const JyAxes &axes, const std::string &type);
 
-    Joint &add(const std::string &name, const JyAxes &axes, const std::string &type, sol::table &limits);
+    Joint &add(const std::string &name, const JyAxes &axes, const std::string &type, const sol::table &limits);
 
     void export_urdf(const std::string &robot_name) const;
 
