@@ -344,8 +344,12 @@ void JyShape::export_stl(const std::string &_filename, const sol::table &_opt) c
         }
     }
     const double theLinDeflection = (_opt && _opt["radian"].is<double>()) ? _opt["radian"] : 0.1;
-    BRepMesh_IncrementalMesh aMesh(s_, theLinDeflection);
-    if (StlAPI::Write(s_, _filename.c_str(), theAsciiMode)) { return; }// 成功
+    export_stl_common(_filename, theAsciiMode, theLinDeflection);
+}
+
+void JyShape::export_stl_common(const std::string &_filename, const bool is_ascii, const double &lin) const {
+    BRepMesh_IncrementalMesh aMesh(s_, lin);
+    if (StlAPI::Write(s_, _filename.c_str(), is_ascii)) { return; }// 成功
     throw std::runtime_error("Failed to export stl!");
 }
 

@@ -217,7 +217,9 @@ public:
      * @param _opt 导出选项表
      */
     void export_stl(const std::string &_filename, const sol::table &_opt) const;
-    void export_stl(const std::string &_filename) const { export_stl(_filename, {}); }
+    void export_stl(const std::string &_filename) const { export_stl_common(_filename, true, 0.1); }
+
+    void export_stl_common(const std::string &_filename, const bool is_ascii, const double &lin) const;
 
     /**
      * @brief 导出为STEP格式文件
