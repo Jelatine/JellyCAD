@@ -28,6 +28,11 @@ jobs:
           # 获取完整的git历史，包括所有标签
           fetch-depth: 0
 
+      - name: 安装NSIS
+        uses: repolevedavaj/install-nsis@v1.0.1
+        with:
+          nsis-version: '3.10'
+
       - name: 获取版本号
         shell: bash
         id: get_version
