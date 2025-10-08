@@ -105,7 +105,7 @@ jobs:
         shell: pwsh
         run: |
           cp ${{github.workspace}}/resource/installer.nsi ${{github.workspace}}/build
-          "C:\Program Files (x86)\NSIS\makensis.exe" /DPRODUCT_VERSION="${{ steps.get_version.outputs.version }}" ${{github.workspace}}/build/installer.nsi
+          "C:\Program Files (x86)\NSIS\makensis.exe" --% /DPRODUCT_VERSION="${{ steps.get_version.outputs.version }}" ${{github.workspace}}/build/installer.nsi
 
       - name: 上传构建产物(windows)
         if: ${{ matrix.os=='windows-latest' }}
