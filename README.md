@@ -106,6 +106,8 @@ sudo apt install fonts-noto-color-emoji
 | `Ctrl+N` | 新建文件 |
 | `Ctrl+O` | 打开文件 |
 | `Ctrl+S` | 保存文件 |
+| `Ctrl+F` | 编辑器搜索 |
+| `Ctrl+/` | 注释/取消注释 |
 
 ### 📚 学习资源
 
@@ -130,10 +132,12 @@ sudo apt install fonts-noto-color-emoji
 
 #### 实体类型（SOLID）
 
-- `box.new(width, height, depth, options)` - 长方体
-- `cylinder.new(radius, height, options)` - 圆柱体
-- `cone.new(radius1, radius2, height, options)` - 圆锥体
-- `sphere.new(radius, options)` - 球体
+- `box.new(width, height, depth)` - 长方体
+- `cylinder.new(radius, height)` - 圆柱体
+- `cone.new(radius1, radius2, height)` - 圆锥体
+- `sphere.new(radius)` - 球体
+- `torus.new(majorRadius, minorRadius)` - 圆环体
+- `wedge.new(dx, dy, dz, ltx)` - 楔形体
 
 #### 几何元素类型
 
@@ -141,6 +145,7 @@ sudo apt install fonts-noto-color-emoji
 - `wire` - 线
 - `polygon` - 多边形线
 - `face` - 面
+- `text` - 文本
 
 ### Shape 基类方法
 
@@ -179,7 +184,10 @@ s = shape.new('model.stl')  -- 导入 STL 或 STEP 文件
 |------|------|
 | `pos(x, y, z)` | 绝对位置 |
 | `rot(rx, ry, rz)` | 绝对姿态 |
+| `move(move_type, x, y, z)` | 相对平移和旋转，`move_type` 为 `'pos'` 或 `'rot'` |
 | `prism(dx, dy, dz)` | 拉伸操作（`edge→face`、`face→solid`、`wire→shell`） |
+| `revol(pos, dir, angle)` | 旋转体生成操作 |
+| `scale(factor)` | 按比例缩放 |
 
 ## 💡 示例代码
 
