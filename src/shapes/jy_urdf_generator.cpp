@@ -236,6 +236,6 @@ std::string Link::handleLink(const Link &link, const JyAxes &parent_axes, const 
 
     fs::path path_stl = fs::path(data.path_meshes) / (link.name_ + ".stl");
     std::cout << "export mesh to: " << path_stl.generic_string() << std::endl;
-    output_shape.export_stl(path_stl.generic_string());
+    output_shape.export_stl_common(path_stl.generic_string(), false, 0.1);
     return file.str();
 }

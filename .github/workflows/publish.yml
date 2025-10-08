@@ -28,6 +28,27 @@ jobs:
           # 获取完整的git历史，包括所有标签
           fetch-depth: 0
 
+
+      - name: Install NSIS
+        if: ${{ matrix.os=='windows-latest' }}
+        shell: pwsh
+        run: choco install nsis -y
+          
+      - name: Add NSIS to PATH
+        if: ${{ matrix.os=='windows-latest' }}
+        shell: pwsh
+        run: |
+          $nsisPath = "C:\Program Files (x86)\NSIS"
+          Add-Content -Path $env:GITHUB_PATH -Value $nsisPath
+          Write-Host "Added NSIS to PATH: $nsisPath"
+
+      - name: Verify NSIS installation
+        if: ${{ matrix.os=='windows-latest' }}
+        shell: pwsh
+        run: |
+          Write-Host "Checking NSIS..."
+          makensis /VERSION
+
       - name: 获取版本号
         shell: bash
         id: get_version
