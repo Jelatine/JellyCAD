@@ -8,6 +8,17 @@ j1:show()
 j2:show()
 bx:mass(1)
 b1:mass(2)
-urdf = link.new("base", { bx, b1 })
+urdf = link.new("base_link", { bx, b1 })
 urdf:add("joint1", j1, "revolute"):next('link1', link1):add("joint2", j2, "revolute"):next('link2', link2)
-urdf:export('myrobot')
+urdf:export({ name = 'myrobot', path = 'd:/' })
+--[[
+ROS2使用方式:
+sudo apt update
+sudo apt install ros-$ROS_DISTRO-urdf-launch
+mkdir -p ~/ws_ros2/src
+cp -r /mnt/d/myrobot ~/ws_ros2/src/
+cd ~/ws_ros2
+colcon build --symlink-install
+source install/setup.bash
+ros2 launch urdf_launch display.launch.py urdf_package:=myrobot urdf_package_path:=urdf/myrobot.urdf
+--]]
