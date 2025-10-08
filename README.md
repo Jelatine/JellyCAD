@@ -147,6 +147,12 @@ sudo apt install fonts-noto-color-emoji
 - `face` - 面
 - `text` - 文本
 
+#### URDF 机器人导出
+
+- `axes.new(pose, length)` - 坐标系（用于定义关节位姿）
+- `link.new(name, shape)` - 机器人连杆
+- `joint.new(name, axes, type, limits)` - 机器人关节
+
 ### Shape 基类方法
 
 #### 文件导入
@@ -188,6 +194,12 @@ s = shape.new('model.stl')  -- 导入 STL 或 STEP 文件
 | `prism(dx, dy, dz)` | 拉伸操作（`edge→face`、`face→solid`、`wire→shell`） |
 | `revol(pos, dir, angle)` | 旋转体生成操作 |
 | `scale(factor)` | 按比例缩放 |
+
+#### 导出操作
+
+| `export_stl(filename, options)` | 导出 STL 格式文件 |
+| `export_step(filename)` | 导出 STEP 格式文件 |
+| `export_iges(filename)` | 导出 IGES 格式文件 |
 
 ## 💡 示例代码
 
@@ -272,6 +284,34 @@ c=cone.new(10,5,20):color('green4');
 export_stl(cy,'cylinder.stl',{type='ascii',radian=0.05});
 export_step(s,'sphere.step');
 export_iges(c,'cone.iges');
+```
+
+### 示例 6：URDF 机器人导出
+
+```lua
+-- 创建机器人各部件
+bx = box.new():color('green')
+b1 = cylinder.new()
+link1 = b1:copy():pos(0, 0, 2):color('#456789')
+link2 = b1:copy():pos(0, 0, 3):color('#987654')
+
+-- 定义关节位姿
+j1 = axes.new({ 0, 0, 2.5, 90, 0, 0 }, 3)
+j2 = axes.new({ 0, 0, 3.5, 90, 0, 0 }, 3)
+j1:show()
+j2:show()
+
+-- 设置质量
+bx:mass(1)
+b1:mass(2)
+
+-- 显示模型
+show({bx, b1, link1, link2})
+
+-- 构建 URDF 结构并导出
+urdf = link.new("base", { bx, b1 })
+urdf:add("joint1", j1, "revolute"):next('link1', link1):add("joint2", j2, "revolute"):next('link2', link2)
+urdf:export({name='myrobot', path="d:/"})
 ```
 
 ## 🤝 贡献
