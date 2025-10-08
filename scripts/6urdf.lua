@@ -12,6 +12,20 @@ urdf = link.new("base_link", { bx, b1 })
 urdf:add("joint1", j1, "revolute"):next('link1', link1):add("joint2", j2, "revolute"):next('link2', link2)
 urdf:export({ name = 'myrobot', path = 'd:/' })
 --[[
+local r_base = 0.05;
+local r_shell = 0.032;
+local h_motor = 0.07;
+shell = cylinder.new(r_shell, h_motor)
+shell:fillet(0.005, { type = 'circle', min = { r_shell - 1e-5, -1e-5, h_motor - 1e-5 } });
+shell:fuse(cylinder.new(r_shell, h_motor / 2):z(h_motor / 2):rx(90));
+sholder = shell:copy():z(h_motor / 2);
+forearm = shell:copy();
+forearm:rot(90, 180, 0):pos(0, -h_motor / 2, h_motor);
+base_link = cylinder.new(r_base, h_motor / 2);
+base_link:cut(torus.new(r_base, r_base - r_shell):z(h_motor / 2));
+show({ base_link, sholder, forearm })
+--]]
+--[[
 ROS2使用方式:
 sudo apt update
 sudo apt install ros-$ROS_DISTRO-urdf-launch
