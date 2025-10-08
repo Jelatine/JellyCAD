@@ -34,6 +34,10 @@ jobs:
         with:
           nsis-version: '3.10'
 
+      - name: Ensure makensis is in PATH
+        if: ${{ matrix.os=='windows-latest' }}
+        run: echo "C:\Program Files (x86)\NSIS" >> $GITHUB_PATH
+
       - name: 获取版本号
         shell: bash
         id: get_version
