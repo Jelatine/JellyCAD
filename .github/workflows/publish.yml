@@ -28,15 +28,26 @@ jobs:
           # 获取完整的git历史，包括所有标签
           fetch-depth: 0
 
-      - name: 安装NSIS
-        if: ${{ matrix.os=='windows-latest' }}
-        uses: repolevedavaj/install-nsis@v1.0.1
-        with:
-          nsis-version: '3.10'
 
-      - name: Ensure makensis is in PATH
+      - name: Install NSIS
         if: ${{ matrix.os=='windows-latest' }}
-        run: echo "C:\Program Files (x86)\NSIS" >> $GITHUB_PATH
+        shell: pwsh
+        run: choco install nsis -y
+          
+      - name: Add NSIS to PATH
+        if: ${{ matrix.os=='windows-latest' }}
+        shell: pwsh
+        run: |
+          $nsisPath = "C:\Program Files (x86)\NSIS"
+          Add-Content -Path $env:GITHUB_PATH -Value $nsisPath
+          Write-Host "Added NSIS to PATH: $nsisPath"
+
+      - name: Verify NSIS installation
+        if: ${{ matrix.os=='windows-latest' }}
+        shell: pwsh
+        run: |
+          Write-Host "Checking NSIS..."
+          makensis /VERSION
 
       - name: 获取版本号
         shell: bash
@@ -105,7 +116,7 @@ jobs:
         shell: pwsh
         run: |
           cp ${{github.workspace}}/resource/installer.nsi ${{github.workspace}}/build
-          "C:\Program Files (x86)\NSIS\makensis.exe" --% /DPRODUCT_VERSION="${{ steps.get_version.outputs.version }}" ${{github.workspace}}/build/installer.nsi
+          makensis /DPRODUCT_VERSION="${{ steps.get_version.outputs.version }}" ${{github.workspace}}/build/installer.nsi
 
       - name: 上传构建产物(windows)
         if: ${{ matrix.os=='windows-latest' }}
