@@ -95,7 +95,22 @@ void Jy3DWidget::display(const JyShape &theIObj, const bool &with_coord) {
 
 
 void Jy3DWidget::displayAxes(const JyAxes &theAxes) {
-    m_context->Display(theAxes.data(), Standard_True);
+    gp_Ax2 ax2;
+    ax2.Transform(theAxes.data());
+    const auto trihedron = new AIS_Trihedron(new Geom_Axis2Placement(ax2));
+    trihedron->SetDatumDisplayMode(Prs3d_DM_WireFrame);
+    trihedron->SetDrawArrows(false);
+    trihedron->Attributes()->DatumAspect()->LineAspect(Prs3d_DatumParts_XAxis)->SetWidth(2.5);
+    trihedron->Attributes()->DatumAspect()->LineAspect(Prs3d_DatumParts_YAxis)->SetWidth(2.5);
+    trihedron->Attributes()->DatumAspect()->LineAspect(Prs3d_DatumParts_ZAxis)->SetWidth(2.5);
+    trihedron->SetDatumPartColor(Prs3d_DatumParts_XAxis, Quantity_NOC_RED2);
+    trihedron->SetDatumPartColor(Prs3d_DatumParts_YAxis, Quantity_NOC_GREEN2);
+    trihedron->SetDatumPartColor(Prs3d_DatumParts_ZAxis, Quantity_NOC_BLUE2);
+    trihedron->SetLabel(Prs3d_DatumParts_XAxis, "");
+    trihedron->SetLabel(Prs3d_DatumParts_YAxis, "");
+    trihedron->SetLabel(Prs3d_DatumParts_ZAxis, "");
+    trihedron->SetSize(theAxes.length());
+    m_context->Display(trihedron, Standard_True);
 }
 
 void Jy3DWidget::remove_all() {

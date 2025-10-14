@@ -20,7 +20,8 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
     lua_sethook(lua.lua_state(), debug_hook, LUA_MASKCOUNT, 1);
     lua["print"] = [=](const sol::object &v) { this->lua_print(v); };
 
-    auto shape_user = lua.new_usertype<JyShape>("shape", sol::constructors<JyShape(const std::string &)>());
+    auto shape_user = lua.new_usertype<JyShape>("shape", sol::constructors<JyShape(),
+                                                                           JyShape(const std::string &)>());
     shape_user["copy"] = [](const JyShape &self) { return JyShape(self); };
     shape_user["type"] = &JyShape::type;
     // 布尔运算
@@ -132,6 +133,8 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
     // ----- Axes -----
     auto axes_user = lua.new_usertype<JyAxes>("axes", sol::constructors<JyAxes(const std::array<double, 6>, const double &)>());
     axes_user["show"] = [this](const JyAxes &self) { return emit this->displayAxes(self); };
+    axes_user["copy"] = [](const JyAxes &self) { return JyAxes(self); };
+    axes_user["move"] = &JyAxes::move;
 
     // ----- URDF -----
     auto link_user = lua.new_usertype<Link>("link", sol::constructors<Link(const std::string &, const JyShape &),

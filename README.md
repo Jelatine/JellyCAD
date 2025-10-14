@@ -380,7 +380,7 @@ urdf:add(joint1):next(link1):add(joint2):next(link2):add(joint3):next(link3):add
     link5):add(joint6):next(link6)
 show({ base_link, sholder, upperarm, forearm, wrist1, wrist2, wrist3 })
 show({ joint_axes1, joint_axes2, joint_axes3, joint_axes4, joint_axes5, joint_axes6 })
-urdf:export({ name = 'myrobot', path = 'd:/' })
+urdf:export({ name = 'myrobot', path = 'd:/', ros_version=2 })
 ```
 
 ROS2使用方法
@@ -394,6 +394,18 @@ cd ~/ws_ros2
 colcon build --symlink-install
 source install/setup.bash
 ros2 launch urdf_launch display.launch.py urdf_package:=myrobot urdf_package_path:=urdf/myrobot.urdf
+```
+ROS1使用方法
+
+```bash
+sudo apt update
+sudo apt-get install ros-$ROS_DISTRO-urdf-tutorial
+mkdir -p ~/ws_ros1/src
+cp -r /mnt/d/myrobot ~/ws_ros1/src/
+cd ~/ws_ros1
+catkin_make
+source devel/setup.bash
+roslaunch urdf_tutorial display.launch model:='$(find myrobot)/urdf/myrobot.urdf'
 ```
 
 

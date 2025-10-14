@@ -12,7 +12,7 @@
 
 namespace fs = std::filesystem;
 
-static std::string cmakelists = R"(cmake_minimum_required(VERSION 3.8)
+static std::string ros2_cmakelists = R"(cmake_minimum_required(VERSION 3.8)
 project(robot_description)
 find_package(ament_cmake REQUIRED)
 install(
@@ -22,7 +22,7 @@ install(
 ament_package()
 )";
 
-static std::string package_xml = R"(<?xml version="1.0"?>
+static std::string ros2_package_xml = R"(<?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>robot_description</name>
@@ -36,6 +36,27 @@ static std::string package_xml = R"(<?xml version="1.0"?>
   <export>
     <build_type>ament_cmake</build_type>
   </export>
+</package>
+)";
+
+static std::string ros1_cmakelists = R"(cmake_minimum_required(VERSION 3.0.2)
+project(robot_description)
+find_package(catkin REQUIRED)
+catkin_package()
+install(
+  DIRECTORY urdf meshes launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+)";
+
+static std::string ros1_package_xml = R"(<?xml version="1.0"?>
+<package format="2">
+  <name>robot_description</name>
+  <version>0.0.0</version>
+  <description>TODO: Package description</description>
+  <maintainer email="TODO@email.com">JellyCAD</maintainer>
+  <license>TODO: License declaration</license>
+  <buildtool_depend>catkin</buildtool_depend>
 </package>
 )";
 
@@ -85,11 +106,18 @@ void Link::export_urdf(const sol::table &params) const {
     }
     std::string robot_name = params["name"].get<std::string>();
     std::string root_path = params["path"].get<std::string>();
-    export_urdf_impl(robot_name, root_path);
+    ExtendedFile file_type = ExtendedFile::URDF;
+    if (params["ros_version"].valid()) {
+        file_type = params["ros_version"].get<int>() == 1 ? ExtendedFile::ROS1 : ExtendedFile::ROS2;
+    }
+    if (params["mujoco"].valid() && params["mujoco"].get<bool>()) {
+        file_type = ExtendedFile::MUJOCO;
+    }
+    export_urdf_impl(robot_name, root_path, file_type);
 }
 
 
-void Link::export_urdf_impl(const std::string &robot_name, const std::string &root_path) const {
+void Link::export_urdf_impl(const std::string &robot_name, const std::string &root_path, const ExtendedFile &file_type) const {
     fs::path path = fs::path(root_path) / robot_name;
     if (fs::exists(path) && fs::is_directory(path)) {
         fs::remove_all(path);
@@ -97,40 +125,142 @@ void Link::export_urdf_impl(const std::string &robot_name, const std::string &ro
     if (!fs::create_directories(path)) {
         throw std::runtime_error("unable to create robot description directory");
     }
-    fs::path path_urdf = path / "urdf";
-    if (!fs::create_directories(path_urdf)) {
-        throw std::runtime_error("unable to create robot urdf directory");
+
+    // 根据文件类型选择不同的子目录结构
+    fs::path path_output_dir;
+    fs::path file_path;
+    if (file_type == ExtendedFile::MUJOCO) {
+        path_output_dir = path;
+        file_path = path / (robot_name + ".xml");
+    } else {
+        path_output_dir = path / "urdf";
+        if (!fs::create_directories(path_output_dir)) {
+            throw std::runtime_error("unable to create robot urdf directory");
+        }
+        file_path = path_output_dir / (robot_name + ".urdf");
     }
+
     fs::path path_meshes = path / "meshes";
     if (!fs::create_directories(path_meshes)) {
         throw std::runtime_error("unable to create robot meshes directory");
     }
-    const auto file_path = path_urdf / (robot_name + ".urdf");
+
     JyAxes base_axes({0, 0, 0, 0, 0, 0}, 1);
     CommomData data{robot_name, path_meshes.string()};
     std::ofstream outFile(file_path);
     if (outFile.is_open()) {
-        outFile << "<?xml version=\"1.0\"?>\n";
-        outFile << "<robot name=\"" + robot_name + "\">\n\n";
-        outFile << traverseDFS(*this, base_axes, data);
-        outFile << "</robot>\n";
+        if (file_type == ExtendedFile::MUJOCO) {
+            // 生成MuJoCo XML
+            outFile << "<mujoco model=\"" + robot_name + "\">\n";
+            outFile << "  <compiler angle=\"radian\" meshdir=\"meshes\" autolimits=\"true\"/>\n\n";
+            outFile << "  <option timestep=\"0.001\" gravity=\"0 0 -9.81\"/>\n\n";
+
+            outFile << "  <statistic center=\"0 0 0.5\" extent=\"1.5\"/>\n\n";
+            // 添加视觉配置
+            outFile << "  <visual>\n";
+            outFile << "    <rgba haze=\"0.15 0.25 0.35 1\"/>\n";
+            outFile << "    <quality shadowsize=\"2048\"/>\n";
+            outFile << "    <map stiffness=\"700\" shadowscale=\"0.5\"/>\n";
+            outFile << "  </visual>\n\n";
+
+            // 收集所有非空形状的link名称用于asset声明
+            std::vector<std::string> all_link_names;
+            std::function<void(const Link &)> collect_links = [&](const Link &link) {
+                // 检查link是否有非空形状
+                bool has_valid_shape = false;
+                for (const auto &shape: link.shapes_) {
+                    if (!shape.s_.IsNull()) {
+                        has_valid_shape = true;
+                        break;
+                    }
+                }
+                if (has_valid_shape) {
+                    all_link_names.push_back(link.name_);
+                }
+                for (const auto &joint: link.joints_) {
+                    if (joint->child_) {
+                        collect_links(*joint->child_);
+                    }
+                }
+            };
+            collect_links(*this);
+
+            outFile << "  <asset>\n";
+            outFile << "    <texture type=\"skybox\" builtin=\"gradient\" rgb1=\"0.3 0.5 0.7\" rgb2=\"0 0 0\" width=\"512\" height=\"512\"/>\n";
+            outFile << "    <texture name=\"grid\" type=\"2d\" builtin=\"checker\" rgb1=\"0.2 0.3 0.4\" rgb2=\"0.1 0.15 0.2\" width=\"512\" height=\"512\" mark=\"cross\" markrgb=\"1 1 1\"/>\n";
+            outFile << "    <material name=\"grid\" texture=\"grid\" texrepeat=\"1 1\" texuniform=\"true\" reflectance=\"0.2\"/>\n";
+            for (const auto &link_name: all_link_names) {
+                outFile << "    <mesh name=\"" << link_name << "\" file=\"" << link_name << ".stl\"/>\n";
+            }
+            outFile << "  </asset>\n\n";
+            outFile << "  <worldbody>\n";
+            outFile << "    <geom name=\"floor\" size=\"0 0 0.05\" type=\"plane\" material=\"grid\" condim=\"3\"/>\n";
+            outFile << "    <light directional=\"true\" diffuse=\"0.8 0.8 0.8\" specular=\"0.2 0.2 0.2\" pos=\"0 0 5\" dir=\"0 0 -1\"/>\n";
+            outFile << "    <light directional=\"true\" diffuse=\"0.4 0.4 0.4\" specular=\"0.1 0.1 0.1\" pos=\"0 0 4\" dir=\"0 1 -1\"/>\n";
+            // 收集所有需要驱动的关节名称
+            std::vector<std::string> actuated_joint_names;
+            std::function<void(const Link&)> collect_joints = [&](const Link& link) {
+                for (const auto &joint: link.joints_) {
+                    // 只为revolute、continuous和prismatic类型的关节添加驱动器
+                    if (joint->type_ == "revolute" || joint->type_ == "continuous" || joint->type_ == "prismatic") {
+                        actuated_joint_names.push_back(joint->name_);
+                    }
+                    if (joint->child_) {
+                        collect_joints(*joint->child_);
+                    }
+                }
+            };
+            collect_joints(*this);
+
+            outFile << traverseDFS_MuJoCo(*this, base_axes, data);
+            outFile << "  </worldbody>\n\n";
+            outFile << "  <actuator>\n";
+            for (const auto& joint_name : actuated_joint_names) {
+                outFile << "    <motor name=\"" << joint_name << "_motor\" joint=\"" << joint_name << "\" gear=\"1\"/>\n";
+            }
+            outFile << "  </actuator>\n";
+            outFile << "</mujoco>\n";
+        } else {
+            // 生成URDF
+            outFile << "<?xml version=\"1.0\"?>\n";
+            outFile << "<robot name=\"" + robot_name + "\">\n\n";
+            outFile << traverseDFS(*this, base_axes, data);
+            outFile << "</robot>\n";
+        }
         outFile.close();
     } else {
         throw std::runtime_error("unable to open file for writing");
     }
-    std::ofstream outFileCMakeLists(path / "CMakeLists.txt");
-    if (outFileCMakeLists.is_open()) {
-        outFileCMakeLists << replaceRobotDescription(cmakelists, robot_name);
-        outFileCMakeLists.close();
-    } else {
-        throw std::runtime_error("unable to open file for writing");
-    }
-    std::ofstream outFilePackageXml(path / "package.xml");
-    if (outFilePackageXml.is_open()) {
-        outFilePackageXml << replaceRobotDescription(package_xml, robot_name);
-        outFilePackageXml.close();
-    } else {
-        throw std::runtime_error("unable to open file for writing");
+    if (file_type == ExtendedFile::ROS1) {
+        std::ofstream outFileCMakeLists(path / "CMakeLists.txt");
+        if (outFileCMakeLists.is_open()) {
+            outFileCMakeLists << replaceRobotDescription(ros1_cmakelists, robot_name);
+            outFileCMakeLists.close();
+        } else {
+            throw std::runtime_error("unable to open file for writing");
+        }
+        std::ofstream outFilePackageXml(path / "package.xml");
+        if (outFilePackageXml.is_open()) {
+            outFilePackageXml << replaceRobotDescription(ros1_package_xml, robot_name);
+            outFilePackageXml.close();
+        } else {
+            throw std::runtime_error("unable to open file for writing");
+        }
+    } else if (file_type == ExtendedFile::ROS2) {
+        std::ofstream outFileCMakeLists(path / "CMakeLists.txt");
+        if (outFileCMakeLists.is_open()) {
+            outFileCMakeLists << replaceRobotDescription(ros2_cmakelists, robot_name);
+            outFileCMakeLists.close();
+        } else {
+            throw std::runtime_error("unable to open file for writing");
+        }
+        std::ofstream outFilePackageXml(path / "package.xml");
+        if (outFilePackageXml.is_open()) {
+            outFilePackageXml << replaceRobotDescription(ros2_package_xml, robot_name);
+            outFilePackageXml.close();
+        } else {
+            throw std::runtime_error("unable to open file for writing");
+        }
     }
 }
 
@@ -193,6 +323,9 @@ std::string Link::handleLink(const Link &link, const JyAxes &parent_axes, const 
         }
         shapes.push_back(copy_shape);
     }
+    if (output_shape.s_.IsNull()) {
+        return "  <link name=\"" + link.name_ + "\"/>\n\n";
+    }
     std::stringstream file;
     file << std::fixed << std::setprecision(3);
     file << "  <link name=\"" << link.name_ << "\">\n";
@@ -202,12 +335,12 @@ std::string Link::handleLink(const Link &link, const JyAxes &parent_axes, const 
     file << "      <mass value=\"" << inertial.mass << "\"/>\n";
     file << "      <origin xyz=\"" << inertial.center_of_mass[0] << " " << inertial.center_of_mass[1] << " " << inertial.center_of_mass[2]
          << "\" rpy=\"0 0 0\"/>\n";
-    file << "      <inertia ixx=\"" << inertial.inertia_tensor[0]
+    file << "      <inertia ixx=\"" << std::setprecision(6) << inertial.inertia_tensor[0]
          << "\" iyy=\"" << inertial.inertia_tensor[1]
          << "\" izz=\"" << inertial.inertia_tensor[2]
          << "\" ixy=\"" << inertial.inertia_tensor[3]
          << "\" ixz=\"" << inertial.inertia_tensor[4]
-         << "\" iyz=\"" << inertial.inertia_tensor[5] << "\"/>\n";
+         << "\" iyz=\"" << inertial.inertia_tensor[5] << std::setprecision(3) << "\"/>\n";
     file << "    </inertial>\n";
 
     // Visual properties
@@ -237,5 +370,156 @@ std::string Link::handleLink(const Link &link, const JyAxes &parent_axes, const 
     fs::path path_stl = fs::path(data.path_meshes) / (link.name_ + ".stl");
     std::cout << "export mesh to: " << path_stl.generic_string() << std::endl;
     output_shape.export_stl_common(path_stl.generic_string(), false, 0.1);
+    return file.str();
+}
+
+
+// MuJoCo specific implementations
+std::string Link::traverseDFS_MuJoCo(const Link &link, const JyAxes &parent_axes, const CommomData &data, bool is_root) const {
+    std::string file_doc;
+    file_doc.append(handleBody_MuJoCo(link, parent_axes, data, is_root));
+    return file_doc;
+}
+
+
+std::string Link::handleBody_MuJoCo(const Link &link, const JyAxes &parent_axes, const CommomData &data, bool is_root) const {
+    JyShape output_shape;
+    for (int i = 0; i < link.shapes_.size(); i++) {
+        JyShape copy_shape = link.shapes_[i];
+        if (!output_shape.s_.IsNull()) {
+            output_shape.fuse(copy_shape);
+        } else {
+            output_shape = copy_shape;
+        }
+    }
+
+    std::stringstream file;
+    file << std::fixed << std::setprecision(3);
+
+    // 处理空形状
+    if (output_shape.s_.IsNull()) {
+        file << "    <body name=\"" << link.name_ << "\">\n";
+        // 遍历子关节
+        for (const auto &joint: link.joints_) {
+            if (!joint->child_) {
+                continue;
+            }
+            file << handleJoint_MuJoCo(*joint, is_root ? parent_axes : joint->axes_);
+            // 递归遍历子Body
+            file << handleBody_MuJoCo(*joint->child_, joint->axes_, data, false);
+        }
+        file << "    </body>\n";
+        return file.str();
+    }
+
+    std::array<double, 6> pose = {0, 0, 0, 0, 0, 0};
+    // 根body不需要pos和euler属性
+    if (is_root) {
+        file << "    <body name=\"" << link.name_ << "\">\n";
+    } else {
+        // 遍历子关节
+        for (const auto &joint: link.joints_) {
+            if (!joint->child_) { continue; }
+            pose = joint->axes_.joint2joint(parent_axes);
+            file << "    <body name=\"" << link.name_ << "\" pos=\""
+                 << pose[0] << " " << pose[1] << " " << pose[2]
+                 << "\" euler=\"" << pose[3] << " " << pose[4] << " " << pose[5] << "\">\n";
+        }
+    }
+
+
+    std::vector<JyShape> shapes;
+    for (int i = 0; i < link.shapes_.size(); i++) {
+        JyShape copy_shape = link.shapes_[i];
+        if (!is_root) {
+            copy_shape.rot(pose[3] * 180 / M_PI, pose[4] * 180 / M_PI, pose[5] * 180 / M_PI);
+            copy_shape.pos(pose[0], pose[1], pose[2]);
+        }
+        if (!output_shape.s_.IsNull()) {
+            output_shape.fuse(copy_shape);
+        } else {
+            output_shape = copy_shape;
+        }
+        shapes.push_back(copy_shape);
+    }
+
+
+    // 计算惯性属性
+    const auto &inertial = JyShape::inertial(shapes);
+    const auto &rgba = link.shapes_[0].rgba();
+    const auto mesh_filename = link.name_ + ".stl";
+
+    // 惯性属性
+    file << "      <inertial pos=\""
+         << inertial.center_of_mass[0] << " "
+         << inertial.center_of_mass[1] << " "
+         << inertial.center_of_mass[2]
+         << "\" mass=\"" << inertial.mass << "\" diaginertia=\""
+         << std::setprecision(6) << inertial.inertia_tensor[0] << " "
+         << inertial.inertia_tensor[1] << " "
+         << inertial.inertia_tensor[2] << std::setprecision(3) << "\"/>\n";
+
+    // 几何形状（碰撞和视觉）
+    file << "      <geom type=\"mesh\" mesh=\"" << link.name_ << "\" rgba=\""
+         << rgba[0] << " " << rgba[1] << " " << rgba[2] << " " << rgba[3] << "\"/>\n";
+
+    // 遍历子关节
+    for (const auto &joint: link.joints_) {
+        if (!joint->child_) {
+            continue;
+        }
+        file << handleJoint_MuJoCo(*joint, is_root ? parent_axes : joint->axes_);
+        // 递归遍历子Body
+        file << handleBody_MuJoCo(*joint->child_, joint->axes_, data, false);
+    }
+
+    file << "    </body>\n";
+
+    // 导出STL网格
+    fs::path path_stl = fs::path(data.path_meshes) / (link.name_ + ".stl");
+    std::cout << "export mesh to: " << path_stl.generic_string() << std::endl;
+    output_shape.export_stl_common(path_stl.generic_string(), false, 0.1);
+
+    return file.str();
+}
+
+
+std::string Link::handleJoint_MuJoCo(const Joint &joint, const JyAxes &parent_axes) const {
+    // 计算当前关节坐标系相对于父连杆的偏移位姿
+    const auto &pose = joint.axes_.joint2joint(parent_axes);
+    std::stringstream file;
+    file << std::fixed << std::setprecision(3);
+
+    // MuJoCo joint类型映射
+    std::string mujoco_type;
+    if (joint.type_ == "revolute" || joint.type_ == "continuous") {
+        mujoco_type = "hinge";
+    } else if (joint.type_ == "prismatic") {
+        mujoco_type = "slide";
+    } else if (joint.type_ == "fixed") {
+        // fixed类型不需要创建joint，由body嵌套表示
+        return "";
+    } else if (joint.type_ == "floating") {
+        mujoco_type = "free";
+    } else if (joint.type_ == "planar") {
+        // MuJoCo没有直接的planar类型，可以用两个slide joint模拟
+        // 这里简化处理，跳过
+        return "";
+    } else {
+        throw std::runtime_error("joint type not support for MuJoCo: " + joint.type_);
+    }
+
+    file << "      <joint name=\"" << joint.name_ << "\" type=\"" << mujoco_type << "\"";
+
+    // 位置和方向
+    // file << " pos=\"" << pose[0] << " " << pose[1] << " " << pose[2] << "\"";
+    file << " axis=\"0 0 1\"";// Z轴为关节轴
+
+    // 限位（仅对hinge和slide有效）
+    if (joint.type_ == "revolute" || joint.type_ == "prismatic") {
+        file << " range=\"" << joint.limits_.lower << " " << joint.limits_.upper << "\"";
+    }
+
+    file << "/>\n";
     return file.str();
 }

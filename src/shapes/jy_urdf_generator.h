@@ -68,11 +68,17 @@ public:
     void export_urdf(const sol::table &params) const;
 
 private:
+    enum class ExtendedFile {
+        URDF,  // 普通URDF文件
+        ROS1,  // ROS1的额外文件
+        ROS2,  // ROS2的额外文件
+        MUJOCO // MuJoCo XML文件
+    };
     struct CommomData {
         std::string robot_name; // 机器人名称
         std::string path_meshes;// 网格文件路径
     };
-    void export_urdf_impl(const std::string &robot_name, const std::string &root_path) const;
+    void export_urdf_impl(const std::string &robot_name, const std::string &root_path, const ExtendedFile &file_type = ExtendedFile::URDF) const;
 
     // 深度优先遍历（DFS）
     std::string traverseDFS(const Link &link, const JyAxes &parent_axes, const CommomData &data) const;
@@ -93,6 +99,11 @@ private:
      * @return 生成的URDF字符串
      */
     std::string handleLink(const Link &link, const JyAxes &parent_axes, const CommomData &data) const;
+
+    // MuJoCo specific handlers
+    std::string traverseDFS_MuJoCo(const Link &link, const JyAxes &parent_axes, const CommomData &data, bool is_root = true) const;
+    std::string handleBody_MuJoCo(const Link &link, const JyAxes &parent_axes, const CommomData &data, bool is_root = false) const;
+    std::string handleJoint_MuJoCo(const Joint &joint, const JyAxes &parent_axes) const;
 };
 
 #endif

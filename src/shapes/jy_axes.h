@@ -6,23 +6,24 @@
 #define JY_AXES_H
 
 #include "jy_shape.h"
-#include <AIS_Trihedron.hxx>
 #include <array>
 
 class JyAxes {
-    opencascade::handle<AIS_Trihedron> trihedron;
-
     gp_Trsf transformation;
-    // friend class JyShape;
+    double length_;// length of the axes
 
 public:
     JyAxes(const std::array<double, 6> pose, const double &length);
 
-    opencascade::handle<AIS_Trihedron> data() const { return trihedron; }
+    gp_Trsf data() const { return transformation; }
+
+    double length() const { return length_; }
 
     std::array<double, 6> link2joint(const JyShape &child_shape) const;
 
     std::array<double, 6> joint2joint(const JyAxes &parent_joint) const;
+
+    JyAxes &move(const std::array<double, 6> ref);// move the axes to the reference pose
 
 private:
     static std::array<double, 6> transform(const gp_Trsf &trsf);

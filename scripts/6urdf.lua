@@ -54,10 +54,10 @@ local z_wrist1 = z_forearm + h_forearm + h_motor + r_shell
 wrist1 = shell:copy():rot(180, 0, 0):pos(0, -h_motor - offset, z_forearm + h_forearm + h_motor + r_shell)
 -- 手腕2
 local z_wrist2 = z_forearm + h_forearm + 2 * h_motor - offset
-wrist2 = shell:copy():rot(90, 0, 0):pos(0, -h_motor / 2 - offset, z_wrist2)
+wrist2 = shell:copy():rot(90, 0, 180):pos(0, r_shell - 2 * h_motor, z_wrist2)
 -- 手腕3
 local h_flank = 10
-wrist3 = cylinder.new(r_shell, h_flank):rot(90, 0, 0):pos(0, -h_motor / 2 - offset + h_flank, z_wrist2)
+wrist3 = cylinder.new(r_shell, h_flank):rot(90, 0, 0):pos(0, r_shell - 2 * h_motor, z_wrist2)
 -- 毫米单位转为米，生成URDF
 base_link:scale(1e-3):color('#6495ED'):mass(0.1)
 sholder:scale(1e-3):color('#8470FF'):mass(0.4)
@@ -66,18 +66,32 @@ forearm:scale(1e-3):color('#FFC100'):mass(0.8)
 wrist1:scale(1e-3):color('#FF8247'):mass(0.4)
 wrist2:scale(1e-3):color('#FFE7BA'):mass(0.4)
 wrist3:scale(1e-3):color('#C1CDC1'):mass(0.1)
-joint_axes1 = axes.new({ 0, 0, z_upperarm * 1e-3, 0, 0, 0 }, 0.1)
-joint_axes2 = axes.new({ 0, -h_motor * 1e-3, z_upperarm * 1e-3, 90, 0, 0 }, 0.1)
-joint_axes3 = axes.new({ 0, -h_motor * 1e-3, z_forearm * 1e-3, 90, 0, 0 }, 0.1)
-joint_axes4 = axes.new({ 0, -offset * 1e-3, (z_wrist1 - h_motor / 2) * 1e-3, 90, 0, 0 }, 0.2)
-joint_axes5 = axes.new({ 0, -(h_motor + offset) * 1e-3, (z_wrist1 - h_motor / 2) * 1e-3, 0, 0, 0 }, 0.2)
-joint_axes6 = axes.new({ 0, -(h_motor + offset) * 1e-3, (z_wrist2) * 1e-3, -90, 0, 0 }, 0.1)
-joint1 = joint.new("joint1", joint_axes1, "revolute")
-joint2 = joint.new("joint2", joint_axes2, "revolute")
-joint3 = joint.new("joint3", joint_axes3, "revolute")
-joint4 = joint.new("joint4", joint_axes4, "revolute")
-joint5 = joint.new("joint5", joint_axes5, "revolute")
-joint6 = joint.new("joint6", joint_axes6, "revolute")
+local d1 = z_upperarm * 1e-3
+local a2 = (h_upperarm + h_motor) * 1e-3
+local a3 = (h_forearm + h_motor / 2 + r_shell) * 1e-3
+local d4 = (h_motor + offset) * 1e-3
+local d5 = h_motor * 1e-3
+local d6 = (h_motor / 2 + h_flank) * 1e-3
+joint_axes1 = axes.new({ 0, 0, d1, 0, 0, 0 }, 0.1)
+joint_axes2 = joint_axes1:copy():move({ 0, 0, 0, 90, 0, 0 })
+joint_axes3 = joint_axes2:copy():move({ 0, a2, 0, 0, 0, 0 })
+joint_axes4 = joint_axes3:copy():move({ 0, a3, 0, 0, 0, 0 })
+joint_axes5 = joint_axes4:copy():move({ 0, 0, d4, -90, 0, 0 })
+joint_axes6 = joint_axes5:copy():move({ 0, 0, d5, 90, 0, 0 })
+joint_tool = joint_axes6:copy():move({ 0, 0, d6, 0, 0, 0 })
+j1_limit = { lower = -6.28, upper = 6.28, velocity = 3.14, effort = 9 }
+j2_limit = { lower = -6.28, upper = 6.28, velocity = 3.14, effort = 9 }
+j3_limit = { lower = -3.14, upper = 3.14, velocity = 3.14, effort = 9 }
+j4_limit = { lower = -6.28, upper = 6.28, velocity = 3.14, effort = 3 }
+j5_limit = { lower = -6.28, upper = 6.28, velocity = 3.14, effort = 3 }
+j6_limit = { lower = -6.28, upper = 6.28, velocity = 3.14, effort = 3 }
+joint1 = joint.new("joint1", joint_axes1, "revolute", j1_limit)
+joint2 = joint.new("joint2", joint_axes2, "revolute", j2_limit)
+joint3 = joint.new("joint3", joint_axes3, "revolute", j3_limit)
+joint4 = joint.new("joint4", joint_axes4, "revolute", j4_limit)
+joint5 = joint.new("joint5", joint_axes5, "revolute", j5_limit)
+joint6 = joint.new("joint6", joint_axes6, "revolute", j6_limit)
+jointT = joint.new("jointT", joint_tool, "fixed")
 urdf = link.new("base_link", base_link)
 link1 = link.new("link1", sholder)
 link2 = link.new("link2", upperarm)
@@ -85,13 +99,14 @@ link3 = link.new("link3", forearm)
 link4 = link.new("link4", wrist1)
 link5 = link.new("link5", wrist2)
 link6 = link.new("link6", wrist3)
+link_tool = link.new("link_tool", shape.new())
 urdf:add(joint1):next(link1):add(joint2):next(link2):add(joint3):next(link3):add(joint4):next(link4):add(joint5):next(
-    link5):add(joint6):next(link6)
+    link5):add(joint6):next(link6):add(jointT):next(link_tool)
 show({ base_link, sholder, upperarm, forearm, wrist1, wrist2, wrist3 })
-show({ joint_axes1, joint_axes2, joint_axes3, joint_axes4, joint_axes5, joint_axes6 })
--- urdf:export({ name = 'myrobot', path = 'd:/' })
+show({ joint_axes1, joint_axes2, joint_axes3, joint_axes4, joint_axes5, joint_axes6, joint_tool })
+urdf:export({ name = 'myrobot', path = 'd:/', ros_version = 2 })
 --[[
-ROS2使用方式:
+--- ROS2使用方式: ---
 sudo apt update
 sudo apt install ros-$ROS_DISTRO-urdf-launch
 mkdir -p ~/ws_ros2/src
@@ -100,4 +115,13 @@ cd ~/ws_ros2
 colcon build --symlink-install
 source install/setup.bash
 ros2 launch urdf_launch display.launch.py urdf_package:=myrobot urdf_package_path:=urdf/myrobot.urdf
+--- ROS1使用方式: ---
+sudo apt update
+sudo apt-get install ros-$ROS_DISTRO-urdf-tutorial
+mkdir -p ~/ws_ros1/src
+cp -r /mnt/d/myrobot ~/ws_ros1/src/
+cd ~/ws_ros1
+catkin_make
+source devel/setup.bash
+roslaunch urdf_tutorial display.launch model:='$(find myrobot)/urdf/myrobot.urdf'
 --]]
