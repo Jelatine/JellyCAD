@@ -41,6 +41,41 @@ JyAxes &JyAxes::move(const std::array<double, 6> ref) {
     return *this;
 }
 
+
+JyAxes &JyAxes::sdh(const double &alpha, const double &a, const double &d, const double &theta) {
+    gp_Trsf rot_alpha;
+    gp_Quaternion q_alpha;
+    q_alpha.SetEulerAngles(gp_YawPitchRoll, 0, 0, (alpha * M_PI / 180.0));
+    rot_alpha.SetRotation(q_alpha);
+    gp_Trsf trans_a;
+    trans_a.SetTranslation(gp_XYZ(a, 0, 0));
+    gp_Trsf trans_d;
+    trans_d.SetTranslation(gp_XYZ(0, 0, d));
+    gp_Trsf rot_theta;
+    gp_Quaternion q_theta;
+    q_theta.SetEulerAngles(gp_YawPitchRoll, (theta * M_PI / 180.0), 0, 0);
+    rot_theta.SetRotation(q_theta);
+    transformation = transformation * rot_theta * trans_d * trans_a * rot_alpha;
+    return *this;
+}
+
+JyAxes &JyAxes::mdh(const double &alpha, const double &a, const double &d, const double &theta) {
+    gp_Trsf rot_alpha;
+    gp_Quaternion q_alpha;
+    q_alpha.SetEulerAngles(gp_YawPitchRoll, 0, 0, (alpha * M_PI / 180.0));
+    rot_alpha.SetRotation(q_alpha);
+    gp_Trsf trans_a;
+    trans_a.SetTranslation(gp_XYZ(a, 0, 0));
+    gp_Trsf trans_d;
+    trans_d.SetTranslation(gp_XYZ(0, 0, d));
+    gp_Trsf rot_theta;
+    gp_Quaternion q_theta;
+    q_theta.SetEulerAngles(gp_YawPitchRoll, (theta * M_PI / 180.0), 0, 0);
+    rot_theta.SetRotation(q_theta);
+    transformation = transformation * rot_alpha * trans_a * rot_theta * trans_d;
+    return *this;
+}
+
 std::array<double, 6> JyAxes::transform(const gp_Trsf &trsf) {
     gp_Quaternion quaternion = trsf.GetRotation();
     Standard_Real x, y, z;

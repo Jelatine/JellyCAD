@@ -484,7 +484,10 @@ shape:transparency(value)
 #### **`axes`** - 坐标系类
 
 ```lua
-axes.new(pose, length)
+axes.new() -- 默认单位矩阵，轴长为1
+axes.new(length) -- 单位矩阵，轴长为length
+axes.new(pose) -- pose矩阵，轴长为1
+axes.new(pose, length) -- pose矩阵，轴长为length
 ```
 
 **说明：**
@@ -499,6 +502,9 @@ axes.new(pose, length)
 **方法：**
 
 - `show()` - 显示坐标系到界面中
+- `move(pose)` - 通过`pose={x,y,z,rx,ry,rz}`变换矩阵，`rx,ry,rz`单位为角度
+- `sdh(a,alpha,d,theta)` - 通过标准DH方法变换矩阵，`alpha,theta`单位为弧度
+- `mdh(a,alpha,d,theta)` - 通过修改DH方法(Craig)变换矩阵，`alpha,theta`单位为弧度
 
 **示例：**
 

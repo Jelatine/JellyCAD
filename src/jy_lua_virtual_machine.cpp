@@ -131,10 +131,15 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
     lua.new_usertype<JyText>("text", text_ctor, sol::base_classes, sol::bases<JyShape>());
 
     // ----- Axes -----
-    auto axes_user = lua.new_usertype<JyAxes>("axes", sol::constructors<JyAxes(const std::array<double, 6>, const double &)>());
+    auto axes_user = lua.new_usertype<JyAxes>("axes", sol::constructors<JyAxes(),
+                                                                        JyAxes(const double &),
+                                                                        JyAxes(const std::array<double, 6>),
+                                                                        JyAxes(const std::array<double, 6>, const double &)>());
     axes_user["show"] = [this](const JyAxes &self) { return emit this->displayAxes(self); };
     axes_user["copy"] = [](const JyAxes &self) { return JyAxes(self); };
     axes_user["move"] = &JyAxes::move;
+    axes_user["sdh"] = &JyAxes::sdh;
+    axes_user["mdh"] = &JyAxes::mdh;
 
     // ----- URDF -----
     auto link_user = lua.new_usertype<Link>("link", sol::constructors<Link(const std::string &, const JyShape &),
@@ -142,15 +147,10 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
     link_user["export"] = sol::overload(
             static_cast<void (Link::*)(const std::string &robot_name) const>(&Link::export_urdf),
             static_cast<void (Link::*)(const sol::table &params) const>(&Link::export_urdf));
-    link_user["add"] = sol::overload(
-            static_cast<Joint &(Link::*) (const Joint &)>(&Link::add),
-            static_cast<Joint &(Link::*) (const std::string &, const JyAxes &, const std::string &)>(&Link::add),
-            static_cast<Joint &(Link::*) (const std::string &, const JyAxes &, const std::string &, const sol::table &)>(&Link::add));
+    link_user["add"] = &Link::add;
     auto joint_user = lua.new_usertype<Joint>("joint", sol::constructors<Joint(const std::string &, const JyAxes &, const std::string &),
                                                                          Joint(const std::string &, const JyAxes &, const std::string &, const sol::table &)>());
-    joint_user["next"] = sol::overload(
-            static_cast<Link &(Joint::*) (const Link &)>(&Joint::next),
-            static_cast<Link &(Joint::*) (const std::string &, const JyShape &)>(&Joint::next));
+    joint_user["next"] = &Joint::next;
 }
 
 void JyLuaVirtualMachine::runScript(const QString &_file_path) {

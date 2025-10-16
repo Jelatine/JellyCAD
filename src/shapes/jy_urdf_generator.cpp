@@ -83,18 +83,6 @@ Link::Link(const std::string &name, const sol::table &shape_list) : name_(name) 
     if (shapes_.empty()) { throw std::runtime_error("Link without shape!"); }
 }
 
-
-Joint &Link::add(const std::string &name, const JyAxes &axes, const std::string &type) {
-    return add(name, axes, type, sol::table());
-}
-
-Joint &Link::add(const std::string &name, const JyAxes &axes, const std::string &type, const sol::table &limits) {
-    std::shared_ptr<Joint> joint = std::make_shared<Joint>(name, axes, type, limits);
-    joints_.push_back(joint);
-    return *joint;
-}
-
-
 void Link::export_urdf(const std::string &robot_name) const {
     export_urdf_impl(robot_name, fs::current_path().string());
 }
@@ -162,6 +150,12 @@ void Link::export_urdf_impl(const std::string &robot_name, const std::string &ro
             outFile << "    <quality shadowsize=\"2048\"/>\n";
             outFile << "    <map stiffness=\"700\" shadowscale=\"0.5\"/>\n";
             outFile << "  </visual>\n\n";
+            // 添加默认配置
+            outFile << "  <default>\n";
+            outFile << "    <joint damping=\"1\" armature=\"0.1\"/>\n";
+            outFile << "    <geom contype=\"1\" conaffinity=\"1\" friction=\"1 0.5 0.5\"/>\n";
+            outFile << "    <motor ctrllimited=\"true\"/>\n";
+            outFile << "  </default>\n\n";
 
             // 收集所有非空形状的link名称用于asset声明
             std::vector<std::string> all_link_names;
@@ -194,16 +188,20 @@ void Link::export_urdf_impl(const std::string &robot_name, const std::string &ro
             }
             outFile << "  </asset>\n\n";
             outFile << "  <worldbody>\n";
-            outFile << "    <geom name=\"floor\" size=\"0 0 0.05\" type=\"plane\" material=\"grid\" condim=\"3\"/>\n";
+            outFile << "    <geom name=\"floor\" size=\"0 0 0.05\" type=\"plane\" material=\"grid\" condim=\"3\" friction=\"0.1 0.005 0.0001\"/>\n";
             outFile << "    <light directional=\"true\" diffuse=\"0.8 0.8 0.8\" specular=\"0.2 0.2 0.2\" pos=\"0 0 5\" dir=\"0 0 -1\"/>\n";
             outFile << "    <light directional=\"true\" diffuse=\"0.4 0.4 0.4\" specular=\"0.1 0.1 0.1\" pos=\"0 0 4\" dir=\"0 1 -1\"/>\n";
+            struct DriveInfo {
+                std::string name;
+                double effort;
+            };
             // 收集所有需要驱动的关节名称
-            std::vector<std::string> actuated_joint_names;
-            std::function<void(const Link&)> collect_joints = [&](const Link& link) {
+            std::vector<DriveInfo> drive_infos;
+            std::function<void(const Link &)> collect_joints = [&](const Link &link) {
                 for (const auto &joint: link.joints_) {
                     // 只为revolute、continuous和prismatic类型的关节添加驱动器
                     if (joint->type_ == "revolute" || joint->type_ == "continuous" || joint->type_ == "prismatic") {
-                        actuated_joint_names.push_back(joint->name_);
+                        drive_infos.push_back({joint->name_, joint->limits_.effort});
                     }
                     if (joint->child_) {
                         collect_joints(*joint->child_);
@@ -212,11 +210,12 @@ void Link::export_urdf_impl(const std::string &robot_name, const std::string &ro
             };
             collect_joints(*this);
 
-            outFile << traverseDFS_MuJoCo(*this, base_axes, data);
+            outFile << handleBody_MuJoCo(*this, Joint(), Joint(), data);
             outFile << "  </worldbody>\n\n";
             outFile << "  <actuator>\n";
-            for (const auto& joint_name : actuated_joint_names) {
-                outFile << "    <motor name=\"" << joint_name << "_motor\" joint=\"" << joint_name << "\" gear=\"1\"/>\n";
+            for (const auto &drive: drive_infos) {
+                outFile << "    <motor name=\"" << drive.name << "_motor\" joint=\"" << drive.name
+                        << "\" gear=\"1\" ctrllimited=\"true\" ctrlrange=\"-" << drive.effort << " " << drive.effort << "\" />\n";
             }
             outFile << "  </actuator>\n";
             outFile << "</mujoco>\n";
@@ -374,67 +373,14 @@ std::string Link::handleLink(const Link &link, const JyAxes &parent_axes, const 
 }
 
 
-// MuJoCo specific implementations
-std::string Link::traverseDFS_MuJoCo(const Link &link, const JyAxes &parent_axes, const CommomData &data, bool is_root) const {
-    std::string file_doc;
-    file_doc.append(handleBody_MuJoCo(link, parent_axes, data, is_root));
-    return file_doc;
-}
-
-
-std::string Link::handleBody_MuJoCo(const Link &link, const JyAxes &parent_axes, const CommomData &data, bool is_root) const {
+std::string Link::handleBody_MuJoCo(const Link &link, const Joint &parent_joint, const Joint &grand_joint, const CommomData &data, const int &space) const {
+    const auto pose_link = parent_joint.axes_.link2joint(link.shapes_[0]);
     JyShape output_shape;
-    for (int i = 0; i < link.shapes_.size(); i++) {
-        JyShape copy_shape = link.shapes_[i];
-        if (!output_shape.s_.IsNull()) {
-            output_shape.fuse(copy_shape);
-        } else {
-            output_shape = copy_shape;
-        }
-    }
-
-    std::stringstream file;
-    file << std::fixed << std::setprecision(3);
-
-    // 处理空形状
-    if (output_shape.s_.IsNull()) {
-        file << "    <body name=\"" << link.name_ << "\">\n";
-        // 遍历子关节
-        for (const auto &joint: link.joints_) {
-            if (!joint->child_) {
-                continue;
-            }
-            file << handleJoint_MuJoCo(*joint, is_root ? parent_axes : joint->axes_);
-            // 递归遍历子Body
-            file << handleBody_MuJoCo(*joint->child_, joint->axes_, data, false);
-        }
-        file << "    </body>\n";
-        return file.str();
-    }
-
-    std::array<double, 6> pose = {0, 0, 0, 0, 0, 0};
-    // 根body不需要pos和euler属性
-    if (is_root) {
-        file << "    <body name=\"" << link.name_ << "\">\n";
-    } else {
-        // 遍历子关节
-        for (const auto &joint: link.joints_) {
-            if (!joint->child_) { continue; }
-            pose = joint->axes_.joint2joint(parent_axes);
-            file << "    <body name=\"" << link.name_ << "\" pos=\""
-                 << pose[0] << " " << pose[1] << " " << pose[2]
-                 << "\" euler=\"" << pose[3] << " " << pose[4] << " " << pose[5] << "\">\n";
-        }
-    }
-
-
     std::vector<JyShape> shapes;
     for (int i = 0; i < link.shapes_.size(); i++) {
         JyShape copy_shape = link.shapes_[i];
-        if (!is_root) {
-            copy_shape.rot(pose[3] * 180 / M_PI, pose[4] * 180 / M_PI, pose[5] * 180 / M_PI);
-            copy_shape.pos(pose[0], pose[1], pose[2]);
-        }
+        copy_shape.rot(pose_link[3] * 180 / M_PI, pose_link[4] * 180 / M_PI, pose_link[5] * 180 / M_PI);
+        copy_shape.pos(pose_link[0], pose_link[1], pose_link[2]);
         if (!output_shape.s_.IsNull()) {
             output_shape.fuse(copy_shape);
         } else {
@@ -442,84 +388,61 @@ std::string Link::handleBody_MuJoCo(const Link &link, const JyAxes &parent_axes,
         }
         shapes.push_back(copy_shape);
     }
-
-
+    std::stringstream file;
+    file << std::string(space, ' ') << "    <body name=\"" << link.name_ << "\"";
+    const auto &pose = parent_joint.axes_.joint2joint(grand_joint.axes_);
+    file << " pos=\"" << pose[0] << " " << pose[1] << " " << pose[2] << "\" euler=\"" << pose[3] << " " << pose[4] << " " << pose[5] << "\">\n";
     // 计算惯性属性
     const auto &inertial = JyShape::inertial(shapes);
-    const auto &rgba = link.shapes_[0].rgba();
-    const auto mesh_filename = link.name_ + ".stl";
-
-    // 惯性属性
-    file << "      <inertial pos=\""
+    file << std::string(space, ' ') << std::fixed << std::setprecision(3) << "      <inertial pos=\""
          << inertial.center_of_mass[0] << " "
          << inertial.center_of_mass[1] << " "
          << inertial.center_of_mass[2]
-         << "\" mass=\"" << inertial.mass << "\" diaginertia=\""
+         << "\" mass=\"" << inertial.mass << "\" diaginertia=\"" << std::fixed
          << std::setprecision(6) << inertial.inertia_tensor[0] << " "
          << inertial.inertia_tensor[1] << " "
-         << inertial.inertia_tensor[2] << std::setprecision(3) << "\"/>\n";
-
-    // 几何形状（碰撞和视觉）
-    file << "      <geom type=\"mesh\" mesh=\"" << link.name_ << "\" rgba=\""
-         << rgba[0] << " " << rgba[1] << " " << rgba[2] << " " << rgba[3] << "\"/>\n";
-
+         << inertial.inertia_tensor[2] << std::defaultfloat << "\"/>\n";
+    const auto &rgba = link.shapes_[0].rgba();
+    if (!output_shape.s_.IsNull()) {
+        file << std::string(space, ' ') << "      <geom type=\"mesh\" mesh=\"" << link.name_ << "\" rgba=\""
+             << rgba[0] << " " << rgba[1] << " " << rgba[2] << " " << rgba[3] << "\"/>\n";
+    }
+    if (!parent_joint.type_.empty()) {
+        std::string mujoco_type;
+        if (parent_joint.type_ == "revolute" || parent_joint.type_ == "continuous") {
+            mujoco_type = "hinge";
+        } else if (parent_joint.type_ == "prismatic") {
+            mujoco_type = "slide";
+        } else if (parent_joint.type_ == "fixed") {
+            // fixed类型不需要创建joint，由body嵌套表示
+            return "";
+        } else if (parent_joint.type_ == "floating") {
+            mujoco_type = "free";
+        } else if (parent_joint.type_ == "planar") {
+            // MuJoCo没有直接的planar类型，可以用两个slide joint模拟
+            // 这里简化处理，跳过
+            return "";
+        } else {
+            throw std::runtime_error("joint type not support for MuJoCo: " + parent_joint.type_);
+        }
+        file << std::string(space, ' ') << "      <joint name=\"" << parent_joint.name_ << "\" type=\"" << mujoco_type << "\"";
+        file << " axis=\"0 0 1\"";// Z轴为关节轴
+        // 限位（仅对hinge和slide有效）
+        if (parent_joint.type_ == "revolute" || parent_joint.type_ == "prismatic") {
+            file << " range=\"" << parent_joint.limits_.lower << " " << parent_joint.limits_.upper << "\"";
+        }
+        file << "/>\n";
+    }
     // 遍历子关节
     for (const auto &joint: link.joints_) {
-        if (!joint->child_) {
-            continue;
-        }
-        file << handleJoint_MuJoCo(*joint, is_root ? parent_axes : joint->axes_);
-        // 递归遍历子Body
-        file << handleBody_MuJoCo(*joint->child_, joint->axes_, data, false);
+        if (!joint->child_) { continue; }
+        file << handleBody_MuJoCo(*joint->child_, *joint, parent_joint, data, space + 2);
     }
-
-    file << "    </body>\n";
-
-    // 导出STL网格
-    fs::path path_stl = fs::path(data.path_meshes) / (link.name_ + ".stl");
-    std::cout << "export mesh to: " << path_stl.generic_string() << std::endl;
-    output_shape.export_stl_common(path_stl.generic_string(), false, 0.1);
-
-    return file.str();
-}
-
-
-std::string Link::handleJoint_MuJoCo(const Joint &joint, const JyAxes &parent_axes) const {
-    // 计算当前关节坐标系相对于父连杆的偏移位姿
-    const auto &pose = joint.axes_.joint2joint(parent_axes);
-    std::stringstream file;
-    file << std::fixed << std::setprecision(3);
-
-    // MuJoCo joint类型映射
-    std::string mujoco_type;
-    if (joint.type_ == "revolute" || joint.type_ == "continuous") {
-        mujoco_type = "hinge";
-    } else if (joint.type_ == "prismatic") {
-        mujoco_type = "slide";
-    } else if (joint.type_ == "fixed") {
-        // fixed类型不需要创建joint，由body嵌套表示
-        return "";
-    } else if (joint.type_ == "floating") {
-        mujoco_type = "free";
-    } else if (joint.type_ == "planar") {
-        // MuJoCo没有直接的planar类型，可以用两个slide joint模拟
-        // 这里简化处理，跳过
-        return "";
-    } else {
-        throw std::runtime_error("joint type not support for MuJoCo: " + joint.type_);
+    file << std::string(space, ' ') << "    </body>\n";
+    if (!output_shape.s_.IsNull()) {
+        fs::path path_stl = fs::path(data.path_meshes) / (link.name_ + ".stl");
+        std::cout << "export mesh to: " << path_stl.generic_string() << std::endl;
+        output_shape.export_stl_common(path_stl.generic_string(), false, 0.1);
     }
-
-    file << "      <joint name=\"" << joint.name_ << "\" type=\"" << mujoco_type << "\"";
-
-    // 位置和方向
-    // file << " pos=\"" << pose[0] << " " << pose[1] << " " << pose[2] << "\"";
-    file << " axis=\"0 0 1\"";// Z轴为关节轴
-
-    // 限位（仅对hinge和slide有效）
-    if (joint.type_ == "revolute" || joint.type_ == "prismatic") {
-        file << " range=\"" << joint.limits_.lower << " " << joint.limits_.upper << "\"";
-    }
-
-    file << "/>\n";
     return file.str();
 }

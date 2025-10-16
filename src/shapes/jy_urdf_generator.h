@@ -13,7 +13,7 @@ class Link;
 
 class Joint {
 public:
-    const JyAxes &axes_;
+    JyAxes axes_;
     std::string name_;
     std::string type_;// fixed, revolute, continuous, prismatic, floating, planar
     std::shared_ptr<Link> child_;
@@ -25,6 +25,8 @@ public:
     };
     Limits limits_;
 
+    Joint() : axes_(JyAxes()) {}
+
     Joint(const std::string &name, const JyAxes &axes, const std::string &type) : name_(name), axes_(axes), type_(type) {}
 
     Joint(const std::string &name, const JyAxes &axes, const std::string &type, const sol::table &limits) : name_(name), axes_(axes), type_(type) {
@@ -35,10 +37,6 @@ public:
         if (limits["velocity"].is<double>()) { limits_.velocity = limits["velocity"].get<double>(); }
     }
 
-    Link &next(const std::string &name, const JyShape &shape) {
-        child_ = std::make_shared<Link>(name, shape);
-        return *child_;
-    }
     Link &next(const Link &link) {
         child_ = std::make_shared<Link>(link);
         return *child_;
@@ -59,20 +57,16 @@ public:
         return *joints_.back();
     }
 
-    Joint &add(const std::string &name, const JyAxes &axes, const std::string &type);
-
-    Joint &add(const std::string &name, const JyAxes &axes, const std::string &type, const sol::table &limits);
-
     void export_urdf(const std::string &robot_name) const;
 
     void export_urdf(const sol::table &params) const;
 
 private:
     enum class ExtendedFile {
-        URDF,  // 普通URDF文件
-        ROS1,  // ROS1的额外文件
-        ROS2,  // ROS2的额外文件
-        MUJOCO // MuJoCo XML文件
+        URDF, // 普通URDF文件
+        ROS1, // ROS1的额外文件
+        ROS2, // ROS2的额外文件
+        MUJOCO// MuJoCo XML文件
     };
     struct CommomData {
         std::string robot_name; // 机器人名称
@@ -101,9 +95,7 @@ private:
     std::string handleLink(const Link &link, const JyAxes &parent_axes, const CommomData &data) const;
 
     // MuJoCo specific handlers
-    std::string traverseDFS_MuJoCo(const Link &link, const JyAxes &parent_axes, const CommomData &data, bool is_root = true) const;
-    std::string handleBody_MuJoCo(const Link &link, const JyAxes &parent_axes, const CommomData &data, bool is_root = false) const;
-    std::string handleJoint_MuJoCo(const Joint &joint, const JyAxes &parent_axes) const;
+    std::string handleBody_MuJoCo(const Link &link, const Joint &parent_joint, const Joint &grand_joint, const CommomData &data, const int &space = 0) const;
 };
 
 #endif
