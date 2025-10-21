@@ -11,6 +11,7 @@
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakePolygon.hxx>
+#include <BRepBuilderAPI_MakeVertex.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <BRepBuilderAPI_Transform.hxx>
 #include <BRepFilletAPI_MakeChamfer.hxx>
@@ -108,7 +109,7 @@ JyShape &JyShape::fillet(const double &_r, const sol::table &_cond) {
     BRepFilletAPI_MakeFillet MF(s_);
     for (TopExp_Explorer ex(s_, TopAbs_EDGE); ex.More(); ex.Next()) {
         TopoDS_Edge edge = TopoDS::Edge(ex.Current());
-        if (edge_filter(edge, _cond)) { MF.Add(_r, TopoDS::Edge(ex.Current())); }
+        if (!_cond || edge_filter(edge, _cond)) { MF.Add(_r, TopoDS::Edge(ex.Current())); }
     }
     if (MF.NbContours() == 0) { return *this; }
     MF.Build();
@@ -124,7 +125,7 @@ JyShape &JyShape::chamfer(const double &_dis, const sol::table &_cond) {
     for (Standard_Integer i = 1; i < M.Extent(); i++) {
         TopoDS_Edge E = TopoDS::Edge(M.FindKey(i));
         TopoDS_Face F = TopoDS::Face(M.FindFromIndex(i).First());
-        if (edge_filter(E, _cond)) { MC.Add(_dis, _dis, E, F); }
+        if (!_cond || edge_filter(E, _cond)) { MC.Add(_dis, _dis, E, F); }
     }
     if (MC.NbContours() == 0) { return *this; }
     MC.Build();
@@ -135,6 +136,9 @@ JyShape &JyShape::chamfer(const double &_dis, const sol::table &_cond) {
 
 
 bool JyShape::edge_filter(const TopoDS_Edge &_edge, const sol::table &_cond) {
+    const double tol = _cond["tol"].get_or(1e-3);
+    const std::array<double, 3> first = _cond["first"].get_or(std::array<double, 3>{0, 0, 0});
+    const std::array<double, 3> last = _cond["last"].get_or(std::array<double, 3>{0, 0, 0});
     static const std::unordered_map<int, std::string> type_map = {
             {GeomAbs_Line, "line"},
             {GeomAbs_Circle, "circle"},
@@ -152,29 +156,19 @@ bool JyShape::edge_filter(const TopoDS_Edge &_edge, const sol::table &_cond) {
         auto it = type_map.find(C.GetType());
         if (it == type_map.end() || it->second != type_name) { return false; }
     }
-    //!< 曲线方向
-    if (_cond["dir"].is<std::string>()) {
-        const std::string dir_name = _cond["dir"];
-        TopLoc_Location aLoc;
-        Standard_Real first, last;
-        Handle(Geom_Curve) curve = BRep_Tool::Curve(_edge, aLoc, first, last);
-        if (curve->IsKind(STANDARD_TYPE(Geom_Line))) {
-            Handle(Geom_Line) line = Handle(Geom_Line)::DownCast(curve);
-            if (dir_name == "x") {
-                if (!line->Position().Direction().IsEqual(gp::DX(), 1e-3)) { return false; }
-            } else if (dir_name == "y") {
-                if (!line->Position().Direction().IsEqual(gp::DY(), 1e-3)) { return false; }
-            } else if (dir_name == "z") {
-                if (!line->Position().Direction().IsEqual(gp::DZ(), 1e-3)) { return false; }
-            }
-        }
+    const gp_Pnt &sp = BRep_Tool::Pnt(TopExp::FirstVertex(_edge));
+    const gp_Pnt &ep = BRep_Tool::Pnt(TopExp::LastVertex(_edge));
+    // 起点坐标
+    if (_cond["first"].is<sol::table>()) {
+        if (std::abs(sp.X() - first[0]) > tol || std::abs(sp.Y() - first[1]) > tol || std::abs(sp.Z() - first[2]) > tol) { return false; }
+    }
+    if (_cond["last"].is<sol::table>()) {
+        if (std::abs(ep.X() - last[0]) > tol || std::abs(ep.Y() - last[1]) > tol || std::abs(ep.Z() - last[2]) > tol) { return false; }
     }
     //!< 曲线顶点最小值
     if (_cond["min"].is<sol::table>()) {
         std::vector<double> min_data;
         if (get_double_vector(_cond["min"], min_data) && min_data.size() == 3) {
-            const gp_Pnt &sp = BRep_Tool::Pnt(TopExp::FirstVertex(_edge));
-            const gp_Pnt &ep = BRep_Tool::Pnt(TopExp::LastVertex(_edge));
             if (sp.X() <= min_data[0] || ep.X() <= min_data[0]) { return false; }
             if (sp.Y() <= min_data[1] || ep.Y() <= min_data[1]) { return false; }
             if (sp.Z() <= min_data[2] || ep.Z() <= min_data[2]) { return false; }
@@ -184,8 +178,6 @@ bool JyShape::edge_filter(const TopoDS_Edge &_edge, const sol::table &_cond) {
     if (_cond["max"].is<sol::table>()) {
         std::vector<double> max_data;
         if (get_double_vector(_cond["max"], max_data) && max_data.size() == 3) {
-            const gp_Pnt &sp = BRep_Tool::Pnt(TopExp::FirstVertex(_edge));
-            const gp_Pnt &ep = BRep_Tool::Pnt(TopExp::LastVertex(_edge));
             if (sp.X() >= max_data[0] || ep.X() >= max_data[0]) { return false; }
             if (sp.Y() >= max_data[1] || ep.Y() >= max_data[1]) { return false; }
             if (sp.Z() >= max_data[2] || ep.Z() >= max_data[2]) { return false; }
@@ -449,6 +441,11 @@ JyWedge::JyWedge(const double &dx, const double &dy, const double &dz, const dou
 JyWedge::JyWedge(const double &dx, const double &dy, const double &dz, const double &xmin, const double &zmin, const double &xmax, const double &zmax) {
     BRepPrimAPI_MakeWedge make_wedge(dx, dy, dz, xmin, zmin, xmax, zmax);
     s_ = make_wedge;
+}
+
+JyVertex::JyVertex(const double &x, const double &y, const double &z) {
+    BRepBuilderAPI_MakeVertex make_vertex(gp_Pnt(x, y, z));
+    s_ = make_vertex;
 }
 
 JyEdge::JyEdge(const std::string &_type, const std::array<double, 3> _vec1, const std::array<double, 3> _vec2,

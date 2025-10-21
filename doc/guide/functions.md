@@ -219,6 +219,17 @@ wedge.new(other_wedge)
 
 ### 高级形状
 
+#### **`vertex`** - 顶点
+```lua
+vertex.new(x, y, z)
+vertex.new(other_vertex)
+```
+
+**参数：**
+- `x/y/z` - *number* - 顶点位置坐标
+
+---
+
 #### **`edge`** - 边缘
 ```lua
 edge.new(type, vec1, vec2)
@@ -355,9 +366,11 @@ shape:fillet(radius, conditions)
 **参数：**
 - `radius` - *number* - 圆角半径
 - `conditions` - *table* - 条件参数
-  - `type` - 边缘类型筛选(line/circle/ellipse/hyperbola/parabola/bezier_curve/bspline_curve/offset_curve/other_curve)
-  - `dir` - 方向筛选 `{x, y, z}`
-  - `min/max` - 位置范围 `{x, y, z}`
+  - `type` - *string* - 边缘类型筛选(line/circle/ellipse/hyperbola/parabola/bezier_curve/bspline_curve/offset_curve/other_curve)
+  - `first` - *array3* - 边缘起点 `{x, y, z}`
+  - `last` - *array3* - 边缘终点 `{x, y, z}`
+  - `tol` - *number* - 边缘起始点判断的容差
+  - `min/max` - *array3* - 位置范围 `{x, y, z}`
 
 ---
 
@@ -496,15 +509,15 @@ axes.new(pose, length) -- pose矩阵，轴长为length
 
 **参数：**
 
-- `pose` - *array* - 位姿数组，6个数据分别为位置`x,y,z`和RPY姿态`rx,ry,rz`(角度)
+- `pose` - *array6* - 位姿数组，6个数据分别为位置`x,y,z`和RPY姿态`rx,ry,rz`(角度)
 - `length` - number - 所有坐标轴长度(用于显示效果)
 
 **方法：**
 
 - `show()` - 显示坐标系到界面中
 - `move(pose)` - 通过`pose={x,y,z,rx,ry,rz}`变换矩阵，`rx,ry,rz`单位为角度
-- `sdh(a,alpha,d,theta)` - 通过标准DH方法变换矩阵，`alpha,theta`单位为弧度
-- `mdh(a,alpha,d,theta)` - 通过修改DH方法(Craig)变换矩阵，`alpha,theta`单位为弧度
+- `sdh(a,alpha,d,theta)` - 通过标准DH方法变换矩阵，`alpha,theta`单位为角度
+- `mdh(a,alpha,d,theta)` - 通过修改DH方法(Craig)变换矩阵，`alpha,theta`单位为角度
 
 **示例：**
 

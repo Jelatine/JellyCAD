@@ -91,6 +91,10 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     treeShapeInfo = new QTreeWidget;
     treeShapeInfo->header()->hide();
     connect(jy_3d_widget, &Jy3DWidget::selectedShapeInfo, this, &JyMainWindow::slot_shape_info);
+    button_edge_info = new QPushButton("Insert edge info to editor");
+    button_edge_info->setVisible(false);
+    connect(button_edge_info, &QPushButton::clicked, this, &JyMainWindow::slot_button_edge_info_clicked);
+    widget_shape_info->layout()->addWidget(button_edge_info);
     widget_shape_info->layout()->addWidget(treeShapeInfo);
 
     //!< 工作台: PAGE1: 脚本编辑器  PAGE2: 终端 PAGE3: 帮助
@@ -111,6 +115,7 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     connect(watcher, &QFileSystemWatcher::fileChanged, this, &JyMainWindow::slot_file_changed);
     connect(m_activity_bar, &JyActivityBar::sig_set_side_bar_visible, stack_widget, &QStackedWidget::setVisible);
     connect(m_activity_bar, &JyActivityBar::sig_set_side_bar_index, stack_widget, &QStackedWidget::setCurrentIndex);
+    connect(button_edge_info, &QPushButton::clicked, [=] { m_activity_bar->slot_navigation_buttons_clicked(0); });
     connect(code_editor, &QPlainTextEdit::modificationChanged, button_save, &QPushButton::setEnabled);
     connect(code_editor, &QPlainTextEdit::modificationChanged, [=](bool m) {
         m ? setWindowTitle("*" + windowTitle()) : setWindowTitle(windowTitle().remove(0, 1));// 编辑器文档已被编辑时，标题前加*
@@ -118,8 +123,8 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     connect(button_new, &QPushButton::clicked, this, &JyMainWindow::slot_button_new_clicked);
     connect(button_open, &QPushButton::clicked, this, &JyMainWindow::slot_button_open_clicked);
     connect(button_save, &QPushButton::clicked, this, &JyMainWindow::slot_button_save_clicked);
-    connect(lvm, &JyLuaVirtualMachine::display, jy_3d_widget, &Jy3DWidget::display, Qt::BlockingQueuedConnection);
-    connect(lvm, &JyLuaVirtualMachine::displayAxes, jy_3d_widget, &Jy3DWidget::displayAxes, Qt::BlockingQueuedConnection);
+    connect(lvm, &JyLuaVirtualMachine::displayShape, jy_3d_widget, &Jy3DWidget::onDisplayShape, Qt::BlockingQueuedConnection);
+    connect(lvm, &JyLuaVirtualMachine::displayAxes, jy_3d_widget, &Jy3DWidget::onDisplayAxes, Qt::BlockingQueuedConnection);
     connect(lvm, &JyLuaVirtualMachine::scriptStarted, this, &JyMainWindow::onScriptStarted);
     connect(lvm, &JyLuaVirtualMachine::scriptFinished, this, &JyMainWindow::onScriptFinished);
     connect(lvm, &JyLuaVirtualMachine::scriptError, this, &JyMainWindow::onScriptError);
@@ -293,14 +298,27 @@ void JyMainWindow::addJsonValue(QTreeWidgetItem *parent, const QString &key, con
         treeShapeInfo->addTopLevelItem(item);
     }
 }
-void JyMainWindow::slot_shape_info(const QString &info) {
-    treeShapeInfo->clear();
-    QJsonParseError error;
-    QJsonDocument doc = QJsonDocument::fromJson(info.toUtf8(), &error);
-    if (error.error != QJsonParseError::NoError) {
-        QMessageBox::warning(this, "JSON 解析错误", "错误位置: " + QString::number(error.offset) + "\n" + "错误信息: " + error.errorString());
-        return;
+void JyMainWindow::slot_shape_info(const QJsonDocument &doc) {
+    const auto edge = doc["edge"];
+    if (edge.isObject()) {
+        button_edge_info->setVisible(true);
+        const QJsonObject edge_obj = edge.toObject();
+        const auto first = edge_obj["first"].toObject();
+        const auto last = edge_obj["last"].toObject();
+        const auto type = edge_obj["type"].toString();
+        current_edge_info = QString("edge_info = {type = '%1', first = {%2, %3, %4}, last = {%5, %6, %7}, tol = 1e-3}")
+                                    .arg(type)
+                                    .arg(first["x"].toDouble())
+                                    .arg(first["y"].toDouble())
+                                    .arg(first["z"].toDouble())
+                                    .arg(last["x"].toDouble())
+                                    .arg(last["y"].toDouble())
+                                    .arg(last["z"].toDouble());
+    } else {
+        button_edge_info->setVisible(false);
+        current_edge_info.clear();
     }
+    treeShapeInfo->clear();
     if (doc.isObject()) {
         QJsonObject obj = doc.object();
         for (auto it = obj.begin(); it != obj.end(); ++it) {
@@ -313,6 +331,21 @@ void JyMainWindow::slot_shape_info(const QString &info) {
         }
     }
     treeShapeInfo->expandAll();
+}
+
+
+void JyMainWindow::slot_button_edge_info_clicked() {
+    QTextCursor cursor = code_editor->textCursor();// 获取光标
+    cursor.select(QTextCursor::LineUnderCursor);   // 获取当前行的内容
+    QString currentLine = cursor.selectedText();
+    cursor.clearSelection();
+    cursor.movePosition(QTextCursor::EndOfLine);// 移动光标到行尾
+    if (currentLine.trimmed().isEmpty()) {
+        cursor.insertText(current_edge_info);// 空行：直接插入文本
+    } else {
+        cursor.insertText("\n" + current_edge_info);// 非空行：插入换行后再插入文本
+    }
+    code_editor->setTextCursor(cursor);// 设置光标到插入文本之后
 }
 
 void JyMainWindow::closeEvent(QCloseEvent *event) {

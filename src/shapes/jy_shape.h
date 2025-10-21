@@ -121,6 +121,7 @@ public:
      * @return JyShape& 当前形状引用
      */
     JyShape &fillet(const double &_r, const sol::table &_cond);
+    JyShape &fillet(const double &_r) { return fillet(_r, {}); }
 
     /**
      * @brief 倒角操作
@@ -129,6 +130,7 @@ public:
      * @return JyShape& 当前形状引用
      */
     JyShape &chamfer(const double &_dis, const sol::table &_cond);
+    JyShape &chamfer(const double &_dis) { return chamfer(_dis, {}); }
 
     /**
      * @brief 拉伸操作
@@ -217,7 +219,7 @@ public:
      * @param _opt 导出选项表
      */
     void export_stl(const std::string &_filename, const sol::table &_opt) const;
-    void export_stl(const std::string &_filename) const { export_stl_common(_filename, true, 0.1); }
+    void export_stl(const std::string &_filename) const { export_stl_common(_filename, false, 0.1); }
 
     void export_stl_common(const std::string &_filename, const bool is_ascii, const double &lin) const;
 
@@ -375,7 +377,13 @@ public:
 
     explicit JyWedge(const double &dx, const double &dy, const double &dz, const double &xmin, const double &zmin, const double &xmax, const double &zmax);
 };
-
+class JyVertex : public JyShape {
+public:
+    /**
+     * @brief 构造指定位置的顶点
+     */
+    explicit JyVertex(const double &x, const double &y, const double &z);
+};
 /**
  * @brief 边类
  */

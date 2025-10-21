@@ -42,13 +42,13 @@ private:
     void create_origin_coord();//!< 创建基坐标系
 
 signals:
-    void selectedShapeInfo(const QString &info);
+    void selectedShapeInfo(const QJsonDocument &info);
 
 public slots:
 
-    void display(const JyShape &theIObj, const bool &with_coord);
+    void onDisplayShape(const JyShape &theIObj);
 
-    void displayAxes(const JyAxes &theAxes);
+    void onDisplayAxes(const JyAxes &theAxes);
 
 protected:
     //!覆写绘图事件

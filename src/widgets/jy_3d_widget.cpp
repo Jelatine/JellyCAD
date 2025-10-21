@@ -42,7 +42,7 @@ Jy3DWidget::Jy3DWidget(QWidget *parent) : QWidget(parent) {
     createContextMenu();
 }
 
-void Jy3DWidget::display(const JyShape &theIObj, const bool &with_coord) {
+void Jy3DWidget::onDisplayShape(const JyShape &theIObj) {
     if (theIObj.data().IsNull()) { return; }
     // 更新网格数据，保证网格的XY能覆盖模型
     const auto shape = theIObj.data();
@@ -63,29 +63,6 @@ void Jy3DWidget::display(const JyShape &theIObj, const bool &with_coord) {
         m_viewer->SetRectangularGridGraphicValues(x, x, 0);
     }
     const auto ais_shape = new AIS_Shape(shape);
-    if (with_coord) {
-        TopoDS_Shape topology = shape;
-        const auto bbox = ais_shape->BoundingBox();
-        gp_Trsf transformation = topology.Location().Transformation();
-        gp_Ax2 ax2;
-        ax2.Transform(transformation);
-        Handle(Geom_Axis2Placement) axis = new Geom_Axis2Placement(ax2);
-        auto tri = new AIS_Trihedron(axis);
-        tri->SetDatumDisplayMode(Prs3d_DM_WireFrame);
-        tri->SetDrawArrows(false);
-        tri->Attributes()->DatumAspect()->LineAspect(Prs3d_DatumParts_XAxis)->SetWidth(2.5);
-        tri->Attributes()->DatumAspect()->LineAspect(Prs3d_DatumParts_YAxis)->SetWidth(2.5);
-        tri->Attributes()->DatumAspect()->LineAspect(Prs3d_DatumParts_ZAxis)->SetWidth(2.5);
-        tri->SetDatumPartColor(Prs3d_DatumParts_XAxis, Quantity_NOC_RED2);
-        tri->SetDatumPartColor(Prs3d_DatumParts_YAxis, Quantity_NOC_GREEN2);
-        tri->SetDatumPartColor(Prs3d_DatumParts_ZAxis, Quantity_NOC_BLUE2);
-        tri->SetLabel(Prs3d_DatumParts_XAxis, "");
-        tri->SetLabel(Prs3d_DatumParts_YAxis, "");
-        tri->SetLabel(Prs3d_DatumParts_ZAxis, "");
-        const auto &diagonal = 0.5 * std::sqrt(bbox.SquareExtent());
-        tri->SetSize(diagonal);
-        m_context->Display(tri, AIS_WireFrame, -1, Standard_True);
-    }
     ais_shape->SetColor(theIObj.color_);
     ais_shape->SetTransparency(theIObj.transparency_);
     ais_shape->SetMaterial(Graphic3d_NameOfMaterial_Stone);
@@ -94,7 +71,7 @@ void Jy3DWidget::display(const JyShape &theIObj, const bool &with_coord) {
 }
 
 
-void Jy3DWidget::displayAxes(const JyAxes &theAxes) {
+void Jy3DWidget::onDisplayAxes(const JyAxes &theAxes) {
     gp_Ax2 ax2;
     ax2.Transform(theAxes.data());
     const auto trihedron = new AIS_Trihedron(new Geom_Axis2Placement(ax2));
@@ -381,38 +358,39 @@ void Jy3DWidget::handleSelectedShape(const TopoDS_Shape &shape) {
         BRepAdaptor_Curve C(edge);
         const std::string type_str = type_map.find(C.GetType()) != type_map.end() ? type_map.at(C.GetType()) : "";
         QString type = QString::fromStdString(type_str);
-        QJsonObject jsonObj;
-        QJsonObject edgeObj;
-        edgeObj["type"] = type;
-        TopLoc_Location aLoc;
-        Standard_Real first, last;
-        Handle(Geom_Curve) curve = BRep_Tool::Curve(edge, aLoc, first, last);
-        if (curve->IsKind(STANDARD_TYPE(Geom_Line))) {
-            Handle(Geom_Line) line = Handle(Geom_Line)::DownCast(curve);
-            QJsonObject dirObj;
-            dirObj["x"] = line->Position().Direction().X();
-            dirObj["y"] = line->Position().Direction().Y();
-            dirObj["z"] = line->Position().Direction().Z();
-            edgeObj["dir"] = dirObj;
-        }
         const gp_Pnt &start_point = BRep_Tool::Pnt(TopExp::FirstVertex(edge));
         const gp_Pnt &end_point = BRep_Tool::Pnt(TopExp::LastVertex(edge));
-        QJsonObject spObj;
-        spObj["x"] = start_point.X();
-        spObj["y"] = start_point.Y();
-        spObj["z"] = start_point.Z();
-        edgeObj["start_point"] = spObj;
-        QJsonObject epObj;
-        epObj["x"] = end_point.X();
-        epObj["y"] = end_point.Y();
-        epObj["z"] = end_point.Z();
-        edgeObj["end_point"] = epObj;
-        jsonObj["edge"] = edgeObj;
-        QJsonDocument doc(jsonObj);
-        emit selectedShapeInfo(doc.toJson(QJsonDocument::Compact));
+        QJsonObject jsonObj{{
+                {"edge", QJsonObject({
+                                 {"type", type},
+                                 {"first", QJsonObject({
+                                                   {"x", start_point.X()},
+                                                   {"y", start_point.Y()},
+                                                   {"z", start_point.Z()},
+                                           })},
+                                 {"last", QJsonObject({
+                                                  {"x", end_point.X()},
+                                                  {"y", end_point.Y()},
+                                                  {"z", end_point.Z()},
+                                          })},
+                         })},
+        }};
+        emit selectedShapeInfo(QJsonDocument(jsonObj));
+    } else if (shape.ShapeType() == TopAbs_VERTEX) {
+        const TopoDS_Vertex vertex = TopoDS::Vertex(shape);
+        gp_Pnt point = BRep_Tool::Pnt(vertex);
+        QJsonObject jsonObj{
+                {"vertex", QJsonObject({{"x", point.X()}, {"y", point.Y()}, {"z", point.Z()}})},
+        };
+        emit selectedShapeInfo(QJsonDocument(jsonObj));
     } else {
         std::stringstream ss;
         shape.DumpJson(ss);
-        emit selectedShapeInfo("{" + QString::fromStdString(ss.str()) + "}");
+        std::string json_str = "{" + ss.str() + "}";
+        QJsonParseError error;
+        QJsonDocument doc = QJsonDocument::fromJson(QByteArray::fromStdString(json_str), &error);
+        if (error.error == QJsonParseError::NoError) {
+            emit selectedShapeInfo(doc);
+        }
     }
 }

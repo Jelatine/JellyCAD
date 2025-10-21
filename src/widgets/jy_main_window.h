@@ -35,6 +35,8 @@ class JyMainWindow : public QMainWindow {
     QSettings *settings;
     QProgressDialog *m_progressDialog;
     QTreeWidget *treeShapeInfo;
+    QPushButton *button_edge_info;
+    QString current_edge_info;
 public:
     explicit JyMainWindow(QWidget *parent = nullptr);
     
@@ -48,7 +50,9 @@ public slots:
 
     void slot_button_save_clicked();
 
-    void slot_shape_info(const QString &info);
+    void slot_shape_info(const QJsonDocument &doc);
+
+    void slot_button_edge_info_clicked();
 
 private slots:
     void showSearchWidget();

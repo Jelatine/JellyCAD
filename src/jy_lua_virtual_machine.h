@@ -21,7 +21,7 @@ class JyLuaVirtualMachine : public QThread {
 public:
     explicit JyLuaVirtualMachine();
 
-    void runScript(const QString &_file_path);
+    void runScript(const QString &_file_path, const bool &is_file = true);
 
     void exec_code(const QString &_code);
 
@@ -47,12 +47,12 @@ private:
     std::string current_path_;
 
     QString m_fileName;
-    QAtomicInt script_mode; // 文件模式: 0 文件, 1 字符串
+    QAtomicInt script_mode;// 文件模式: 0 文件, 1 字符串
     QMutex m_mutex;
 
 signals:
 
-    void display(const JyShape &theIObj, const bool &with_coord = false);
+    void displayShape(const JyShape &theIObj);
 
     void displayAxes(const JyAxes &theAxes);
 };

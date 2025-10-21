@@ -88,6 +88,7 @@ function print_dh_params(params_table, dh_type)
 end
 
 local is_mdh = true
+local joint_axes = {}
 if is_mdh then
     -- MDH参数表
     local mdh_params = {
@@ -99,12 +100,12 @@ if is_mdh then
         { alpha = -90, a = 0,  d = d6, theta = 0 }
     }
     print_dh_params(mdh_params, "MDH")
-    joint_axes1 = axes.new(0.1):mdh(mdh_params[1].alpha, mdh_params[1].a, mdh_params[1].d, mdh_params[1].theta)
-    joint_axes2 = joint_axes1:copy():mdh(mdh_params[2].alpha, mdh_params[2].a, mdh_params[2].d, mdh_params[2].theta)
-    joint_axes3 = joint_axes2:copy():mdh(mdh_params[3].alpha, mdh_params[3].a, mdh_params[3].d, mdh_params[3].theta)
-    joint_axes4 = joint_axes3:copy():mdh(mdh_params[4].alpha, mdh_params[4].a, mdh_params[4].d, mdh_params[4].theta)
-    joint_axes5 = joint_axes4:copy():mdh(mdh_params[5].alpha, mdh_params[5].a, mdh_params[5].d, mdh_params[5].theta)
-    joint_axes6 = joint_axes5:copy():mdh(mdh_params[6].alpha, mdh_params[6].a, mdh_params[6].d, mdh_params[6].theta)
+    local prev = axes.new(0.1)
+    for i = 1, #mdh_params do
+        joint_axes[i] = prev:copy():mdh(mdh_params[i].alpha, mdh_params[i].a, mdh_params[i].d, mdh_params[i].theta)
+        prev = joint_axes[i]
+        prev:show()
+    end
 else
     -- SDH参数表，备注：SDH建模输出的URDF，在pinocchio计算rnea，输出关节力矩结果会有问题
     local sdh_params = {
@@ -116,12 +117,12 @@ else
         { alpha = 0,   a = 0,  d = d6, theta = 0 }
     }
     print_dh_params(sdh_params, "SDH")
-    joint_axes1 = axes.new(0.1):sdh(sdh_params[1].alpha, sdh_params[1].a, sdh_params[1].d, sdh_params[1].theta)
-    joint_axes2 = joint_axes1:copy():sdh(sdh_params[2].alpha, sdh_params[2].a, sdh_params[2].d, sdh_params[2].theta)
-    joint_axes3 = joint_axes2:copy():sdh(sdh_params[3].alpha, sdh_params[3].a, sdh_params[3].d, sdh_params[3].theta)
-    joint_axes4 = joint_axes3:copy():sdh(sdh_params[4].alpha, sdh_params[4].a, sdh_params[4].d, sdh_params[4].theta)
-    joint_axes5 = joint_axes4:copy():sdh(sdh_params[5].alpha, sdh_params[5].a, sdh_params[5].d, sdh_params[5].theta)
-    joint_axes6 = joint_axes5:copy():sdh(sdh_params[6].alpha, sdh_params[6].a, sdh_params[6].d, sdh_params[6].theta)
+    local prev = axes.new(0.1)
+    for i = 1, #sdh_params do
+        joint_axes[i] = prev:copy():sdh(sdh_params[i].alpha, sdh_params[i].a, sdh_params[i].d, sdh_params[i].theta)
+        prev = joint_axes[i]
+        prev:show()
+    end
 end
 j1_limit = { lower = -6.28, upper = 6.28, velocity = 3.14, effort = 9 }
 j2_limit = { lower = -6.28, upper = 6.28, velocity = 3.14, effort = 9 }
@@ -129,23 +130,20 @@ j3_limit = { lower = -3.14, upper = 3.14, velocity = 3.14, effort = 9 }
 j4_limit = { lower = -6.28, upper = 6.28, velocity = 3.14, effort = 3 }
 j5_limit = { lower = -6.28, upper = 6.28, velocity = 3.14, effort = 3 }
 j6_limit = { lower = -6.28, upper = 6.28, velocity = 3.14, effort = 3 }
-joint1 = joint.new("joint1", joint_axes1, "revolute", j1_limit)
-joint2 = joint.new("joint2", joint_axes2, "revolute", j2_limit)
-joint3 = joint.new("joint3", joint_axes3, "revolute", j3_limit)
-joint4 = joint.new("joint4", joint_axes4, "revolute", j4_limit)
-joint5 = joint.new("joint5", joint_axes5, "revolute", j5_limit)
-joint6 = joint.new("joint6", joint_axes6, "revolute", j6_limit)
 urdf = link.new("base_link", base_link)
-link1 = link.new("link1", sholder)
-link2 = link.new("link2", upperarm)
-link3 = link.new("link3", forearm)
-link4 = link.new("link4", wrist1)
-link5 = link.new("link5", wrist2)
-link6 = link.new("link6", wrist3)
-urdf:add(joint1):next(link1):add(joint2):next(link2):add(joint3):next(link3):add(joint4):next(link4):add(joint5):next(
-    link5):add(joint6):next(link6)
+joint1 = urdf:add(joint.new("joint1", joint_axes[1], "revolute", j1_limit))
+link1 = joint1:next(link.new("link1", sholder))
+joint2 = link1:add(joint.new("joint2", joint_axes[2], "revolute", j2_limit))
+link2 = joint2:next(link.new("link2", upperarm))
+joint3 = link2:add(joint.new("joint3", joint_axes[3], "revolute", j3_limit))
+link3 = joint3:next(link.new("link3", forearm))
+joint4 = link3:add(joint.new("joint4", joint_axes[4], "revolute", j4_limit))
+link4 = joint4:next(link.new("link4", wrist1))
+joint5 = link4:add(joint.new("joint5", joint_axes[5], "revolute", j5_limit))
+link5 = joint5:next(link.new("link5", wrist2))
+joint6 = link5:add(joint.new("joint6", joint_axes[6], "revolute", j6_limit))
+link6 = joint6:next(link.new("link6", wrist3))
 show({ base_link, sholder, upperarm, forearm, wrist1, wrist2, wrist3 })
-show({ joint_axes1, joint_axes2, joint_axes3, joint_axes4, joint_axes5, joint_axes6 })
 urdf:export({ name = 'myrobot', path = 'd:/', ros_version = 2 })
 --[[
 --- ROS2使用方式: ---

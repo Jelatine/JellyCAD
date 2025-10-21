@@ -4,8 +4,8 @@
  */
 #include "jy_main_window.h"
 #include <QApplication>
-#include <QCommandLineParser>
 #include <QCommandLineOption>
+#include <QCommandLineParser>
 
 int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
@@ -16,12 +16,17 @@ int main(int argc, char *argv[]) {
     parser.addVersionOption();
     QCommandLineOption file_option(QStringList() << "f" << "file", "Script file to execute", "file");
     parser.addOption(file_option);
+    QCommandLineOption code_option(QStringList() << "c" << "code", "Script code string to execute", "code");
+    parser.addOption(code_option);
     parser.process(a);
     qRegisterMetaType<JyShape>("JyShape");
     JyMainWindow w;
     if (parser.isSet(file_option)) {
         const auto lvm = new JyLuaVirtualMachine();
         lvm->runScript(parser.value(file_option));
+    } else if (parser.isSet(code_option)) {
+        const auto lvm = new JyLuaVirtualMachine();
+        lvm->runScript(parser.value(code_option), false);
     } else {
         // 颜色样式
         QFile style_file(":/style.qss");

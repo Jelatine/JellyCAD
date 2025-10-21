@@ -19,6 +19,9 @@ export default defineConfig({
         items: [
           { text: '安装', link: '/guide/install' },
           { text: '使用脚本', link: '/guide/functions' },
+          { text: '界面交互指南', link: '/guide/interaction' },
+          { text: '圆角和倒角操作', link: '/guide/fillet_chamfer' },
+          { text: '机器人开发指南', link: '/guide/robot_develop' },
         ]
       }
     ],

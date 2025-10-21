@@ -67,7 +67,7 @@
         },
         {
             "name": "custom_classes",
-            "pattern": "\\b(shape|box|cylinder|cone|sphere|torus|wedge|edge|wire|polygon|face|text|axes|link|joint)\\b",
+            "pattern": "\\b(shape|box|cylinder|cone|sphere|torus|wedge|vertex|edge|wire|polygon|face|text|axes|link|joint)\\b",
             "color": "#c679b3"
         },
         {

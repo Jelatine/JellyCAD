@@ -29,8 +29,12 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
     shape_user["cut"] = &JyShape::cut;
     shape_user["common"] = &JyShape::common;
     // 几何变换
-    shape_user["fillet"] = &JyShape::fillet;
-    shape_user["chamfer"] = &JyShape::chamfer;
+    shape_user["fillet"] = sol::overload(
+            static_cast<JyShape &(JyShape::*) (const double &)>(&JyShape::fillet),
+            static_cast<JyShape &(JyShape::*) (const double &, const sol::table &)>(&JyShape::fillet));
+    shape_user["chamfer"] = sol::overload(
+            static_cast<JyShape &(JyShape::*) (const double &)>(&JyShape::chamfer),
+            static_cast<JyShape &(JyShape::*) (const double &, const sol::table &)>(&JyShape::chamfer));
     shape_user["prism"] = &JyShape::prism;
     shape_user["revol"] = &JyShape::revol;
     shape_user["scale"] = &JyShape::scale;
@@ -55,15 +59,15 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
             static_cast<void (JyShape::*)(const std::string &_filename) const>(&JyShape::export_stl),
             static_cast<void (JyShape::*)(const std::string &_filename, const sol::table &_opt) const>(&JyShape::export_stl));
     shape_user["export_stl"] = overload_export_stl;
-    shape_user["show"] = [this](const JyShape &self) { return emit this->display(self); };
+    shape_user["show"] = [this](const JyShape &self) { return emit this->displayShape(self); };
 
     // 全局函数
-    const auto show_one = [=](const JyShape &s) { emit display(s); };
+    const auto show_one = [=](const JyShape &s) { emit displayShape(s); };
     const auto show_multi = [=](const sol::table &_list) {
         for (int i = 1; i <= _list.size(); ++i) {
             if (_list[i].is<JyShape>()) {
                 const JyShape &s = _list[i];
-                emit display(s);
+                emit displayShape(s);
             } else if (_list[i].is<JyAxes>()) {
                 const JyAxes &a = _list[i];
                 emit displayAxes(a);
@@ -105,6 +109,9 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
     lua.new_usertype<JyTorus>("torus", torus_ctor, sol::base_classes, sol::bases<JyShape>());
     lua.new_usertype<JyWedge>("wedge", wedge_ctor, sol::base_classes, sol::bases<JyShape>());
 
+    const auto vertex_ctor = sol::constructors<JyVertex(const JyVertex &),
+                                               JyVertex(const double &, const double &, const double &)>();
+    lua.new_usertype<JyVertex>("vertex", vertex_ctor, sol::base_classes, sol::bases<JyShape>());
     const auto edge_ctor = sol::constructors<JyEdge(const JyEdge &),
                                              JyEdge(const std::string &, const std::array<double, 3>, const std::array<double, 3>),
                                              JyEdge(const std::string &, const std::array<double, 3>, const std::array<double, 3>, const double &),
@@ -134,7 +141,8 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
     auto axes_user = lua.new_usertype<JyAxes>("axes", sol::constructors<JyAxes(),
                                                                         JyAxes(const double &),
                                                                         JyAxes(const std::array<double, 6>),
-                                                                        JyAxes(const std::array<double, 6>, const double &)>());
+                                                                        JyAxes(const std::array<double, 6>, const double &),
+                                                                        JyAxes(const JyAxes &)>());
     axes_user["show"] = [this](const JyAxes &self) { return emit this->displayAxes(self); };
     axes_user["copy"] = [](const JyAxes &self) { return JyAxes(self); };
     axes_user["move"] = &JyAxes::move;
@@ -153,11 +161,16 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
     joint_user["next"] = &Joint::next;
 }
 
-void JyLuaVirtualMachine::runScript(const QString &_file_path) {
+void JyLuaVirtualMachine::runScript(const QString &_file_path, const bool &is_file) {
     QElapsedTimer localTimer;
     localTimer.start();
     lua.collect_gc();// 运行前做一次完整的垃圾收集循环
-    auto result = lua.script_file(_file_path.toStdString(), sol::script_pass_on_error);
+    sol::protected_function_result result;
+    if (is_file) {
+        result = lua.script_file(_file_path.toStdString(), sol::script_pass_on_error);
+    } else {
+        result = lua.safe_script(_file_path.toStdString(), sol::script_pass_on_error);
+    }
     if (!result.valid()) {
         const QString message = result.get<sol::error>().what();
         lua.collect_gc();// 运行完做一次完整的垃圾收集循环
@@ -208,6 +221,7 @@ void JyLuaVirtualMachine::lua_print(const sol::object &v) {
         msg = "thread: " + QString::number((qulonglong) v.as<sol::thread>().pointer(), 16).toUpper();
     }
     if (!msg.isEmpty()) { emit scriptOutput(msg); }
+    qDebug() << msg;
 }
 
 

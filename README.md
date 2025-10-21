@@ -90,6 +90,13 @@ sudo apt install fonts-noto-color-emoji
 ./JellyCAD -f file.lua
 ```
 
+执行 Lua 脚本字符串：
+
+```bash
+./JellyCAD -c "print('Hello, World!')"
+./JellyCAD -c "box.new():export_stl('box.stl')"
+```
+
 ### 图形界面模式
 
 #### 🖱️ 鼠标操作
@@ -112,7 +119,7 @@ sudo apt install fonts-noto-color-emoji
 
 ### 📚 学习资源
 
-- [JellyCAD 帮助文档](resource/help.md)
+- [JellyCAD 帮助文档](https://jelatine.github.io/JellyCAD/guide/install.html)
 - [Lua 5.4 官方手册](https://www.lua.org/manual/5.4/)
 - [Lua 菜鸟教程](https://www.runoob.com/lua/lua-tutorial.html)
 
@@ -123,9 +130,6 @@ sudo apt install fonts-noto-color-emoji
 | 函数 | 功能 |
 |------|------|
 | `show(shape)` | 在 3D 界面显示单个或多个模型 |
-| `export_stl(shape, filename, options)` | 导出 STL 格式文件 |
-| `export_step(shape, filename)` | 导出 STEP 格式文件 |
-| `export_iges(shape, filename)` | 导出 IGES 格式文件 |
 
 ### 基础形状类
 
@@ -133,26 +137,21 @@ sudo apt install fonts-noto-color-emoji
 
 #### 实体类型（SOLID）
 
-- `box.new(width, height, depth)` - 长方体
-- `cylinder.new(radius, height)` - 圆柱体
-- `cone.new(radius1, radius2, height)` - 圆锥体
-- `sphere.new(radius)` - 球体
-- `torus.new(majorRadius, minorRadius)` - 圆环体
-- `wedge.new(dx, dy, dz, ltx)` - 楔形体
+- 🎲 `box.new(width, height, depth)` - 长方体
+- 🪵 `cylinder.new(radius, height)` - 圆柱体
+- 🏔️ `cone.new(radius1, radius2, height)` - 圆锥体
+- 🏀 `sphere.new(radius)` - 球体
+- 🍩 `torus.new(majorRadius, minorRadius)` - 圆环体
+- 🧀 `wedge.new(dx, dy, dz, ltx)` - 楔形体
 
 #### 几何元素类型
 
-- `edge` - 边缘（支持 `lin`、`circ`、`elips`、`hypr`、`parab` 等类型）
-- `wire` - 线
-- `polygon` - 多边形线
-- `face` - 面
-- `text` - 文本
-
-#### URDF 机器人导出
-
-- `axes.new(pose, length)` - 坐标系（用于定义关节位姿）
-- `link.new(name, shape)` - 机器人连杆
-- `joint.new(name, axes, type, limits)` - 机器人关节
+- 📍 `vertex` - 顶点
+- 🔲 `edge` - 边缘（支持 `lin`、`circ`、`elips`、`hypr`、`parab` 等类型）
+- ➖ `wire` - 线
+- 🛑 `polygon` - 多边形线
+- 🟪 `face` - 面
+- 🔠 `text` - 文本
 
 ### Shape 基类方法
 
@@ -166,6 +165,7 @@ s = shape.new('model.stl')  -- 导入 STL 或 STEP 文件
 
 | 方法 | 功能 |
 |------|------|
+| `copy()` | 返回形状的副本 |
 | `type()` | 返回形状类型字符串 |
 | `color(color)` | 设置颜色 |
 | `transparency(value)` | 设置透明度 |
@@ -190,6 +190,7 @@ s = shape.new('model.stl')  -- 导入 STL 或 STEP 文件
 | 方法 | 功能 |
 |------|------|
 | `pos(x, y, z)` | 绝对位置 |
+| `x(val)/y(val)/z(val)/rx(val)/ry(val)/rz(val)` | 绝对位置/姿态 |
 | `rot(rx, ry, rz)` | 绝对姿态 |
 | `move(move_type, x, y, z)` | 相对平移和旋转，`move_type` 为 `'pos'` 或 `'rot'` |
 | `prism(dx, dy, dz)` | 拉伸操作（`edge→face`、`face→solid`、`wire→shell`） |
@@ -198,9 +199,28 @@ s = shape.new('model.stl')  -- 导入 STL 或 STEP 文件
 
 #### 导出操作
 
+| 方法 | 功能 |
+|------|------|
 | `export_stl(filename, options)` | 导出 STL 格式文件 |
 | `export_step(filename)` | 导出 STEP 格式文件 |
 | `export_iges(filename)` | 导出 IGES 格式文件 |
+
+#### 机器人导出(URDF/Mujoco)
+
+- 📐 `axes.new(pose, length)` - 坐标系（用于定义关节位姿）
+- 🦴 `link.new(name, shape)` - 机器人连杆
+- 🔗 `joint.new(name, axes, type, limits)` - 机器人关节
+
+| 方法 | 功能 |
+|------|------|
+| `axes:copy()` | 返回坐标系副本 |
+| `axes:move(x, y, z, rx, ry, rz)` | 沿自身坐标系进行平移及RPY姿态变换 |
+| `axes:mdh(alpha, a, d, theta)` | 沿自身坐标系进行 MDH 位姿变换 |
+| `axes:sdh(alpha, a, d, theta)` | 沿自身坐标系进行 SDH 位姿变换 |
+| `joint:next(link)` | 设置下一个连杆, 返回连杆对象 |
+| `link:add(joint)` | 添加关节, 返回关节对象 |
+| `link:export(options)` | 导出 URDF/Mujoco 格式文件 |
+
 
 ## 💡 示例代码
 
@@ -227,15 +247,15 @@ show({b,c,n,s});  -- display the objects
 
 ```lua
 print("Fillet OR Chamfer");
-b1=box.new(1,1,1):color('red3'):pos(2, 2, 0);
-b1:fillet(0.2,{dir='z'}); -- 圆角 r=0.2 限制条件为边缘与基坐标系的Z重合
-b2=box.new(1,1,1):color('green3'):pos(2, -2, 0);
-b2:fillet(0.2,{max={3,3,3}}); -- 圆角 r=0.2 边缘始末点同时小于 3,3,3
-c=cylinder.new(0.5,1):color('gray'):pos(-2, -2, 0);
-c:fillet(0.2,{type='circle'}); -- 圆角 r=0.2 限制条件为边缘类型是圆形
-b3=box.new(1,1,1):color('lightblue');
-b3:chamfer(0.3,{min={0.5,-1,0.5},max={9,9,9}}); -- 倒角 r=0.3 边缘始末点同时大于 0.5,-1,0.5 且小于 9,9,9
-show({b1,b2,b3,c});
+b1 = box.new(1, 1, 1):color('red3'):pos(2, 2, 0);
+b1:fillet(0.2, { type = 'line', first = { 2, 2, 1 }, last = { 3, 2, 1 }, tol = 1e-4 }); -- 圆角 r=0.2 指定边缘始末点，容差1e-4
+b2 = box.new(1, 1, 1):color('green3'):pos(2, -2, 0);
+b2:fillet(0.2, { max = { 3, 3, 3 } }); -- 圆角 r=0.2 边缘始末点同时小于 3,3,3
+c = cylinder.new(0.5, 1):color('gray'):pos(-2, -2, 0);
+c:fillet(0.2, { type = 'circle' }); -- 圆角 r=0.2 限制条件为边缘类型是圆形
+b3 = box.new(1, 1, 1):color('lightblue');
+b3:chamfer(0.3, { min = { 0.5, -1, 0.5 }, max = { 9, 9, 9 } }); -- 倒角 r=0.3 边缘始末点同时大于 0.5,-1,0.5 且小于 9,9,9
+show({ b1, b2, b3, c });
 ```
 
 ![example2](doc/example2.png)
@@ -279,12 +299,9 @@ show(c1);
 
 ```lua
 print("Export");
-cy=cylinder.new(10,10);
-s=sphere.new(10);
-c=cone.new(10,5,20):color('green4');
-export_stl(cy,'cylinder.stl',{type='ascii',radian=0.05});
-export_step(s,'sphere.step');
-export_iges(c,'cone.iges');
+cylinder.new(10, 10):export_stl('cylinder.stl', { type = 'ascii', radian = 0.05 })
+sphere.new(10):export_step('sphere.step');
+cone.new(10, 5, 20):color('green4'):export_iges('cone.iges')
 ```
 
 ### 示例 6：URDF 机器人导出

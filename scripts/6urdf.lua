@@ -6,6 +6,7 @@ local offset = h_motor / 2 - r_shell
 shell = cylinder.new(r_shell, h_motor)
 shell:fillet(5, { type = 'circle', min = { r_shell - 1e-2, -1e-2, h_motor - 1e-2 } });
 shell:fuse(cylinder.new(r_shell, h_motor / 2):z(h_motor / 2):rx(90));
+-- shell:cut(text.new('JellyCAD', 8):pos(-r_shell / 2, -4, h_motor + 1):prism(0, 0, -2)) -- 关节盖刻字(操作很耗时)
 -- 生成连接柱
 function get_pole(r_outer, r2, h)
     local r1 = r_outer - 1
