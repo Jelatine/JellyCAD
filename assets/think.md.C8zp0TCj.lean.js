@@ -1,1 +1,0 @@
-import{_ as i,c as a,o as n,ae as e}from"./chunks/framework.CntOjCQm.js";const E=JSON.parse('{"title":"思考","description":"","frontmatter":{},"headers":[],"relativePath":"think.md","filePath":"think.md"}'),l={name:"think.md"};function p(t,s,h,k,r,d){return n(),a("div",null,s[0]||(s[0]=[e("",14)]))}const o=i(l,[["render",p]]);export{E as __pageData,o as default};
