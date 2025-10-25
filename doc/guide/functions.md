@@ -32,43 +32,6 @@ show(object_list)   -- 显示对象列表
 
 ---
 
-#### **`export_stl()`** - 导出 STL 文件
-```lua
-export_stl(filename)
-export_stl(filename, option)
-```
-**参数：**
-- `filename` - *string* - 导出文件路径
-- `option` - *table* - 可选参数
-  - `type` - *string* - 'ascii' 或 'binary'
-  - `radian` - *number* - 曲率值（越小三角形越多）
-
-**示例：**
-```lua
-export_stl("model.stl")
-export_stl("model.stl", {type = "binary", radian = 0.01})
-```
-
----
-
-#### **`export_step()`** - 导出 STEP 文件
-```lua
-export_step(filename)
-```
-**参数：**
-- `filename` - *string* - 导出文件路径
-
----
-
-#### **`export_iges()`** - 导出 IGES 文件
-```lua
-export_iges(filename)
-```
-**参数：**
-- `filename` - *string* - 导出文件路径
-
----
-
 ## 📦 形状对象
 
 ### 基础形状
@@ -571,18 +534,20 @@ local h_motor = 90;
 local offset = h_motor / 2 - r_shell
 shell = cylinder.new(r_shell, h_motor)
 shell:fillet(5, { type = 'circle', min = { r_shell - 1e-2, -1e-2, h_motor - 1e-2 } });
-shell:fuse(cylinder.new(r_shell, h_motor / 2):z(h_motor / 2):rx(90)); -- 电机外壳
+shell:fuse(cylinder.new(r_shell, h_motor / 2):z(h_motor / 2):rx(90));
+-- shell:cut(text.new('JellyCAD', 8):pos(-r_shell / 2, -4, h_motor + 1):prism(0, 0, -2)) -- 关节盖刻字(操作很耗时)
 -- 生成连接柱
 function get_pole(r_outer, r2, h)
     local r1 = r_outer - 1
     local h_stair = 2
     local h_cylinder = r1 - r2 + h_stair
     local stair = cylinder.new(r1, h_cylinder):cut(torus.new(r1, r1 - r2):pos(0, 0, h_cylinder))
-    stair:fillet(1, { type = 'circle', min = { r1 - 1e-2, -1e-2, h_stair - 1e-2 } }); -- 底部圆柱滑梯台
-    local stair_top = stair:copy():rx(180):z(h) -- 顶部圆柱滑梯台
+    stair:fillet(1, { type = 'circle', min = { r1 - 1e-2, -1e-2, h_stair - 1e-2 } });
+    local stair_top = stair:copy():rx(180):z(h)
     local pole = cylinder.new(r2, h):fuse(stair):fuse(stair_top)
     return pole
 end
+
 -- 基座
 local r_base = 50;
 local h_base = 35;
@@ -619,11 +584,11 @@ local z_wrist1 = z_forearm + h_forearm + h_motor + r_shell
 wrist1 = shell:copy():rot(180, 0, 0):pos(0, -h_motor - offset, z_forearm + h_forearm + h_motor + r_shell)
 -- 手腕2
 local z_wrist2 = z_forearm + h_forearm + 2 * h_motor - offset
-wrist2 = shell:copy():rot(90, 0, 0):pos(0, -h_motor / 2 - offset, z_wrist2)
+wrist2 = shell:copy():rot(90, 0, 180):pos(0, r_shell - 2 * h_motor, z_wrist2)
 -- 手腕3
 local h_flank = 10
-wrist3 = cylinder.new(r_shell, h_flank):rot(90, 0, 0):pos(0, -h_motor / 2 - offset + h_flank, z_wrist2)
--- 毫米单位转为米，生成URDF，设置连杆质量
+wrist3 = cylinder.new(r_shell, h_flank):rot(90, 0, 0):pos(0, r_shell - 2 * h_motor, z_wrist2)
+-- 毫米单位转为米，生成URDF
 base_link:scale(1e-3):color('#6495ED'):mass(0.1)
 sholder:scale(1e-3):color('#8470FF'):mass(0.4)
 upperarm:scale(1e-3):color('#FFC1C1'):mass(1)
@@ -631,21 +596,32 @@ forearm:scale(1e-3):color('#FFC100'):mass(0.8)
 wrist1:scale(1e-3):color('#FF8247'):mass(0.4)
 wrist2:scale(1e-3):color('#FFE7BA'):mass(0.4)
 wrist3:scale(1e-3):color('#C1CDC1'):mass(0.1)
--- 设置关节坐标轴位置
-joint_axes1 = axes.new({ 0, 0, z_upperarm * 1e-3, 0, 0, 0 }, 0.1)
-joint_axes2 = axes.new({ 0, -h_motor * 1e-3, z_upperarm * 1e-3, 90, 0, 0 }, 0.1)
-joint_axes3 = axes.new({ 0, -h_motor * 1e-3, z_forearm * 1e-3, 90, 0, 0 }, 0.1)
-joint_axes4 = axes.new({ 0, -offset * 1e-3, (z_wrist1 - h_motor / 2) * 1e-3, 90, 0, 0 }, 0.2)
-joint_axes5 = axes.new({ 0, -(h_motor + offset) * 1e-3, (z_wrist1 - h_motor / 2) * 1e-3, 0, 0, 0 }, 0.2)
-joint_axes6 = axes.new({ 0, -(h_motor + offset) * 1e-3, (z_wrist2) * 1e-3, -90, 0, 0 }, 0.1)
--- 生成关节
-joint1 = joint.new("joint1", joint_axes1, "revolute")
-joint2 = joint.new("joint2", joint_axes2, "revolute")
-joint3 = joint.new("joint3", joint_axes3, "revolute")
-joint4 = joint.new("joint4", joint_axes4, "revolute")
-joint5 = joint.new("joint5", joint_axes5, "revolute")
-joint6 = joint.new("joint6", joint_axes6, "revolute")
--- 生成连杆
+local d1 = z_upperarm * 1e-3
+local a2 = (h_upperarm + h_motor) * 1e-3
+local a3 = (h_forearm + h_motor / 2 + r_shell) * 1e-3
+local d4 = (h_motor + offset) * 1e-3
+local d5 = h_motor * 1e-3
+local d6 = (h_motor / 2 + h_flank) * 1e-3
+joint_axes1 = axes.new({ 0, 0, d1, 0, 0, 0 }, 0.1)
+joint_axes2 = joint_axes1:copy():move({ 0, 0, 0, 90, 0, 0 })
+joint_axes3 = joint_axes2:copy():move({ 0, a2, 0, 0, 0, 0 })
+joint_axes4 = joint_axes3:copy():move({ 0, a3, 0, 0, 0, 0 })
+joint_axes5 = joint_axes4:copy():move({ 0, 0, d4, -90, 0, 0 })
+joint_axes6 = joint_axes5:copy():move({ 0, 0, d5, 90, 0, 0 })
+joint_tool = joint_axes6:copy():move({ 0, 0, d6, 0, 0, 0 })
+j1_limit = { lower = -6.28, upper = 6.28, velocity = 3.14, effort = 9 }
+j2_limit = { lower = -6.28, upper = 6.28, velocity = 3.14, effort = 9 }
+j3_limit = { lower = -3.14, upper = 3.14, velocity = 3.14, effort = 9 }
+j4_limit = { lower = -6.28, upper = 6.28, velocity = 3.14, effort = 3 }
+j5_limit = { lower = -6.28, upper = 6.28, velocity = 3.14, effort = 3 }
+j6_limit = { lower = -6.28, upper = 6.28, velocity = 3.14, effort = 3 }
+joint1 = joint.new("joint1", joint_axes1, "revolute", j1_limit)
+joint2 = joint.new("joint2", joint_axes2, "revolute", j2_limit)
+joint3 = joint.new("joint3", joint_axes3, "revolute", j3_limit)
+joint4 = joint.new("joint4", joint_axes4, "revolute", j4_limit)
+joint5 = joint.new("joint5", joint_axes5, "revolute", j5_limit)
+joint6 = joint.new("joint6", joint_axes6, "revolute", j6_limit)
+jointT = joint.new("jointT", joint_tool, "fixed")
 urdf = link.new("base_link", base_link)
 link1 = link.new("link1", sholder)
 link2 = link.new("link2", upperarm)
@@ -653,14 +629,12 @@ link3 = link.new("link3", forearm)
 link4 = link.new("link4", wrist1)
 link5 = link.new("link5", wrist2)
 link6 = link.new("link6", wrist3)
--- 配置URDF
+link_tool = link.new("link_tool", shape.new())
 urdf:add(joint1):next(link1):add(joint2):next(link2):add(joint3):next(link3):add(joint4):next(link4):add(joint5):next(
-    link5):add(joint6):next(link6)
--- 显示模型和坐标轴
+    link5):add(joint6):next(link6):add(jointT):next(link_tool)
 show({ base_link, sholder, upperarm, forearm, wrist1, wrist2, wrist3 })
-show({ joint_axes1, joint_axes2, joint_axes3, joint_axes4, joint_axes5, joint_axes6 })
--- 导出URDF
-urdf:export({ name = 'myrobot', path = 'd:/' })
+show({ joint_axes1, joint_axes2, joint_axes3, joint_axes4, joint_axes5, joint_axes6, joint_tool })
+urdf:export({ name = 'myrobot', path = 'd:/', ros_version = 2 })
 ```
 
 <img src="../example_urdf.png" alt="example_urdf" style="zoom:33%;" />
@@ -677,6 +651,8 @@ colcon build --symlink-install
 source install/setup.bash
 ros2 launch urdf_launch display.launch.py urdf_package:=myrobot urdf_package_path:=urdf/myrobot.urdf
 ```
+
+<img src="../example_ros2.png" alt="example_ros2" style="zoom:33%;" />
 
 ## 💡 使用示例
 

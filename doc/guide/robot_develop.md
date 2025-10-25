@@ -330,6 +330,76 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         viewer.sync()
 ```
 
+## pybullet 使用 URDF
+
+```python
+import pybullet as p
+import pybullet_data
+import time
+
+# 连接到PyBullet物理引擎（使用GUI模式）
+physics_client = p.connect(p.GUI)
+# 设置额外的搜索路径
+p.setAdditionalSearchPath(pybullet_data.getDataPath())
+# 设置重力
+p.setGravity(0, 0, -9.8)
+# 加载地面
+plane_id = p.loadURDF("plane.urdf")
+# 加载机械臂URDF文件
+robot_id = p.loadURDF(
+    "myrobot/urdf/myrobot.urdf", basePosition=[0, 0, 0], useFixedBase=True
+)
+# 获取机械臂关节信息
+num_joints = p.getNumJoints(robot_id)
+print(f"机械臂关节数量: {num_joints}")
+# 打印每个关节的信息
+print("\n关节信息:")
+joint_indices = []
+for i in range(num_joints):
+    joint_info = p.getJointInfo(robot_id, i)
+    joint_name = joint_info[1].decode("utf-8")
+    joint_type = joint_info[2]
+    print(f"关节 {i}: {joint_name}, 类型: {joint_type}")
+    # 只记录可旋转关节(type=0)
+    if joint_type == p.JOINT_REVOLUTE:
+        joint_indices.append(i)
+print(f"\n可控制关节索引: {joint_indices}")
+# 设置相机视角
+p.resetDebugVisualizerCamera(
+    cameraDistance=1.5, cameraYaw=45, cameraPitch=-30, cameraTargetPosition=[0, 0, 0.5]
+)
+# 添加调试滑块来控制每个关节
+sliders = []
+for joint_idx in joint_indices:
+    joint_info = p.getJointInfo(robot_id, joint_idx)
+    joint_name = joint_info[1].decode("utf-8")
+    lower_limit = joint_info[8]
+    upper_limit = joint_info[9]
+    slider = p.addUserDebugParameter(joint_name, lower_limit, upper_limit, 0)  # 初始值
+    sliders.append(slider)
+print("\n仿真开始！使用右侧滑块控制机械臂关节")
+print("按 Ctrl+C 退出仿真")
+# 仿真循环
+try:
+    while True:
+        # 读取滑块值并设置关节角度
+        for i, (joint_idx, slider) in enumerate(zip(joint_indices, sliders)):
+            target_position = p.readUserDebugParameter(slider)
+            p.setJointMotorControl2(
+                robot_id,
+                joint_idx,
+                p.POSITION_CONTROL,
+                targetPosition=target_position,
+                force=100,
+            )
+        # 执行一步仿真
+        p.stepSimulation()
+        time.sleep(1.0 / 240.0)  # 240Hz仿真频率
+except KeyboardInterrupt:
+    print("\n仿真结束")
+    p.disconnect()
+```
+
 ## 高级技巧
 
 ### 1. 使用辅助函数简化建模
