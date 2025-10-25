@@ -51,8 +51,8 @@ class JyCodeEditor : public QPlainTextEdit {
         void highlightBlock(const QString &text) override;
 
     private:
-        QVector<HighlightingRule> highlightingRules;
-        QVector<MultilineRule> multilineRules;
+        QList<HighlightingRule> highlightingRules;
+        QList<MultilineRule> multilineRules;
         int nextStateId{1};
     };
 

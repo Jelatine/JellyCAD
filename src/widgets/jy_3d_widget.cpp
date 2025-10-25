@@ -16,6 +16,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QMouseEvent>
+#include <QMutexLocker>
 #include <StdSelect_BRepOwner.hxx>
 #include <TopExp.hxx>
 #include <TopoDS.hxx>
@@ -43,6 +44,7 @@ Jy3DWidget::Jy3DWidget(QWidget *parent) : QWidget(parent) {
 }
 
 void Jy3DWidget::onDisplayShape(const JyShape &theIObj) {
+    QMutexLocker locker(&mutex);
     if (theIObj.data().IsNull()) { return; }
     // 更新网格数据，保证网格的XY能覆盖模型
     const auto shape = theIObj.data();
@@ -72,6 +74,7 @@ void Jy3DWidget::onDisplayShape(const JyShape &theIObj) {
 
 
 void Jy3DWidget::onDisplayAxes(const JyAxes &theAxes) {
+    QMutexLocker locker(&mutex);
     gp_Ax2 ax2;
     ax2.Transform(theAxes.data());
     const auto trihedron = new AIS_Trihedron(new Geom_Axis2Placement(ax2));
@@ -227,12 +230,13 @@ void Jy3DWidget::resizeEvent(QResizeEvent *event) {
 }
 
 void Jy3DWidget::mousePressEvent(QMouseEvent *event) {
+    const qreal ratio = devicePixelRatioF();
     if (event->buttons() & Qt::LeftButton) {
         // 鼠标左右键齐按：初始化平移
         m_x_max = event->x();
         m_y_max = event->y();
-        // 点击前，将鼠标位置传递到交互环境
-        m_context->MoveTo(event->pos().x(), event->pos().y(), m_view, Standard_True);
+        // 点击前，将鼠标位置传递到交互环境（需要乘以设备像素比以处理高DPI屏幕）
+        m_context->MoveTo(event->pos().x() * ratio, event->pos().y() * ratio, m_view, Standard_True);
         // 鼠标左键：选择模型
         if (QApplication::keyboardModifiers() == Qt::ControlModifier) {
             m_context->SelectDetected(AIS_SelectionScheme_Add);// 多选
@@ -255,45 +259,43 @@ void Jy3DWidget::mousePressEvent(QMouseEvent *event) {
         // 鼠标滚轮键：初始化平移
         m_x_max = event->x();
         m_y_max = event->y();
-        // 鼠标滚轮键：初始化旋转
-        m_view->StartRotation(event->x(), event->y());
+        // 鼠标滚轮键：初始化旋转（需要乘以设备像素比）
+        m_view->StartRotation(event->x() * ratio, event->y() * ratio);
     }
 }
 
 void Jy3DWidget::mouseReleaseEvent(QMouseEvent *event) {
-    // 将鼠标位置传递到交互环境
-    m_context->MoveTo(event->pos().x(), event->pos().y(), m_view, Standard_True);
-}
-
-void Jy3DWidget::mouseMoveEvent(QMouseEvent *event) {
-    if ((event->buttons() & Qt::LeftButton)) {
-        // 鼠标左右键齐按：执行平移
-        m_view->Pan(event->pos().x() - m_x_max, m_y_max - event->pos().y());
-        m_x_max = event->x();
-        m_y_max = event->y();
-    } else if (event->buttons() & Qt::RightButton) {
-        // 鼠标滚轮键：执行旋转
-        m_view->Rotation(event->x(), event->y());
-        light_direction->SetDirection(m_view->Camera()->Direction());
-        m_isDragging = true;
-    } else {
-        // 将鼠标位置传递到交互环境
-        m_context->MoveTo(event->pos().x(), event->pos().y(), m_view, Standard_True);
-    }
-}
-void Jy3DWidget::wheelEvent(QWheelEvent *event) {
-    m_view->StartZoomAtPoint((int) event->position().x(), (int) event->position().y());
-    m_view->ZoomAtPoint(0, 0, event->angleDelta().y(), 0);//执行缩放
-}
-
-void Jy3DWidget::contextMenuEvent(QContextMenuEvent *event) {
-    if (m_isDragging) {
-        event->ignore();
-    } else {
+    const qreal ratio = devicePixelRatioF();
+    // 将鼠标位置传递到交互环境（需要乘以设备像素比）
+    m_context->MoveTo(event->pos().x() * ratio, event->pos().y() * ratio, m_view, Standard_True);
+    if (!m_isDragging && event->button() == Qt::RightButton) {
         m_contextMenu->exec(event->globalPos());
     }
 }
 
+void Jy3DWidget::mouseMoveEvent(QMouseEvent *event) {
+    const qreal ratio = devicePixelRatioF();
+    if ((event->buttons() & Qt::LeftButton)) {
+        // 鼠标左右键齐按：执行平移（平移差值需要乘以设备像素比）
+        m_view->Pan((event->pos().x() - m_x_max) * ratio, (m_y_max - event->pos().y()) * ratio);
+        m_x_max = event->x();
+        m_y_max = event->y();
+    } else if (event->buttons() & Qt::RightButton) {
+        // 鼠标滚轮键：执行旋转（需要乘以设备像素比）
+        m_view->Rotation(event->x() * ratio, event->y() * ratio);
+        light_direction->SetDirection(m_view->Camera()->Direction());
+        m_isDragging = true;
+    } else {
+        // 将鼠标位置传递到交互环境（需要乘以设备像素比）
+        m_context->MoveTo(event->pos().x() * ratio, event->pos().y() * ratio, m_view, Standard_True);
+    }
+}
+void Jy3DWidget::wheelEvent(QWheelEvent *event) {
+    const qreal ratio = devicePixelRatioF();
+    // 缩放操作需要乘以设备像素比以处理高DPI屏幕
+    m_view->StartZoomAtPoint((int)(event->position().x() * ratio), (int)(event->position().y() * ratio));
+    m_view->ZoomAtPoint(0, 0, event->angleDelta().y(), 0);//执行缩放
+}
 
 void Jy3DWidget::createContextMenu() {
     m_contextMenu = new QMenu(this);

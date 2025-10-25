@@ -13,8 +13,8 @@
 #include <AIS_ViewCube.hxx>
 #include <QAction>
 #include <QActionGroup>
-#include <QContextMenuEvent>
 #include <QMenu>
+#include <QMutex>
 #include <QWidget>
 #include <V3d_Light.hxx>
 
@@ -28,6 +28,8 @@ class Jy3DWidget : public QWidget {
     Handle(V3d_Light) light_direction;       //! 定向光源
     Standard_Integer m_x_max{};              //!记录鼠标平移坐标X
     Standard_Integer m_y_max{};              //!记录鼠标平移坐标Y
+    QMutex mutex;
+
 public:
     explicit Jy3DWidget(QWidget *parent = nullptr);
 
@@ -71,8 +73,6 @@ protected:
 
     //!覆写鼠标滚轮事件
     void wheelEvent(QWheelEvent *event) override;
-
-    void contextMenuEvent(QContextMenuEvent *event) override;
 
 private:
     void createContextMenu();

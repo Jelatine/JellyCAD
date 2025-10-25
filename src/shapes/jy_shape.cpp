@@ -323,7 +323,7 @@ JyShape &JyShape::mass(const double &_mass) {
     return *this;
 }
 
-void JyShape::export_stl(const std::string &_filename, const sol::table &_opt) const {
+JyShape &JyShape::export_stl(const std::string &_filename, const sol::table &_opt) {
     Standard_Boolean theAsciiMode = Standard_True;
     if (_opt && _opt["type"].is<std::string>()) {
         const std::string type_name = _opt["type"];
@@ -336,29 +336,29 @@ void JyShape::export_stl(const std::string &_filename, const sol::table &_opt) c
         }
     }
     const double theLinDeflection = (_opt && _opt["radian"].is<double>()) ? _opt["radian"] : 0.1;
-    export_stl_common(_filename, theAsciiMode, theLinDeflection);
+    return export_stl_common(_filename, theAsciiMode, theLinDeflection);
 }
 
-void JyShape::export_stl_common(const std::string &_filename, const bool is_ascii, const double &lin) const {
+JyShape &JyShape::export_stl_common(const std::string &_filename, const bool is_ascii, const double &lin) {
     BRepMesh_IncrementalMesh aMesh(s_, lin);
-    if (StlAPI::Write(s_, _filename.c_str(), is_ascii)) { return; }// 成功
-    throw std::runtime_error("Failed to export stl!");
+    if (!StlAPI::Write(s_, _filename.c_str(), is_ascii)) { throw std::runtime_error("Failed to export stl!"); }
+    return *this;
 }
 
-void JyShape::export_step(const std::string &_filename) const {
+JyShape &JyShape::export_step(const std::string &_filename) {
     STEPControl_Writer writer;
     writer.Transfer(s_, STEPControl_AsIs);
-    if (writer.Write(_filename.c_str())) { return; }// 成功
-    throw std::runtime_error("Failed to export STEP!");
+    if (!writer.Write(_filename.c_str())) { throw std::runtime_error("Failed to export STEP!"); }
+    return *this;
 }
 
-void JyShape::export_iges(const std::string &_filename) const {
+JyShape &JyShape::export_iges(const std::string &_filename) {
     IGESControl_Writer writer;
     if (!writer.AddShape(s_)) {
         throw std::runtime_error("Failed to add shape!");
     }
-    if (writer.Write(_filename.c_str())) { return; }// 成功
-    throw std::runtime_error("Failed to export IGES!");
+    if (!writer.Write(_filename.c_str())) { throw std::runtime_error("Failed to export IGES!"); }
+    return *this;
 }
 
 std::array<double, 4> JyShape::rgba() const {

@@ -218,22 +218,22 @@ public:
      * @param _filename 文件路径
      * @param _opt 导出选项表
      */
-    void export_stl(const std::string &_filename, const sol::table &_opt) const;
-    void export_stl(const std::string &_filename) const { export_stl_common(_filename, false, 0.1); }
+    JyShape &export_stl(const std::string &_filename, const sol::table &_opt);
+    JyShape &export_stl(const std::string &_filename) { return export_stl_common(_filename, false, 0.1); }
 
-    void export_stl_common(const std::string &_filename, const bool is_ascii, const double &lin) const;
+    JyShape &export_stl_common(const std::string &_filename, const bool is_ascii, const double &lin);
 
     /**
      * @brief 导出为STEP格式文件
      * @param _filename 文件路径
      */
-    void export_step(const std::string &_filename) const;
+    JyShape &export_step(const std::string &_filename);
 
     /**
      * @brief 导出为IGES格式文件
      * @param _filename 文件路径
      */
-    void export_iges(const std::string &_filename) const;
+    JyShape &export_iges(const std::string &_filename);
 
     std::array<double, 4> rgba() const;
 

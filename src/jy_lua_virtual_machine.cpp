@@ -56,10 +56,10 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
     shape_user["export_step"] = &JyShape::export_step;
     shape_user["export_iges"] = &JyShape::export_iges;
     const auto overload_export_stl = sol::overload(
-            static_cast<void (JyShape::*)(const std::string &_filename) const>(&JyShape::export_stl),
-            static_cast<void (JyShape::*)(const std::string &_filename, const sol::table &_opt) const>(&JyShape::export_stl));
+            static_cast<JyShape &(JyShape::*) (const std::string &_filename)>(&JyShape::export_stl),
+            static_cast<JyShape &(JyShape::*) (const std::string &_filename, const sol::table &_opt)>(&JyShape::export_stl));
     shape_user["export_stl"] = overload_export_stl;
-    shape_user["show"] = [this](const JyShape &self) { return emit this->displayShape(self); };
+    shape_user["show"] = [this](JyShape &self) -> JyShape & { emit this->displayShape(self);return self; };
 
     // 全局函数
     const auto show_one = [=](const JyShape &s) { emit displayShape(s); };

@@ -10,26 +10,50 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     set(WIN32_RESOURCES ${CMAKE_CURRENT_SOURCE_DIR}/resource/icon.rc)
 endif ()
 if (MSVC)
-    # 解决UTF-8存在中文时，MSVC编译失败
-    add_compile_options("/source-charset:utf-8")
-    add_compile_options("/execution-charset:utf-8")
     add_compile_options(/bigobj) # 对象文件（.obj）包含的节（sections）数量超过了标准对象文件格式的限制
 endif ()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY $<1:${CMAKE_CURRENT_BINARY_DIR}/bin>)
 
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif ()
+
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 find_package(OpenCASCADE CONFIG REQUIRED)
-find_package(Qt5 REQUIRED COMPONENTS Widgets)
+
+
+# 添加编译选项：强制使用Qt5
+option(FORCE_QT5 "Force use Qt5 instead of Qt6" OFF)
+# Qt版本检测：优先Qt6，可通过FORCE_QT5选项强制使用Qt5
+if(NOT FORCE_QT5)
+    find_package(Qt6 QUIET COMPONENTS Core Widgets)
+endif()
+if (Qt6_FOUND)
+    message(STATUS "Found Qt6, using Qt6")
+    set(QT_VERSION_MAJOR 6)
+    set(QT_VERSION ${Qt6_VERSION})
+else()
+    find_package(Qt5 REQUIRED COMPONENTS Widgets)
+    message(STATUS "using Qt5")
+    set(QT_VERSION_MAJOR 5)
+    set(QT_VERSION ${Qt5_VERSION})
+    if (MSVC)
+        # 解决UTF-8存在中文时，MSVC编译失败
+        add_compile_options("/source-charset:utf-8")
+        add_compile_options("/execution-charset:utf-8")
+    endif ()
+endif()
+
 find_package(Lua CONFIG REQUIRED)
 find_package(sol2 CONFIG REQUIRED)
 
 message(STATUS "occ version:${OpenCASCADE_VERSION}")
-message(STATUS "qt5 version:${Qt5_VERSION}")
+message(STATUS "qt version:${QT_VERSION}")
 message(STATUS "sol2 version:${sol2_VERSION}")
 
 add_definitions(-DVERSION_DISPLAY_OCC=\"${OpenCASCADE_VERSION}\")
-add_definitions(-DVERSION_DISPLAY_QT5=\"${Qt5_VERSION}\")
+add_definitions(-DVERSION_DISPLAY_QT=\"${QT_VERSION}\")
 add_definitions(-DVERSION_DISPLAY_SOL2=\"${sol2_VERSION}\")
 
 if (TAG_VERSION)
@@ -46,14 +70,39 @@ file(GLOB_RECURSE SRC_FILES src/*.cpp src/*.h resource/*.qrc)
 add_executable(JellyCAD ${SRC_FILES} ${WIN32_RESOURCES})
 target_include_directories(JellyCAD PRIVATE ${OpenCASCADE_INCLUDE_DIR})
 target_include_directories(JellyCAD PRIVATE src src/widgets src/shapes)
-target_link_libraries(JellyCAD PRIVATE
-        Qt5::Widgets
-        ${OpenCASCADE_LIBRARIES}
-        ${LUA_LIBRARIES})
 
-if (NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Debug)
-endif ()
+# Link Qt libraries based on version
+if (QT_VERSION_MAJOR EQUAL 6)
+    target_link_libraries(JellyCAD PRIVATE
+            Qt6::Core
+            Qt6::Widgets
+            ${OpenCASCADE_LIBRARIES}
+            ${LUA_LIBRARIES})
+    if(WIN32)
+        # 在构建时根据配置类型（Debug/Release）动态复制Qt插件
+        # 使用 $<CONFIG> 生成器表达式确保多配置生成器（如Visual Studio）能正确工作
+        add_custom_command(TARGET JellyCAD POST_BUILD
+            COMMAND ${CMAKE_COMMAND}
+                -DCONFIG_TYPE=$<CONFIG>
+                -DQt6_DIR=${Qt6_DIR}
+                -DTARGET_DIR=$<TARGET_FILE_DIR:JellyCAD>
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/copy_qt_plugins.cmake
+            COMMENT "Copying Qt6 plugins for $<CONFIG> configuration..."
+        )
+
+        # 生成 qt.conf 配置文件
+        add_custom_command(TARGET JellyCAD POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E echo "[Paths]" > "$<TARGET_FILE_DIR:JellyCAD>/qt.conf"
+            COMMAND ${CMAKE_COMMAND} -E echo "Plugins=plugins" >> "$<TARGET_FILE_DIR:JellyCAD>/qt.conf"
+            COMMENT "Generating qt.conf for $<CONFIG>"
+        )
+    endif()
+else()
+    target_link_libraries(JellyCAD PRIVATE
+            Qt5::Widgets
+            ${OpenCASCADE_LIBRARIES}
+            ${LUA_LIBRARIES})
+endif()
 
 if ((${CMAKE_SYSTEM_NAME} MATCHES "Windows") AND (${CMAKE_BUILD_TYPE} STREQUAL "Release"))
     set_target_properties(JellyCAD PROPERTIES WIN32_EXECUTABLE ON)

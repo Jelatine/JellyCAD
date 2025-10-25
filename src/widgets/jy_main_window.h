@@ -18,6 +18,7 @@
 #include <QTextBrowser>
 #include <QProgressDialog>
 #include <QTreeWidget>
+#include <QPushButton>
 
 class QSettings;
 class JySearchWidget;

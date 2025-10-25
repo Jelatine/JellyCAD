@@ -20,6 +20,7 @@ int main(int argc, char *argv[]) {
     parser.addOption(code_option);
     parser.process(a);
     qRegisterMetaType<JyShape>("JyShape");
+    qRegisterMetaType<JyAxes>("JyAxes");
     JyMainWindow w;
     if (parser.isSet(file_option)) {
         const auto lvm = new JyLuaVirtualMachine();
