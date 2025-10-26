@@ -12,6 +12,8 @@
   [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
   [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)](https://github.com/Jelatine/JellyCAD)
 
+  **[官方主页](https://jelatine.github.io/JellyCAD/)**
+
 </div>
 
 ## ✨ 特点
@@ -45,6 +47,8 @@
 - ✅ macOS 15.5
 
 ## 🚀 快速开始
+
+> 📖 完整安装指南请参考：[安装教程](https://jelatine.github.io/JellyCAD/guide/install.html)
 
 ### 安装依赖
 
