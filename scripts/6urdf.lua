@@ -7,7 +7,7 @@ shell = cylinder.new(r_shell, h_motor)
 shell:fillet(5, { type = 'circle', min = { r_shell - 1e-2, -1e-2, h_motor - 1e-2 } });
 shell:fuse(cylinder.new(r_shell, h_motor / 2):z(h_motor / 2):rx(90));
 shell:cut(cylinder.new(r_shell - 8, h_motor - 1):z(2));
-
+-- 电机
 motor = cylinder.new(r_shell - 9, h_motor / 3):color('black')
 -- shell:cut(text.new('JellyCAD', 10):pos(-r_shell + 10, -4, h_motor + 1):prism(0, 0, -4)) -- 关节盖刻字(操作很耗时)
 -- 生成连接柱
@@ -70,22 +70,22 @@ local h_flank = 10
 wrist3 = cylinder.new(r_shell, h_flank):rot(90, 0, 0):pos(0, r_shell - 2 * h_motor, z_wrist2)
 -- 毫米单位转为米，生成URDF
 base_link:scale(1e-3):color('#6495ED'):mass(0.1)
-sholder[1]:scale(1e-3):color('#8470FF'):mass(0.1)
-sholder[2] = motor:copy():locate(sholder[1]):move('z', 2):scale(1e-3):mass(0.3)
-upperarm[1]:scale(1e-3):color('#FFC1C1'):mass(0.1)
-upperarm[4] = motor:copy():locate(upperarm[1]):move('y', -2):scale(1e-3):mass(0.3)
-upperarm[2]:scale(1e-3):color('#FFC1C1'):mass(0.2)
-upperarm[3]:scale(1e-3):color('#FFC1C1'):mass(0.1)
-upperarm[5] = motor:copy():locate(upperarm[3]):move('y', -2):scale(1e-3):mass(0.3)
-forearm[1]:scale(1e-3):color('#FFC100'):mass(0.2)
-forearm[2]:scale(1e-3):color('#FFC100'):mass(0.1)
-forearm[3]:scale(1e-3):color('#FFC100'):mass(0.1)
-forearm[4] = motor:copy():locate(forearm[3]):move('y', 2):scale(1e-3):mass(0.3)
-wrist1[1]:scale(1e-3):color('#FF8247'):mass(0.1)
-wrist1[2] = motor:copy():locate(wrist1[1]):move('z', -2):scale(1e-3):mass(0.3)
-wrist2[1]:scale(1e-3):color('#FFE7BA'):mass(0.1)
-wrist2[2] = motor:copy():locate(wrist2[1]):move('y', 2):scale(1e-3):mass(0.3)
-wrist3:scale(1e-3):color('#C1CDC1'):mass(0.1)
+sholder[1]:scale(1e-3):color('#8470FF'):mass(0.1)                                  -- 肩部模组外壳
+sholder[2] = motor:copy():locate(sholder[1]):move('z', 2):scale(1e-3):mass(0.3)    -- J1电机
+upperarm[1]:scale(1e-3):color('#FFC1C1'):mass(0.1)                                 -- 关节2模组外壳
+upperarm[4] = motor:copy():locate(upperarm[1]):move('y', -2):scale(1e-3):mass(0.3) -- J2电机
+upperarm[2]:scale(1e-3):color('#FFC1C1'):mass(0.2)                                 -- 关节2与关节3之间的连接柱
+upperarm[3]:scale(1e-3):color('#FFC1C1'):mass(0.1)                                 -- 关节3模组外壳
+upperarm[5] = motor:copy():locate(upperarm[3]):move('y', -2):scale(1e-3):mass(0.3) -- J3电机
+forearm[1]:scale(1e-3):color('#FFC100'):mass(0.2)                                  -- 关节3与前臂柱转接器
+forearm[2]:scale(1e-3):color('#FFC100'):mass(0.1)                                  -- 前臂柱
+forearm[3]:scale(1e-3):color('#FFC100'):mass(0.1)                                  -- 关节4模组外壳
+forearm[4] = motor:copy():locate(forearm[3]):move('y', 2):scale(1e-3):mass(0.3)    -- J4电机
+wrist1[1]:scale(1e-3):color('#FF8247'):mass(0.1)                                   -- 手腕1模组外壳
+wrist1[2] = motor:copy():locate(wrist1[1]):move('z', -2):scale(1e-3):mass(0.3)     -- J5电机
+wrist2[1]:scale(1e-3):color('#FFE7BA'):mass(0.1)                                   -- 手腕2模组外壳
+wrist2[2] = motor:copy():locate(wrist2[1]):move('y', 2):scale(1e-3):mass(0.3)      -- J16电机
+wrist3:scale(1e-3):color('#C1CDC1'):mass(0.1)                                      -- 末端法兰
 local d1 = z_upperarm * 1e-3
 local a2 = (h_upperarm + h_motor) * 1e-3
 local a3 = (h_forearm + h_motor / 2 + r_shell) * 1e-3
@@ -129,6 +129,7 @@ for _, arr in ipairs({ { base_link }, sholder, upperarm, upperarm, forearm, wris
 end
 show({ joint_axes1, joint_axes2, joint_axes3, joint_axes4, joint_axes5, joint_axes6, joint_tool })
 urdf:export({ name = 'myrobot', path = 'd:/', ros_version = 2 })
+-- urdf:export({ name = 'myrobot_mujoco', path = 'd:/', mujoco = true }) -- 导出mujoco
 --[[
 --- ROS2使用方式: ---
 sudo apt update
