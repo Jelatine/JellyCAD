@@ -155,6 +155,7 @@ void Link::export_urdf_impl(const std::string &robot_name, const std::string &ro
             outFile << "    <joint damping=\"1\" armature=\"0.1\"/>\n";
             outFile << "    <geom contype=\"1\" conaffinity=\"1\" friction=\"1 0.5 0.5\"/>\n";
             outFile << "    <motor ctrllimited=\"true\"/>\n";
+            outFile << "    <position kp=\"200\" kv=\"1\"/>\n";
             outFile << "  </default>\n\n";
 
             // 收集所有非空形状的link名称用于asset声明
@@ -194,6 +195,8 @@ void Link::export_urdf_impl(const std::string &robot_name, const std::string &ro
             struct DriveInfo {
                 std::string name;
                 double effort;
+                double lower;
+                double upper;
             };
             // 收集所有需要驱动的关节名称
             std::vector<DriveInfo> drive_infos;
@@ -201,7 +204,7 @@ void Link::export_urdf_impl(const std::string &robot_name, const std::string &ro
                 for (const auto &joint: link.joints_) {
                     // 只为revolute、continuous和prismatic类型的关节添加驱动器
                     if (joint->type_ == "revolute" || joint->type_ == "continuous" || joint->type_ == "prismatic") {
-                        drive_infos.push_back({joint->name_, joint->limits_.effort});
+                        drive_infos.push_back({joint->name_, joint->limits_.effort, joint->limits_.lower, joint->limits_.upper});
                     }
                     if (joint->child_) {
                         collect_joints(*joint->child_);
@@ -214,8 +217,12 @@ void Link::export_urdf_impl(const std::string &robot_name, const std::string &ro
             outFile << "  </worldbody>\n\n";
             outFile << "  <actuator>\n";
             for (const auto &drive: drive_infos) {
+                outFile << "    <position name=\"" << drive.name << "_pos\" joint=\"" << drive.name
+                        << "\" ctrlrange=\"" << drive.lower << " " << drive.upper << "\" />\n";
+            }
+            for (const auto &drive: drive_infos) {
                 outFile << "    <motor name=\"" << drive.name << "_motor\" joint=\"" << drive.name
-                        << "\" gear=\"1\" ctrllimited=\"true\" ctrlrange=\"-" << drive.effort << " " << drive.effort << "\" />\n";
+                        << "\" gear=\"1\" ctrlrange=\"-" << drive.effort << " " << drive.effort << "\" />\n";
             }
             outFile << "  </actuator>\n";
             outFile << "</mujoco>\n";
@@ -308,20 +315,15 @@ std::string Link::handleJoint(const Joint &joint, const Link &parent_link, const
 
 
 std::string Link::handleLink(const Link &link, const JyAxes &parent_axes, const CommomData &data) const {
-    const auto pose = parent_axes.link2joint(link.shapes_[0]);
-    JyShape output_shape;
     std::vector<JyShape> shapes;
     for (int i = 0; i < link.shapes_.size(); i++) {
         JyShape copy_shape = link.shapes_[i];
+        const auto pose = parent_axes.link2joint(copy_shape);
         copy_shape.rot(pose[3] * 180 / M_PI, pose[4] * 180 / M_PI, pose[5] * 180 / M_PI);
         copy_shape.pos(pose[0], pose[1], pose[2]);
-        if (!output_shape.s_.IsNull()) {
-            output_shape.fuse(copy_shape);
-        } else {
-            output_shape = copy_shape;
-        }
         shapes.push_back(copy_shape);
     }
+    JyShape output_shape = JyShape::make_compound(shapes);
     if (output_shape.s_.IsNull()) {
         return "  <link name=\"" + link.name_ + "\"/>\n\n";
     }
@@ -343,7 +345,7 @@ std::string Link::handleLink(const Link &link, const JyAxes &parent_axes, const 
     file << "    </inertial>\n";
 
     // Visual properties
-    const auto &rgba = link.shapes_[0].rgba();// 取第一个shape的rgba
+    const auto &rgba = output_shape.rgba();// 取第一个shape的rgba
     const auto relate_path = data.robot_name + "/meshes/" + link.name_ + ".stl";
     const auto mesh_path = "package://" + relate_path;
     file << "    <visual>\n";
@@ -368,26 +370,21 @@ std::string Link::handleLink(const Link &link, const JyAxes &parent_axes, const 
 
     fs::path path_stl = fs::path(data.path_meshes) / (link.name_ + ".stl");
     std::cout << "export mesh to: " << path_stl.generic_string() << std::endl;
-    output_shape.export_stl_common(path_stl.generic_string(), false, 0.1);
+    output_shape.export_stl(path_stl.generic_string());
     return file.str();
 }
 
 
 std::string Link::handleBody_MuJoCo(const Link &link, const Joint &parent_joint, const Joint &grand_joint, const CommomData &data, const int &space) const {
-    const auto pose_link = parent_joint.axes_.link2joint(link.shapes_[0]);
-    JyShape output_shape;
     std::vector<JyShape> shapes;
     for (int i = 0; i < link.shapes_.size(); i++) {
         JyShape copy_shape = link.shapes_[i];
-        copy_shape.rot(pose_link[3] * 180 / M_PI, pose_link[4] * 180 / M_PI, pose_link[5] * 180 / M_PI);
-        copy_shape.pos(pose_link[0], pose_link[1], pose_link[2]);
-        if (!output_shape.s_.IsNull()) {
-            output_shape.fuse(copy_shape);
-        } else {
-            output_shape = copy_shape;
-        }
+        const auto pose = parent_joint.axes_.link2joint(copy_shape);
+        copy_shape.rot(pose[3] * 180 / M_PI, pose[4] * 180 / M_PI, pose[5] * 180 / M_PI);
+        copy_shape.pos(pose[0], pose[1], pose[2]);
         shapes.push_back(copy_shape);
     }
+    JyShape output_shape = JyShape::make_compound(shapes);
     std::stringstream file;
     file << std::string(space, ' ') << "    <body name=\"" << link.name_ << "\"";
     const auto &pose = parent_joint.axes_.joint2joint(grand_joint.axes_);
@@ -402,7 +399,7 @@ std::string Link::handleBody_MuJoCo(const Link &link, const Joint &parent_joint,
          << std::setprecision(6) << inertial.inertia_tensor[0] << " "
          << inertial.inertia_tensor[1] << " "
          << inertial.inertia_tensor[2] << std::defaultfloat << "\"/>\n";
-    const auto &rgba = link.shapes_[0].rgba();
+    const auto &rgba = output_shape.rgba();
     if (!output_shape.s_.IsNull()) {
         file << std::string(space, ' ') << "      <geom type=\"mesh\" mesh=\"" << link.name_ << "\" rgba=\""
              << rgba[0] << " " << rgba[1] << " " << rgba[2] << " " << rgba[3] << "\"/>\n";
@@ -442,7 +439,7 @@ std::string Link::handleBody_MuJoCo(const Link &link, const Joint &parent_joint,
     if (!output_shape.s_.IsNull()) {
         fs::path path_stl = fs::path(data.path_meshes) / (link.name_ + ".stl");
         std::cout << "export mesh to: " << path_stl.generic_string() << std::endl;
-        output_shape.export_stl_common(path_stl.generic_string(), false, 0.1);
+        output_shape.export_stl(path_stl.generic_string());
     }
     return file.str();
 }

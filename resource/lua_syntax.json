@@ -62,7 +62,7 @@
         },
         {
             "name": "custom_function",
-            "pattern": ":(type|fuse|cut|common|fillet|chamfer|scale|x|y|z|rx|ry|rz|pos|rot|translate|rotate|locate|color|transparency|prism|revol|show|export_stl|export_step|export_iges|mass|copy|next|add|export)\\s*(?=\\()",
+            "pattern": ":(type|fuse|cut|common|fillet|chamfer|scale|x|y|z|rx|ry|rz|pos|rot|move|locate|color|transparency|prism|revol|show|export_stl|export_step|export_iges|mass|copy|next|add|export)\\s*(?=\\()",
             "color": "#3466f6"
         },
         {

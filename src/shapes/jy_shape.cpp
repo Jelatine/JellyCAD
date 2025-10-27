@@ -194,6 +194,23 @@ bool JyShape::get_double_vector(const sol::table &_t, std::vector<double> &_v) {
     return true;
 }
 
+JyShape &JyShape::locate(const double &x, const double &y, const double &z, const double &rx, const double &ry, const double &rz) {
+    gp_Trsf transformation;
+    transformation.SetTranslationPart(gp_XYZ(x, y, z));
+    double deg_rx = rx * M_PI / 180.0;
+    double deg_ry = ry * M_PI / 180.0;
+    double deg_rz = rz * M_PI / 180.0;
+    gp_Quaternion quaternion(gp_YawPitchRoll, deg_rz, deg_ry, deg_rx);
+    transformation.SetRotationPart(quaternion);
+    s_.Location(transformation);
+    return *this;
+}
+
+JyShape &JyShape::locate(const JyShape &_base) {
+    s_.Location(_base.s_.Location());
+    return *this;
+}
+
 JyShape &JyShape::move(const std::string &_move_type, const double &_x, const double &_y, const double &_z) {
     if (_move_type == "pos") {
         return locate_base(LocateType::TRANSLATE_ALL, _x, _y, _z, false);
@@ -204,10 +221,26 @@ JyShape &JyShape::move(const std::string &_move_type, const double &_x, const do
     }
     return *this;
 }
+JyShape &JyShape::move(const std::string &_move_type, const double &value) {
+    if (_move_type == "x") {
+        return locate_base(LocateType::TRANSLATE_X, value, 0, 0, false);
+    } else if (_move_type == "y") {
+        return locate_base(LocateType::TRANSLATE_Y, 0, value, 0, false);
+    } else if (_move_type == "z") {
+        return locate_base(LocateType::TRANSLATE_Z, 0, 0, value, false);
+    } else if (_move_type == "rx") {
+        return locate_base(LocateType::ROTATE_X, value, 0, 0, false);
+    } else if (_move_type == "ry") {
+        return locate_base(LocateType::ROTATE_Y, 0, value, 0, false);
+    } else if (_move_type == "rz") {
+        return locate_base(LocateType::ROTATE_Z, 0, 0, value, false);
+    } else {
+        throw std::invalid_argument("move_type must be 'x', 'y', 'z', 'rx', 'ry' or 'rz'");
+    }
+}
 
 JyShape &JyShape::zero() {
-    pos(0, 0, 0);
-    return rot(0, 0, 0);
+    return locate(0, 0, 0, 0, 0, 0);
 }
 
 JyShape &JyShape::locate_base(const LocateType &_type, const double &_x, const double &_y, const double &_z, const bool &_abs) {
@@ -363,6 +396,24 @@ JyShape &JyShape::export_iges(const std::string &_filename) {
 
 std::array<double, 4> JyShape::rgba() const {
     return {color_.Red(), color_.Green(), color_.Blue(), (1.0 - transparency_)};
+}
+
+JyShape JyShape::make_compound(const std::vector<JyShape> &_shapes) {
+    if (_shapes.empty()) { return JyShape(); }
+    BRep_Builder builder;
+    TopoDS_Compound compound;
+    builder.MakeCompound(compound);
+    bool is_all_null = true;
+    for (const auto &shape: _shapes) {
+        if (!shape.s_.IsNull()) {
+            builder.Add(compound, shape.s_);
+            is_all_null = false;
+        }
+    }
+    if (is_all_null) { return JyShape(); }
+    JyShape compound_shape = _shapes[0];
+    compound_shape.s_ = compound;
+    return compound_shape;
 }
 
 InertialProperties JyShape::inertial(const JyShape &_shape) {

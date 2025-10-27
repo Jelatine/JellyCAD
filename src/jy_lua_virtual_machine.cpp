@@ -47,8 +47,13 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
     shape_user["rz"] = &JyShape::rz;
     shape_user["pos"] = &JyShape::pos;
     shape_user["rot"] = &JyShape::rot;
-    shape_user["move"] = &JyShape::move;
+    shape_user["move"] = sol::overload(
+            static_cast<JyShape &(JyShape::*) (const std::string &, const double &, const double &, const double &)>(&JyShape::move),
+            static_cast<JyShape &(JyShape::*) (const std::string &, const double &)>(&JyShape::move));
     shape_user["zero"] = &JyShape::zero;
+    shape_user["locate"] = sol::overload(
+            static_cast<JyShape &(JyShape::*) (const JyShape &)>(&JyShape::locate),
+            static_cast<JyShape &(JyShape::*) (const double &, const double &, const double &, const double &, const double &, const double &)>(&JyShape::locate));
     // 属性设置
     shape_user["color"] = &JyShape::color;
     shape_user["transparency"] = &JyShape::transparency;

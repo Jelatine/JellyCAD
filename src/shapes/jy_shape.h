@@ -178,6 +178,9 @@ public:
     JyShape &pos(const double &x, const double &y, const double &z) { return locate_base(LocateType::TRANSLATE_ALL, x, y, z); }
     // 设置绝对姿态（欧拉角，单位度）
     JyShape &rot(const double &rx, const double &ry, const double &rz) { return locate_base(LocateType::ROTATE_ALL, rx, ry, rz); }
+
+    JyShape &locate(const double &x, const double &y, const double &z, const double &rx, const double &ry, const double &rz);
+    JyShape &locate(const JyShape &_base);
     /**
      * @brief 平移和旋转（相对于当前位置和姿态）
      * @param _move_type 移动类型："pos"或"rot"
@@ -187,6 +190,13 @@ public:
      * @return JyShape& 当前形状引用
      */
     JyShape &move(const std::string &_move_type, const double &_x, const double &_y, const double &_z);
+    /**
+     * @brief 移动形状
+     * @param _move_type 移动类型："x", "y", "z", "rx", "ry", "rz"
+     * @param value 移动值
+     * @return JyShape& 当前形状引用
+     */
+    JyShape &move(const std::string &_move_type, const double &value);
 
     JyShape &zero();
 
@@ -219,9 +229,9 @@ public:
      * @param _opt 导出选项表
      */
     JyShape &export_stl(const std::string &_filename, const sol::table &_opt);
-    JyShape &export_stl(const std::string &_filename) { return export_stl_common(_filename, false, 0.1); }
+    JyShape &export_stl(const std::string &_filename) { return export_stl_common(_filename); }
 
-    JyShape &export_stl_common(const std::string &_filename, const bool is_ascii, const double &lin);
+    JyShape &export_stl_common(const std::string &_filename, const bool is_ascii = false, const double &lin = 0.001);
 
     /**
      * @brief 导出为STEP格式文件
@@ -236,6 +246,8 @@ public:
     JyShape &export_iges(const std::string &_filename);
 
     std::array<double, 4> rgba() const;
+
+    static JyShape make_compound(const std::vector<JyShape> &_shapes);
 
     static InertialProperties inertial(const JyShape &_shape);
 

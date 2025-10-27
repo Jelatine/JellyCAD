@@ -6,7 +6,10 @@ local offset = h_motor / 2 - r_shell
 shell = cylinder.new(r_shell, h_motor)
 shell:fillet(5, { type = 'circle', min = { r_shell - 1e-2, -1e-2, h_motor - 1e-2 } });
 shell:fuse(cylinder.new(r_shell, h_motor / 2):z(h_motor / 2):rx(90));
--- shell:cut(text.new('JellyCAD', 8):pos(-r_shell / 2, -4, h_motor + 1):prism(0, 0, -2)) -- 关节盖刻字(操作很耗时)
+shell:cut(cylinder.new(r_shell - 8, h_motor - 1):z(2));
+
+motor = cylinder.new(r_shell - 9, h_motor / 3):color('black')
+-- shell:cut(text.new('JellyCAD', 10):pos(-r_shell + 10, -4, h_motor + 1):prism(0, 0, -4)) -- 关节盖刻字(操作很耗时)
 -- 生成连接柱
 function get_pole(r_outer, r2, h)
     local r1 = r_outer - 1
@@ -31,41 +34,57 @@ ellipse:revol({ 0, 0, 0 }, { 0, 0, 1 }, 360)
 base_link:cut(ellipse);
 base_link:fillet(3, { type = 'bspline_curve', min = { r_base - 1e-2, -1e-2, (h_base - R0) - 1e-2 } });
 -- 肩部
-sholder = shell:copy():z(h_base);
+sholder = {}
+sholder[1] = shell:copy():z(h_base);
 -- 上臂
 local h_upperarm = 150
 local r_upperarm = 20
 local z_upperarm = h_base + h_motor / 2
-upperarm = shell:copy();
-upperarm:rot(90, 180, 0);
-upperarm:fuse(get_pole(r_shell, r_upperarm, h_upperarm):pos(0, -h_motor / 2, h_motor / 2))
-upperarm:fuse(shell:copy():rot(90, 0, 0):pos(0, 0, h_motor + h_upperarm))
-upperarm:pos(0, -h_motor / 2, z_upperarm)
+upperarm = {}
+upperarm[1] = shell:copy():rot(90, 180, 0)
+upperarm[2] = get_pole(r_shell, r_upperarm, h_upperarm):pos(0, -h_motor / 2, h_motor / 2)
+upperarm[3] = shell:copy():rot(90, 0, 0):pos(0, 0, h_motor + h_upperarm)
+upperarm[1]:move('pos', 0, -h_motor / 2, z_upperarm)
+upperarm[2]:move('pos', 0, -h_motor / 2, z_upperarm)
+upperarm[3]:move('pos', 0, -h_motor / 2, z_upperarm)
 -- 前臂
 local h_forearm = 120
 local r_forearm = 20
 local z_forearm = h_base + h_upperarm + r_shell + h_motor + offset
-forearm = face.new(edge.new('circ', { 0, 0, 0 }, { 0, 0, 1 }, r_shell));
-forearm:revol({ 0, -r_shell, 0 }, { 1, 0, 0 }, -90)
-forearm:fuse(get_pole(r_shell, r_forearm, h_forearm))
-forearm:fuse(shell:copy():rot(90, 0, 180):pos(0, -h_motor / 2, h_motor / 2 + h_forearm))
-forearm:pos(0, -offset, z_forearm + r_shell)
+forearm = {}
+forearm[1] = face.new(edge.new('circ', { 0, 0, 0 }, { 0, 0, 1 }, r_shell)):revol({ 0, -r_shell, 0 }, { 1, 0, 0 }, -90)
+forearm[2] = get_pole(r_shell, r_forearm, h_forearm)
+forearm[3] = shell:copy():rot(90, 0, 180):pos(0, -h_motor / 2, h_motor / 2 + h_forearm)
+forearm[1]:move('pos', 0, -offset, z_forearm + r_shell)
+forearm[2]:move('pos', 0, -offset, z_forearm + r_shell)
+forearm[3]:move('pos', 0, -offset, z_forearm + r_shell)
 -- 手腕1
-local z_wrist1 = z_forearm + h_forearm + h_motor + r_shell
-wrist1 = shell:copy():rot(180, 0, 0):pos(0, -h_motor - offset, z_forearm + h_forearm + h_motor + r_shell)
+wrist1 = {}
+wrist1[1] = shell:copy():rot(180, 0, 0):pos(0, -h_motor - offset, z_forearm + h_forearm + h_motor + r_shell)
 -- 手腕2
+wrist2 = {}
 local z_wrist2 = z_forearm + h_forearm + 2 * h_motor - offset
-wrist2 = shell:copy():rot(90, 0, 180):pos(0, r_shell - 2 * h_motor, z_wrist2)
+wrist2[1] = shell:copy():rot(90, 0, 180):pos(0, r_shell - 2 * h_motor, z_wrist2)
 -- 手腕3
 local h_flank = 10
 wrist3 = cylinder.new(r_shell, h_flank):rot(90, 0, 0):pos(0, r_shell - 2 * h_motor, z_wrist2)
 -- 毫米单位转为米，生成URDF
 base_link:scale(1e-3):color('#6495ED'):mass(0.1)
-sholder:scale(1e-3):color('#8470FF'):mass(0.4)
-upperarm:scale(1e-3):color('#FFC1C1'):mass(1)
-forearm:scale(1e-3):color('#FFC100'):mass(0.8)
-wrist1:scale(1e-3):color('#FF8247'):mass(0.4)
-wrist2:scale(1e-3):color('#FFE7BA'):mass(0.4)
+sholder[1]:scale(1e-3):color('#8470FF'):mass(0.1)
+sholder[2] = motor:copy():locate(sholder[1]):move('z', 2):scale(1e-3):mass(0.3)
+upperarm[1]:scale(1e-3):color('#FFC1C1'):mass(0.1)
+upperarm[4] = motor:copy():locate(upperarm[1]):move('y', -2):scale(1e-3):mass(0.3)
+upperarm[2]:scale(1e-3):color('#FFC1C1'):mass(0.2)
+upperarm[3]:scale(1e-3):color('#FFC1C1'):mass(0.1)
+upperarm[5] = motor:copy():locate(upperarm[3]):move('y', -2):scale(1e-3):mass(0.3)
+forearm[1]:scale(1e-3):color('#FFC100'):mass(0.2)
+forearm[2]:scale(1e-3):color('#FFC100'):mass(0.1)
+forearm[3]:scale(1e-3):color('#FFC100'):mass(0.1)
+forearm[4] = motor:copy():locate(forearm[3]):move('y', 2):scale(1e-3):mass(0.3)
+wrist1[1]:scale(1e-3):color('#FF8247'):mass(0.1)
+wrist1[2] = motor:copy():locate(wrist1[1]):move('z', -2):scale(1e-3):mass(0.3)
+wrist2[1]:scale(1e-3):color('#FFE7BA'):mass(0.1)
+wrist2[2] = motor:copy():locate(wrist2[1]):move('y', 2):scale(1e-3):mass(0.3)
 wrist3:scale(1e-3):color('#C1CDC1'):mass(0.1)
 local d1 = z_upperarm * 1e-3
 local a2 = (h_upperarm + h_motor) * 1e-3
@@ -103,7 +122,11 @@ link6 = link.new("link6", wrist3)
 link_tool = link.new("link_tool", shape.new())
 urdf:add(joint1):next(link1):add(joint2):next(link2):add(joint3):next(link3):add(joint4):next(link4):add(joint5):next(
     link5):add(joint6):next(link6):add(jointT):next(link_tool)
-show({ base_link, sholder, upperarm, forearm, wrist1, wrist2, wrist3 })
+for _, arr in ipairs({ { base_link }, sholder, upperarm, upperarm, forearm, wrist1, wrist2, { wrist3 } }) do
+    for _, value in ipairs(arr) do
+        value:show()
+    end
+end
 show({ joint_axes1, joint_axes2, joint_axes3, joint_axes4, joint_axes5, joint_axes6, joint_tool })
 urdf:export({ name = 'myrobot', path = 'd:/', ros_version = 2 })
 --[[

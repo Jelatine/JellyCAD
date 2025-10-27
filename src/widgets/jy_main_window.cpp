@@ -123,12 +123,12 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     connect(button_new, &QPushButton::clicked, this, &JyMainWindow::slot_button_new_clicked);
     connect(button_open, &QPushButton::clicked, this, &JyMainWindow::slot_button_open_clicked);
     connect(button_save, &QPushButton::clicked, this, &JyMainWindow::slot_button_save_clicked);
-    connect(lvm, &JyLuaVirtualMachine::displayShape, jy_3d_widget, &Jy3DWidget::onDisplayShape, Qt::QueuedConnection);
-    connect(lvm, &JyLuaVirtualMachine::displayAxes, jy_3d_widget, &Jy3DWidget::onDisplayAxes, Qt::QueuedConnection);
+    connect(lvm, &JyLuaVirtualMachine::displayShape, jy_3d_widget, &Jy3DWidget::onDisplayShape, Qt::BlockingQueuedConnection);
+    connect(lvm, &JyLuaVirtualMachine::displayAxes, jy_3d_widget, &Jy3DWidget::onDisplayAxes, Qt::BlockingQueuedConnection);
     connect(lvm, &JyLuaVirtualMachine::scriptStarted, this, &JyMainWindow::onScriptStarted);
     connect(lvm, &JyLuaVirtualMachine::scriptFinished, this, &JyMainWindow::onScriptFinished);
     connect(lvm, &JyLuaVirtualMachine::scriptError, this, &JyMainWindow::onScriptError);
-    connect(lvm, &JyLuaVirtualMachine::scriptOutput, this, &JyMainWindow::onScriptOutput, Qt::QueuedConnection);
+    connect(lvm, &JyLuaVirtualMachine::scriptOutput, this, &JyMainWindow::onScriptOutput, Qt::BlockingQueuedConnection);
 
     // 创建快捷键 ref:https://doc.qt.io/archives/qt-5.15/qkeysequence.html
     QShortcut *findNextShortcut = new QShortcut(QKeySequence::FindNext, this);
