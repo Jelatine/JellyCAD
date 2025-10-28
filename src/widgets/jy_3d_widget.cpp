@@ -16,7 +16,6 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QMouseEvent>
-#include <QMutexLocker>
 #include <StdSelect_BRepOwner.hxx>
 #include <TopExp.hxx>
 #include <TopoDS.hxx>
@@ -44,7 +43,6 @@ Jy3DWidget::Jy3DWidget(QWidget *parent) : QWidget(parent) {
 }
 
 void Jy3DWidget::onDisplayShape(const JyShape &theIObj) {
-    QMutexLocker locker(&mutex);
     if (theIObj.data().IsNull()) { return; }
     // 更新网格数据，保证网格的XY能覆盖模型
     const auto shape = theIObj.data();
@@ -74,7 +72,6 @@ void Jy3DWidget::onDisplayShape(const JyShape &theIObj) {
 
 
 void Jy3DWidget::onDisplayAxes(const JyAxes &theAxes) {
-    QMutexLocker locker(&mutex);
     gp_Ax2 ax2;
     ax2.Transform(theAxes.data());
     const auto trihedron = new AIS_Trihedron(new Geom_Axis2Placement(ax2));

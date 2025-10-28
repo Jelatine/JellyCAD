@@ -3,6 +3,7 @@
  * MIT License
  */
 #include "jy_lua_virtual_machine.h"
+#include "jy_make_shapes.h"
 #include "jy_urdf_generator.h"
 #include <QElapsedTimer>
 
@@ -129,7 +130,7 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
     lua.new_usertype<JyWire>("wire", wire_ctor, sol::base_classes, sol::bases<JyShape>());
     const auto polygon_ctor = sol::constructors<JyPolygon(),
                                                 JyPolygon(const JyPolygon &),
-                                                JyPolygon(const sol::table &)>();
+                                                JyPolygon(const std::vector<std::array<double, 3>>)>();
     lua.new_usertype<JyPolygon>("polygon", polygon_ctor, sol::base_classes, sol::bases<JyWire, JyShape>());
 
     const auto face_ctor = sol::constructors<JyFace(),
@@ -141,6 +142,9 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
                                              JyText(const std::string &, const double &),
                                              JyText(const JyText &)>();
     lua.new_usertype<JyText>("text", text_ctor, sol::base_classes, sol::bases<JyShape>());
+    const auto pipe_ctor = sol::constructors<JyPipe(const JyPipe &),
+                                             JyPipe(const JyWire &, const JyShape &)>();
+    lua.new_usertype<JyPipe>("pipe", pipe_ctor, sol::base_classes, sol::bases<JyShape>());
 
     // ----- Axes -----
     auto axes_user = lua.new_usertype<JyAxes>("axes", sol::constructors<JyAxes(),
@@ -243,7 +247,7 @@ void JyLuaVirtualMachine::executeScript(const QString &fileName) {
 
 void JyLuaVirtualMachine::stopScript() {
     should_exit = true;
-    if (!wait(3000)) { terminate(); }
+    // if (!wait(3000)) { terminate(); }
 }
 
 bool JyLuaVirtualMachine::isRunning() const {
