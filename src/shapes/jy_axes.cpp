@@ -6,6 +6,20 @@
 #include <Geom_Axis2Placement.hxx>
 #include <gp_Quaternion.hxx>
 
+
+sol::usertype<JyAxes> JyAxes::configure_usertype(sol::state &lua) {
+    auto axes_user = lua.new_usertype<JyAxes>("axes", sol::constructors<JyAxes(),
+                                                                        JyAxes(const double &),
+                                                                        JyAxes(const std::array<double, 6>),
+                                                                        JyAxes(const std::array<double, 6>, const double &),
+                                                                        JyAxes(const JyAxes &)>());
+    axes_user["copy"] = [](const JyAxes &self) { return JyAxes(self); };
+    axes_user["move"] = &JyAxes::move;
+    axes_user["sdh"] = &JyAxes::sdh;
+    axes_user["mdh"] = &JyAxes::mdh;
+    return axes_user;
+}
+
 /**
  * @brief 通过位姿数组构造坐标轴对象
  *
@@ -69,7 +83,7 @@ std::array<double, 6> JyAxes::joint2joint(const JyAxes &parent_joint) const {
  * @return 当前对象的引用，支持链式调用
  */
 JyAxes &JyAxes::move(const std::array<double, 6> ref) {
-    gp_Trsf trsf;  // 从当前位姿到参考位姿的变换
+    gp_Trsf trsf;// 从当前位姿到参考位姿的变换
     trsf.SetTranslationPart(gp_XYZ(ref[0], ref[1], ref[2]));
     gp_Quaternion quaternion;
     // 将旋转角度从度转换为弧度
@@ -105,7 +119,7 @@ JyAxes &JyAxes::sdh(const double &alpha, const double &a, const double &d, const
     // 构造绕X轴旋转alpha角的变换
     gp_Trsf rot_alpha;
     gp_Quaternion q_alpha;
-    q_alpha.SetEulerAngles(gp_YawPitchRoll, 0, 0, (alpha * M_PI / 180.0));  // Roll(alpha)
+    q_alpha.SetEulerAngles(gp_YawPitchRoll, 0, 0, (alpha * M_PI / 180.0));// Roll(alpha)
     rot_alpha.SetRotation(q_alpha);
     // 构造沿X轴平移a的变换
     gp_Trsf trans_a;
@@ -116,7 +130,7 @@ JyAxes &JyAxes::sdh(const double &alpha, const double &a, const double &d, const
     // 构造绕Z轴旋转theta角的变换
     gp_Trsf rot_theta;
     gp_Quaternion q_theta;
-    q_theta.SetEulerAngles(gp_YawPitchRoll, (theta * M_PI / 180.0), 0, 0);  // Yaw(theta)
+    q_theta.SetEulerAngles(gp_YawPitchRoll, (theta * M_PI / 180.0), 0, 0);// Yaw(theta)
     rot_theta.SetRotation(q_theta);
     // 按标准DH顺序组合变换
     transformation = transformation * rot_theta * trans_d * trans_a * rot_alpha;
@@ -146,7 +160,7 @@ JyAxes &JyAxes::mdh(const double &alpha, const double &a, const double &d, const
     // 构造绕X轴旋转alpha角的变换
     gp_Trsf rot_alpha;
     gp_Quaternion q_alpha;
-    q_alpha.SetEulerAngles(gp_YawPitchRoll, 0, 0, (alpha * M_PI / 180.0));  // Roll(alpha)
+    q_alpha.SetEulerAngles(gp_YawPitchRoll, 0, 0, (alpha * M_PI / 180.0));// Roll(alpha)
     rot_alpha.SetRotation(q_alpha);
     // 构造沿X轴平移a的变换
     gp_Trsf trans_a;
@@ -157,7 +171,7 @@ JyAxes &JyAxes::mdh(const double &alpha, const double &a, const double &d, const
     // 构造绕Z轴旋转theta角的变换
     gp_Trsf rot_theta;
     gp_Quaternion q_theta;
-    q_theta.SetEulerAngles(gp_YawPitchRoll, (theta * M_PI / 180.0), 0, 0);  // Yaw(theta)
+    q_theta.SetEulerAngles(gp_YawPitchRoll, (theta * M_PI / 180.0), 0, 0);// Yaw(theta)
     rot_theta.SetRotation(q_theta);
     // 按修正DH顺序组合变换
     transformation = transformation * rot_alpha * trans_a * rot_theta * trans_d;

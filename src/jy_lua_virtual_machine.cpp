@@ -5,6 +5,7 @@
 #include "jy_lua_virtual_machine.h"
 #include "jy_make_shapes.h"
 #include "jy_urdf_generator.h"
+#include <QDebug>
 #include <QElapsedTimer>
 
 std::atomic<bool> should_exit(false);
@@ -20,52 +21,16 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
     current_path_ = lua["package"]["path"].get<std::string>();
     lua_sethook(lua.lua_state(), debug_hook, LUA_MASKCOUNT, 1);
     lua["print"] = [=](const sol::object &v) { this->lua_print(v); };
-
-    auto shape_user = lua.new_usertype<JyShape>("shape", sol::constructors<JyShape(),
-                                                                           JyShape(const std::string &)>());
-    shape_user["copy"] = [](const JyShape &self) { return JyShape(self); };
-    shape_user["type"] = &JyShape::type;
-    // 布尔运算
-    shape_user["fuse"] = &JyShape::fuse;
-    shape_user["cut"] = &JyShape::cut;
-    shape_user["common"] = &JyShape::common;
-    // 几何变换
-    shape_user["fillet"] = sol::overload(
-            static_cast<JyShape &(JyShape::*) (const double &)>(&JyShape::fillet),
-            static_cast<JyShape &(JyShape::*) (const double &, const sol::table &)>(&JyShape::fillet));
-    shape_user["chamfer"] = sol::overload(
-            static_cast<JyShape &(JyShape::*) (const double &)>(&JyShape::chamfer),
-            static_cast<JyShape &(JyShape::*) (const double &, const sol::table &)>(&JyShape::chamfer));
-    shape_user["prism"] = &JyShape::prism;
-    shape_user["revol"] = &JyShape::revol;
-    shape_user["scale"] = &JyShape::scale;
-    // 位置姿态调整
-    shape_user["x"] = &JyShape::x;
-    shape_user["y"] = &JyShape::y;
-    shape_user["z"] = &JyShape::z;
-    shape_user["rx"] = &JyShape::rx;
-    shape_user["ry"] = &JyShape::ry;
-    shape_user["rz"] = &JyShape::rz;
-    shape_user["pos"] = &JyShape::pos;
-    shape_user["rot"] = &JyShape::rot;
-    shape_user["move"] = sol::overload(
-            static_cast<JyShape &(JyShape::*) (const std::string &, const double &, const double &, const double &)>(&JyShape::move),
-            static_cast<JyShape &(JyShape::*) (const std::string &, const double &)>(&JyShape::move));
-    shape_user["zero"] = &JyShape::zero;
-    shape_user["locate"] = sol::overload(
-            static_cast<JyShape &(JyShape::*) (const JyShape &)>(&JyShape::locate),
-            static_cast<JyShape &(JyShape::*) (const double &, const double &, const double &, const double &, const double &, const double &)>(&JyShape::locate));
-    // 属性设置
-    shape_user["color"] = &JyShape::color;
-    shape_user["transparency"] = &JyShape::transparency;
-    shape_user["mass"] = &JyShape::mass;
-    shape_user["export_step"] = &JyShape::export_step;
-    shape_user["export_iges"] = &JyShape::export_iges;
-    const auto overload_export_stl = sol::overload(
-            static_cast<JyShape &(JyShape::*) (const std::string &_filename)>(&JyShape::export_stl),
-            static_cast<JyShape &(JyShape::*) (const std::string &_filename, const sol::table &_opt)>(&JyShape::export_stl));
-    shape_user["export_stl"] = overload_export_stl;
+    auto shape_user = JyShape::configure_usertype(lua);
     shape_user["show"] = [this](JyShape &self) -> JyShape & { emit this->displayShape(self);return self; };
+    JyEdge::configure_usertype(lua);
+    JyFace::configure_usertype(lua);
+    JyMakeShapes::configure_usertype(lua);
+    // ----- Axes -----
+    auto axes_user = JyAxes::configure_usertype(lua);
+    axes_user["show"] = [this](const JyAxes &self) { return emit this->displayAxes(self); };
+    // ----- URDF -----
+    Link::configure_usertype(lua);
 
     // 全局函数
     const auto show_one = [=](const JyShape &s) { emit displayShape(s); };
@@ -84,90 +49,6 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
     };
     lua["show"] = sol::overload(show_one, show_multi);
 
-    lua["export_stl"] = overload_export_stl;
-    lua["export_step"] = &JyShape::export_step;
-    lua["export_iges"] = &JyShape::export_iges;
-
-    const auto box_ctor = sol::constructors<JyShapeBox(),
-                                            JyShapeBox(const JyShapeBox &),
-                                            JyShapeBox(const double &, const double &, const double &)>();
-    const auto cylinder_ctor = sol::constructors<JyCylinder(),
-                                                 JyCylinder(const JyCylinder &),
-                                                 JyCylinder(const double &, const double &)>();
-    const auto cone_ctor = sol::constructors<JyCone(),
-                                             JyCone(const JyCone &),
-                                             JyCone(const double &, const double &, const double &)>();
-    const auto sphere_ctor = sol::constructors<JySphere(),
-                                               JySphere(const JySphere &),
-                                               JySphere(const double &)>();
-    const auto torus_ctor = sol::constructors<JyTorus(),
-                                              JyTorus(const JyTorus &),
-                                              JyTorus(const double &, const double &),
-                                              JyTorus(const double &, const double &, const double &)>();
-    const auto wedge_ctor = sol::constructors<JyWedge(),
-                                              JyWedge(const JyWedge &),
-                                              JyWedge(const double &, const double &, const double &, const double &),
-                                              JyWedge(const double &, const double &, const double &, const double &, const double &, const double &, const double &)>();
-    lua.new_usertype<JyShapeBox>("box", box_ctor, sol::base_classes, sol::bases<JyShape>());
-    lua.new_usertype<JyCylinder>("cylinder", cylinder_ctor, sol::base_classes, sol::bases<JyShape>());
-    lua.new_usertype<JyCone>("cone", cone_ctor, sol::base_classes, sol::bases<JyShape>());
-    lua.new_usertype<JySphere>("sphere", sphere_ctor, sol::base_classes, sol::bases<JyShape>());
-    lua.new_usertype<JyTorus>("torus", torus_ctor, sol::base_classes, sol::bases<JyShape>());
-    lua.new_usertype<JyWedge>("wedge", wedge_ctor, sol::base_classes, sol::bases<JyShape>());
-
-    const auto vertex_ctor = sol::constructors<JyVertex(const JyVertex &),
-                                               JyVertex(const double &, const double &, const double &)>();
-    lua.new_usertype<JyVertex>("vertex", vertex_ctor, sol::base_classes, sol::bases<JyShape>());
-    const auto edge_ctor = sol::constructors<JyEdge(const JyEdge &),
-                                             JyEdge(const std::string &, const std::array<double, 3>, const std::array<double, 3>),
-                                             JyEdge(const std::string &, const std::array<double, 3>, const std::array<double, 3>, const double &),
-                                             JyEdge(const std::string &, const std::array<double, 3>, const std::array<double, 3>, const double &, const double &)>();
-    lua.new_usertype<JyEdge>("edge", edge_ctor, sol::base_classes, sol::bases<JyShape>());
-
-    const auto wire_ctor = sol::constructors<JyWire(),
-                                             JyWire(const JyWire &),
-                                             JyWire(const sol::table &)>();
-    lua.new_usertype<JyWire>("wire", wire_ctor, sol::base_classes, sol::bases<JyShape>());
-    const auto polygon_ctor = sol::constructors<JyPolygon(),
-                                                JyPolygon(const JyPolygon &),
-                                                JyPolygon(const std::vector<std::array<double, 3>>)>();
-    lua.new_usertype<JyPolygon>("polygon", polygon_ctor, sol::base_classes, sol::bases<JyWire, JyShape>());
-
-    const auto face_ctor = sol::constructors<JyFace(),
-                                             JyFace(const JyFace &),
-                                             JyFace(const JyShape &)>();
-    lua.new_usertype<JyFace>("face", face_ctor, sol::base_classes, sol::bases<JyShape>());
-    const auto text_ctor = sol::constructors<JyText(),
-                                             JyText(const std::string &),
-                                             JyText(const std::string &, const double &),
-                                             JyText(const JyText &)>();
-    lua.new_usertype<JyText>("text", text_ctor, sol::base_classes, sol::bases<JyShape>());
-    const auto pipe_ctor = sol::constructors<JyPipe(const JyPipe &),
-                                             JyPipe(const JyWire &, const JyShape &)>();
-    lua.new_usertype<JyPipe>("pipe", pipe_ctor, sol::base_classes, sol::bases<JyShape>());
-
-    // ----- Axes -----
-    auto axes_user = lua.new_usertype<JyAxes>("axes", sol::constructors<JyAxes(),
-                                                                        JyAxes(const double &),
-                                                                        JyAxes(const std::array<double, 6>),
-                                                                        JyAxes(const std::array<double, 6>, const double &),
-                                                                        JyAxes(const JyAxes &)>());
-    axes_user["show"] = [this](const JyAxes &self) { return emit this->displayAxes(self); };
-    axes_user["copy"] = [](const JyAxes &self) { return JyAxes(self); };
-    axes_user["move"] = &JyAxes::move;
-    axes_user["sdh"] = &JyAxes::sdh;
-    axes_user["mdh"] = &JyAxes::mdh;
-
-    // ----- URDF -----
-    auto link_user = lua.new_usertype<Link>("link", sol::constructors<Link(const std::string &, const JyShape &),
-                                                                      Link(const std::string &, const sol::table &)>());
-    link_user["export"] = sol::overload(
-            static_cast<void (Link::*)(const std::string &robot_name) const>(&Link::export_urdf),
-            static_cast<void (Link::*)(const sol::table &params) const>(&Link::export_urdf));
-    link_user["add"] = &Link::add;
-    auto joint_user = lua.new_usertype<Joint>("joint", sol::constructors<Joint(const std::string &, const JyAxes &, const std::string &),
-                                                                         Joint(const std::string &, const JyAxes &, const std::string &, const sol::table &)>());
-    joint_user["next"] = &Joint::next;
 }
 
 void JyLuaVirtualMachine::runScript(const QString &_file_path, const bool &is_file) {

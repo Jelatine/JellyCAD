@@ -45,6 +45,9 @@ public:
 
 class Link {
 public:
+    static void configure_usertype(sol::state &lua);
+
+public:
     std::string name_;
     std::vector<std::shared_ptr<Joint>> joints_;
     std::vector<JyShape> shapes_;

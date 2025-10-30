@@ -49,18 +49,23 @@ void Jy3DWidget::onDisplayShape(const JyShape &theIObj) {
     // 模型包围盒计算
     Bnd_Box bounding;
     BRepBndLib::Add(shape, bounding);
-    std::array<Standard_Real, 4> bndXY;
-    Standard_Real bndMinZ, bndMaxinZ;
-    bounding.Get(bndXY[0], bndXY[1], bndMinZ, bndXY[2], bndXY[3], bndMaxinZ);
-    const auto max = *std::max_element(bndXY.begin(), bndXY.end());
-    Standard_Real x_size_old, y_size_old, offset_old;
-    m_viewer->RectangularGridGraphicValues(x_size_old, y_size_old, offset_old);
-    if (max > x_size_old) {
-        const double logValue = std::log10(std::abs(max));
-        const auto step = std::pow(10.0, std::floor(logValue));
-        const auto x = std::ceil(max / step) * step + 1e-3;
-        m_viewer->SetRectangularGridValues(0, 0, step, step, 0);
-        m_viewer->SetRectangularGridGraphicValues(x, x, 0);
+    if (!bounding.IsOpen()) {
+        std::array<Standard_Real, 4> bndXY;
+        Standard_Real bndMinZ, bndMaxinZ;
+        bounding.Get(bndXY[0], bndXY[1], bndMinZ, bndXY[2], bndXY[3], bndMaxinZ);
+        std::transform(bndXY.begin(), bndXY.end(), bndXY.begin(), [](double x) { return std::abs(x); });
+        const auto max = *std::max_element(bndXY.begin(), bndXY.end());
+        Standard_Real x_size_old, y_size_old, offset_old;
+        m_viewer->RectangularGridGraphicValues(x_size_old, y_size_old, offset_old);
+        if (max > x_size_old) {
+            const double logValue = std::log10(std::abs(max));
+            const auto step = std::pow(10.0, std::floor(logValue));
+            const auto x = std::ceil(max / step) * step + 1e-3;
+            m_viewer->SetRectangularGridValues(0, 0, step, step, 0);
+            m_viewer->SetRectangularGridGraphicValues(x, x, 0);
+        }
+    } else {
+        qDebug() << "Warning: bounding is open";
     }
     const auto ais_shape = new AIS_Shape(shape);
     ais_shape->SetColor(theIObj.color_);
@@ -290,7 +295,7 @@ void Jy3DWidget::mouseMoveEvent(QMouseEvent *event) {
 void Jy3DWidget::wheelEvent(QWheelEvent *event) {
     const qreal ratio = devicePixelRatioF();
     // 缩放操作需要乘以设备像素比以处理高DPI屏幕
-    m_view->StartZoomAtPoint((int)(event->position().x() * ratio), (int)(event->position().y() * ratio));
+    m_view->StartZoomAtPoint((int) (event->position().x() * ratio), (int) (event->position().y() * ratio));
     m_view->ZoomAtPoint(0, 0, event->angleDelta().y(), 0);//执行缩放
 }
 

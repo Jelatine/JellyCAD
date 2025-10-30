@@ -10,6 +10,18 @@
 #include <sstream>
 #include <vector>
 
+void Link::configure_usertype(sol::state &lua) {
+    auto link_user = lua.new_usertype<Link>("link", sol::constructors<Link(const std::string &, const JyShape &),
+                                                                      Link(const std::string &, const sol::table &)>());
+    link_user["export"] = sol::overload(
+            static_cast<void (Link::*)(const std::string &robot_name) const>(&Link::export_urdf),
+            static_cast<void (Link::*)(const sol::table &params) const>(&Link::export_urdf));
+    link_user["add"] = &Link::add;
+    auto joint_user = lua.new_usertype<Joint>("joint", sol::constructors<Joint(const std::string &, const JyAxes &, const std::string &),
+                                                                         Joint(const std::string &, const JyAxes &, const std::string &, const sol::table &)>());
+    joint_user["next"] = &Joint::next;
+}
+
 namespace fs = std::filesystem;
 
 static std::string ros2_cmakelists = R"(cmake_minimum_required(VERSION 3.8)

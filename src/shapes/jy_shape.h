@@ -6,9 +6,8 @@
 #define JY_SHAPE_H
 
 #include <AIS_Shape.hxx>
-#include <QDebug>
 #include <TopoDS_Edge.hxx>
-#include <sol/table.hpp>
+#include <sol/state.hpp>
 
 class JyTopoShape : public TopoDS_Shape {
 public:
@@ -85,6 +84,8 @@ public:
      */
     ~JyShape() = default;
 
+    static sol::usertype<JyShape> configure_usertype(sol::state &lua);
+
     /**
      * @brief 获取形状类型
      * @return std::string 形状类型字符串
@@ -149,6 +150,8 @@ public:
      * @return JyShape& 当前形状引用
      */
     JyShape &revol(const std::array<double, 3> _pos, const std::array<double, 3> _dir, const double &_angle);//!< 旋转面
+
+    JyShape &pipe(const JyShape &wire);
 
     //!< 按比例缩放
     JyShape &scale(const double &factor);

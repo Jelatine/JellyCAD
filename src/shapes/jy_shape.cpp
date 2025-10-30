@@ -8,11 +8,13 @@
 #include <BRepAlgoAPI_Common.hxx>
 #include <BRepAlgoAPI_Cut.hxx>
 #include <BRepAlgoAPI_Fuse.hxx>
+#include <BRepBuilderAPI_MakeWire.hxx>
 #include <BRepBuilderAPI_Transform.hxx>
 #include <BRepFilletAPI_MakeChamfer.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepGProp.hxx>
 #include <BRepMesh_IncrementalMesh.hxx>
+#include <BRepOffsetAPI_MakePipe.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRepPrimAPI_MakeRevol.hxx>
 #include <BRep_Tool.hxx>
@@ -25,6 +27,55 @@
 #include <TopExp_Explorer.hxx>
 #include <TopoDS.hxx>
 #include <gp_Quaternion.hxx>
+
+sol::usertype<JyShape> JyShape::configure_usertype(sol::state &lua) {
+    auto shape_user = lua.new_usertype<JyShape>("shape", sol::constructors<JyShape(),
+                                                                           JyShape(const std::string &)>());
+    shape_user["copy"] = [](const JyShape &self) { return JyShape(self); };
+    shape_user["type"] = &JyShape::type;
+    // 布尔运算
+    shape_user["fuse"] = &JyShape::fuse;
+    shape_user["cut"] = &JyShape::cut;
+    shape_user["common"] = &JyShape::common;
+    // 几何变换
+    shape_user["fillet"] = sol::overload(
+            static_cast<JyShape &(JyShape::*) (const double &)>(&JyShape::fillet),
+            static_cast<JyShape &(JyShape::*) (const double &, const sol::table &)>(&JyShape::fillet));
+    shape_user["chamfer"] = sol::overload(
+            static_cast<JyShape &(JyShape::*) (const double &)>(&JyShape::chamfer),
+            static_cast<JyShape &(JyShape::*) (const double &, const sol::table &)>(&JyShape::chamfer));
+    shape_user["prism"] = &JyShape::prism;
+    shape_user["revol"] = &JyShape::revol;
+    shape_user["pipe"] = &JyShape::pipe;
+    shape_user["scale"] = &JyShape::scale;
+    // 位置姿态调整
+    shape_user["x"] = &JyShape::x;
+    shape_user["y"] = &JyShape::y;
+    shape_user["z"] = &JyShape::z;
+    shape_user["rx"] = &JyShape::rx;
+    shape_user["ry"] = &JyShape::ry;
+    shape_user["rz"] = &JyShape::rz;
+    shape_user["pos"] = &JyShape::pos;
+    shape_user["rot"] = &JyShape::rot;
+    shape_user["move"] = sol::overload(
+            static_cast<JyShape &(JyShape::*) (const std::string &, const double &, const double &, const double &)>(&JyShape::move),
+            static_cast<JyShape &(JyShape::*) (const std::string &, const double &)>(&JyShape::move));
+    shape_user["zero"] = &JyShape::zero;
+    shape_user["locate"] = sol::overload(
+            static_cast<JyShape &(JyShape::*) (const JyShape &)>(&JyShape::locate),
+            static_cast<JyShape &(JyShape::*) (const double &, const double &, const double &, const double &, const double &, const double &)>(&JyShape::locate));
+    // 属性设置
+    shape_user["color"] = &JyShape::color;
+    shape_user["transparency"] = &JyShape::transparency;
+    shape_user["mass"] = &JyShape::mass;
+    shape_user["export_step"] = &JyShape::export_step;
+    shape_user["export_iges"] = &JyShape::export_iges;
+    const auto overload_export_stl = sol::overload(
+            static_cast<JyShape &(JyShape::*) (const std::string &_filename)>(&JyShape::export_stl),
+            static_cast<JyShape &(JyShape::*) (const std::string &_filename, const sol::table &_opt)>(&JyShape::export_stl));
+    shape_user["export_stl"] = overload_export_stl;
+    return shape_user;
+}
 
 JyShape::JyShape(const std::string &_filename) {
     if (_filename.empty()) { throw std::runtime_error("Filename is empty!"); }
@@ -302,6 +353,24 @@ JyShape &JyShape::revol(const std::array<double, 3> _pos, const std::array<doubl
     gp_Ax1 axis{gp_Pnt(_pos[0], _pos[1], _pos[2]), gp_Dir(_dir[0], _dir[1], _dir[2])};
     TopoDS_Shape result = BRepPrimAPI_MakeRevol(s_, axis, _angle * M_PI / 180.0);
     s_ = result;
+    return *this;
+}
+
+
+JyShape &JyShape::pipe(const JyShape &wire) {
+    // 示例：edge.new('circ', { 0, 0, 0 }, { 0, 0, 1 }, 1):pipe(line.new({ 0, 0, 0 }, { 5, 5, 5 })):show()
+    if (s_.IsNull() || wire.s_.IsNull()) { throw std::runtime_error("JyShape::pipe: shape or wire is null!"); }
+    if (s_.ShapeType() <= TopAbs_SOLID) { throw std::runtime_error("DomainError :profile is a solid or composite solid."); }
+    if (wire.s_.ShapeType() == TopAbs_EDGE) {
+        BRepBuilderAPI_MakeWire wire_builder(TopoDS::Edge(wire.s_));
+        BRepOffsetAPI_MakePipe make_pipe(wire_builder.Wire(), s_);
+        s_ = make_pipe.Shape();
+        return *this;
+    } else if (wire.s_.ShapeType() != TopAbs_WIRE) {
+        throw std::runtime_error("DomainError :wire must be a wire or edge.");
+    }
+    BRepOffsetAPI_MakePipe make_pipe(TopoDS::Wire(wire.s_), s_);
+    s_ = make_pipe.Shape();
     return *this;
 }
 
