@@ -9,43 +9,6 @@
 #include <TopoDS_Edge.hxx>
 #include <sol/state.hpp>
 
-class JyTopoShape : public TopoDS_Shape {
-public:
-    // 默认构造函数
-    JyTopoShape() {}
-
-    // 从基类构造
-    JyTopoShape(const TopoDS_Shape &shape) : TopoDS_Shape(shape) {}
-
-    // 拷贝构造函数（如果需要特殊处理）
-    JyTopoShape(const JyTopoShape &other) : TopoDS_Shape(other) {}
-
-    // 赋值操作符 - 从基类赋值
-    JyTopoShape &operator=(const TopoDS_Shape &shape) {
-        if (this != &shape) {              // 自赋值检查
-            TopoDS_Shape::operator=(shape);// 调用基类赋值操作符
-        }
-        return *this;
-    }
-
-    // 赋值操作符 - 从同类赋值
-    JyTopoShape &operator=(const JyTopoShape &other) {
-        if (this != &other) {              // 自赋值检查
-            TopoDS_Shape::operator=(other);// 调用基类赋值操作符
-        }
-        return *this;
-    }
-
-    // 如果基类的析构函数不是虚函数，可能需要虚析构函数
-    // virtual ~JyTopoShape() {}
-};
-
-struct InertialProperties {
-    double mass;
-    std::array<double, 3> center_of_mass;
-    std::array<double, 6> inertia_tensor;
-};
-
 /**
  * @brief 三维形状基类
  * 
@@ -58,9 +21,9 @@ public:
      * @brief 获取形状数据
      * @return TopoDS_Shape 形状数据
      */
-    [[nodiscard]] JyTopoShape data() const { return s_; }
+    [[nodiscard]] TopoDS_Shape data() const { return s_; }
 
-    JyTopoShape s_;//!< OpenCASCADE形状对象
+    TopoDS_Shape s_;//!< OpenCASCADE形状对象
 
     Quantity_Color color_{Quantity_NOC_ORANGE3};//!< 形状颜色，默认为橙色
     Standard_Real transparency_{0};             //!< 透明度，0为不透明，1为完全透明
@@ -252,6 +215,11 @@ public:
 
     static JyShape make_compound(const std::vector<JyShape> &_shapes);
 
+    struct InertialProperties {
+        double mass;
+        std::array<double, 3> center_of_mass;
+        std::array<double, 6> inertia_tensor;
+    };
     static InertialProperties inertial(const JyShape &_shape);
 
     static InertialProperties inertial(const std::vector<JyShape> &_shapes);

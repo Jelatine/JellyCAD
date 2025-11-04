@@ -202,7 +202,7 @@ void JyMainWindow::slot_button_new_clicked() {
 
 void JyMainWindow::slot_button_open_clicked() {
     qDebug() << "[BUTTON]open";
-    const auto filename = QFileDialog::getOpenFileName(this, "open file", current_file_dir, "lua (*.lua)");
+    const auto filename = QFileDialog::getOpenFileName(this, "open file", current_file_dir, "lua (*.lua);;all (*.*)");
     if (filename.isEmpty()) { return; }
     QFile file_read(filename);
     if (!file_read.open(QIODevice::ReadOnly)) { return; }
@@ -231,6 +231,15 @@ void JyMainWindow::slot_button_save_clicked() {
     if (save_filename.isEmpty()) {
         // 文件空时，弹出保存对话框，创建文件
         QString default_filename = current_file_dir + "/unnamed";
+        // 检查是否存在同名文件，如果存在则使用 unnamed(1).lua, unnamed(2).lua 等
+        QFile file_check(default_filename + ".lua");
+        if (file_check.exists()) {
+            int counter = 1;
+            while (QFile(current_file_dir + QString("/unnamed(%1).lua").arg(counter)).exists()) {
+                counter++;
+            }
+            default_filename = current_file_dir + QString("/unnamed(%1)").arg(counter);
+        }
         save_filename = QFileDialog::getSaveFileName(this, "save file", default_filename, "lua (*.lua)");
         if (save_filename.isEmpty()) { return; }
     }

@@ -152,4 +152,33 @@ else ()
     install(TARGETS JellyCAD RUNTIME DESTINATION .)
     install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/scripts DESTINATION .)
 endif ()
+
+# Unit tests configuration
+option(BUILD_TESTS "Build unit tests" OFF)
+find_package(GTest CONFIG QUIET)
+if(BUILD_TESTS AND GTest_FOUND)
+    include(CTest)
+    enable_testing()
+    file(GLOB_RECURSE TEST_FILES tests/*.cpp)
+    file(GLOB_RECURSE TEST_SRC_FILES
+        src/shapes/*.cpp
+        src/shapes/*.h
+    )
+    add_executable(JellyCAD_tests ${TEST_FILES} ${TEST_SRC_FILES})
+    target_include_directories(JellyCAD_tests PRIVATE
+        ${OpenCASCADE_INCLUDE_DIR}
+        src
+        src/widgets
+        src/shapes
+    )
+    target_link_libraries(JellyCAD_tests PRIVATE
+        GTest::gtest_main
+        ${OpenCASCADE_LIBRARIES}
+        ${LUA_LIBRARIES}
+    )
+    include(GoogleTest)
+    gtest_discover_tests(JellyCAD_tests)
+    message(STATUS "Unit tests enabled")
+endif()
+
 include(CPack)

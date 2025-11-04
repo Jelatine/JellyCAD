@@ -191,10 +191,9 @@ sudo apt install fonts-noto-color-emoji
 #### 几何元素类型
 
 - 📍 `vertex` - 顶点
-- 🔲 `edge` - 边缘（支持 `lin`、`circ`、`elips`、`hypr`、`parab` 等类型）
-- ➖ `wire` - 线
-- 🛑 `polygon` - 多边形线
-- 🟪 `face` - 面
+- ➖ `edge` - 边缘（子类型： `line`、`circle`、`ellipse`、`hyperbola`、`parabola`、`bezier` 、`bspline` ）
+- 🛑`wire` - 线（子类型：`polygon`）
+- 🟪 `face` - 面（子类型：`plane`、`cylindrical`、`conical`）
 - 🔠 `text` - 文本
 
 ### Shape 基类方法

@@ -19,6 +19,7 @@
 void JyMakeShapes::configure_usertype(sol::state &lua) {
     const auto box_ctor = sol::constructors<JyShapeBox(),
                                             JyShapeBox(const JyShapeBox &),
+                                            JyShapeBox(const std::array<double, 3>, const std::array<double, 3>),
                                             JyShapeBox(const double &, const double &, const double &)>();
     const auto cylinder_ctor = sol::constructors<JyCylinder(),
                                                  JyCylinder(const JyCylinder &),
@@ -67,6 +68,15 @@ void JyMakeShapes::configure_usertype(sol::state &lua) {
 
 JyShapeBox::JyShapeBox(const double &_x, const double &_y, const double &_z) {
     BRepPrimAPI_MakeBox make_box(_x, _y, _z);
+    if (make_box.Wedge().IsDegeneratedShape()) { throw std::runtime_error("Is Degenerated Shape!"); }
+    s_ = make_box;
+}
+
+
+JyShapeBox::JyShapeBox(const std::array<double, 3> p1, const std::array<double, 3> p2) {
+    const gp_Pnt pnt1(p1[0], p1[1], p1[2]);
+    const gp_Pnt pnt2(p2[0], p2[1], p2[2]);
+    BRepPrimAPI_MakeBox make_box(pnt1, pnt2);
     if (make_box.Wedge().IsDegeneratedShape()) { throw std::runtime_error("Is Degenerated Shape!"); }
     s_ = make_box;
 }

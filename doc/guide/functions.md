@@ -1,20 +1,5 @@
 # 使用脚本
 
-## 📚 目录
-
-- [🌍 全局函数](#-全局函数)
-  - [显示与导出](#显示与导出)
-- [📦 形状对象](#-形状对象)
-  - [基础形状](#基础形状)
-  - [高级形状](#高级形状)
-- [⚙️ 形状方法](#️-形状方法)
-  - [基础操作](#基础操作)
-  - [布尔运算](#布尔运算)
-  - [几何变换](#几何变换)
-  - [位置与姿态](#位置与姿态)
-  - [外观设置](#外观设置)
-- [🎨 颜色名称](#-颜色名称)
-
 ---
 
 ## 🌍 全局函数
@@ -34,7 +19,7 @@ show(object_list)   -- 显示对象列表
 
 ## 📦 形状对象
 
-### 基础形状
+### 立体形状
 
 #### **`shape`** - 基础形状类
 ```lua
@@ -47,12 +32,12 @@ shape.new(filename)  -- 从文件加载（支持 *.step, *.stl）
 
 #### **`box`** - 长方体
 
-创建一个从原点开始的长方体
+创建一个长方体
 
 ```lua
-box.new()              -- 默认: x=y=z=1，从(0,0,0)到(1,1,1)
-box.new(x, y, z)       -- 自定义尺寸，从(0,0,0)到(x,y,z)
-box.new(other_box)     -- 复制构造
+box.new()                 -- 默认: x=y=z=1，从(0,0,0)到(1,1,1)
+box.new(x, y, z)          -- 自定义尺寸，从(0,0,0)到(x,y,z)
+box.new(vertex1, vertex2) -- 通过两个顶点构造长方体，从(x1,y1,z1)到(x2,y2,z2)
 ```
 **参数：**
 - `x, y, z` - *number* - 盒子对角线从 (0,0,0) 到 (x,y,z)
@@ -180,7 +165,7 @@ wedge.new(other_wedge)
 
 ---
 
-### 高级形状
+### 二维形状
 
 #### **`vertex`** - 顶点
 ```lua
@@ -212,6 +197,41 @@ edge.new(other_edge)
 - `vec2` - *table* - 3D方向向量 `{x, y, z}`
 - `r1` - *number* - 半径（circ/elips/hypr/parab 使用）
 - `r2` - *number* - 第二半径（elips/hypr 使用）
+
+**子类：**
+
+```lua
+-- 直线
+line.new(vertex1, vertex2) -- vertex1:起点[array3], vertex2:终点[array3]
+-- 圆形
+circle.new(center, normal, radius) -- center:圆心[array3], normal:法向量[array3], radius:半径[number]
+-- 椭圆形
+ellipse.new(center, normal, radius1, radius2) -- radius1:主半径[number], radius2:小半径[number]
+-- 双曲线
+hyperbola.new(center, normal, radius1, radius2, p1, p2) -- p1:起点偏移[number], p2:终点偏移[number]
+-- 抛物线
+parabola.new(center, normal, radius, p1, p2)
+-- 贝塞尔曲线
+bezier.new(poles) -- poles:极点[array3的数组]
+bezier.new(poles, weights) -- weights:权重[number的数组]，数据量与极点相同
+-- B样条曲线
+bspline.new(poles, knots, multiplicities, degree) -- knots:节点向量[number的数组], multiplicities: [number的数组], degree:次数[number]
+```
+
+**示例：**
+
+```lua
+line.new({ 0, 0, 0 }, { 1, 1, 1 }):show()
+circle.new({ 1, 1, 1 }, { 1, 1, 1 }, 3):show()
+ellipse.new({ 1, 1, 1 }, { 1, 1, 1 }, 4, 2):show()
+hyperbola.new({ 0, 0, 0 }, { 1, 1, 1 }, 4, 2, -2, 2):show()
+parabola.new({ 2, 1, 3 }, { 1, 1, 1 }, 3, -2, 2):show()
+bezier.new({ { 0, 0, 0 }, { 1, 1, 1 }, { 0, 2, 3 } }):show()
+bezier.new({ { 0, 0, 0 }, { 1, 1, 1 }, { 0, 2, 3 } }, { 1, 0.2, 1 }):show()
+bspline.new({ { 0, 0, 0 }, { 1, 2, 1 }, { 2, 2, 2 }, { 3, 0, 3 } }, { 0, 1 }, { 4, 4 }, 3):show()
+```
+
+
 
 ---
 
@@ -252,6 +272,26 @@ face.new(other_face)    -- 复制构造
 ```
 **参数：**
 - `shape_object` - *shape* - wire、edge 或 polygon 对象
+
+
+**子类：**
+
+```lua
+-- 平面
+plane.new(origin, normal, uv) -- pos:原点[array3], normal:法向量[array3], uv: XY轴限位[array4]
+-- 圆柱
+cylindrical.new(origin, normal, radius, uv) -- radius:半径[number], uv: 圆弧和高度限位[array4]
+-- 圆锥
+conical.new(origin, normal, angle, radius, uv) -- angle:倾角[number], uv: 圆弧和高度限位[array4]
+```
+
+**示例：**
+
+```lua
+plane.new({ 1, 1, 1 }, { 0, 0, 1 }, { -1, 1, -1, 1 }):show()
+cylindrical.new({ 1, 1, 1 }, { 0, 0, 1 }, 3, { 0, 360, -1, 2 }):show()
+conical.new({ 1, 1, 1 }, { 0, 0, 1 }, 45, 3, { 0, 270, -1, 2 }):show()
+```
 
 #### **`text`** - 文本
 
@@ -335,6 +375,8 @@ shape:fillet(radius, conditions)
   - `tol` - *number* - 边缘起始点判断的容差
   - `min/max` - *array3* - 位置范围 `{x, y, z}`
 
+> 详细请参考：[圆角和倒角操作](fillet_chamfer.md)
+
 ---
 
 #### **`shape:chamfer()`** - 倒角
@@ -350,6 +392,16 @@ shape:chamfer(distance, conditions)
 shape:prism(x, y, z)
 ```
 沿指定方向拉伸形状。
+
+生成规则：
+1. `vertex->edge->face->solid`
+2. `wire->shell->solid`
+
+**示例：**
+```lua
+-- 从顶点拉伸三次成为正方体(vertex->edge->face->solid)
+vertex.new(0, 0, 0):prism(0, 0, 1):prism(0, 1, 0):prism(1, 0, 0):show()
+```
 
 ---
 
@@ -367,6 +419,22 @@ shape:revol(pos, dir, angle)
 local profile = polygon.new({{0,0,0}, {1,0,0}, {1,1,0}, {0,1,0}})
 local face = face.new(profile)
 local solid = face:revol({0,0,0}, {0,0,1}, 360)  -- 绕Z轴旋转360度
+```
+
+#### **`shape:pipe()`** - 管道
+
+沿着线(wire)或边(edge)生成一条管道，要求shape不是实体形状，如`vertex`、`edge`、`wire`、`face`
+
+```lua
+shape:pipe(wire)
+```
+**参数：**
+- `wire` - *wire* - 管道路径
+
+**示例：**
+```lua
+local w = bezier.new({ { 0, 0, 0 }, { 0, 0, 2 }, { 0, 2, 2 }, { 0, 2, 4 }, { 0, 0, 4 } })
+circle.new({ 0, 0, 0 }, { 0, 0, 1 }, 1):pipe(w):show() -- 一条沿贝塞尔曲线走向的管道
 ```
 
 ---

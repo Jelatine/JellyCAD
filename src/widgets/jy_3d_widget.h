@@ -15,6 +15,7 @@
 #include <QActionGroup>
 #include <QMenu>
 #include <QWidget>
+#include <TopoDS.hxx>
 #include <V3d_Light.hxx>
 
 class Jy3DWidget : public QWidget {
@@ -83,6 +84,15 @@ private:
     void setSelectionMode(TopAbs_ShapeEnum mode);
 
     void handleSelectedShape(const TopoDS_Shape &shape);
+
+    // 各种形状类型的JSON转换函数
+    QJsonDocument vertexToJson(const TopoDS_Vertex &vertex);
+    QJsonDocument edgeToJson(const TopoDS_Edge &edge);
+    QJsonDocument faceToJson(const TopoDS_Face &face);
+    QJsonDocument wireToJson(const TopoDS_Shape &shape);
+    QJsonDocument shellToJson(const TopoDS_Shape &shape);
+    QJsonDocument solidToJson(const TopoDS_Shape &shape);
+    QJsonDocument compoundToJson(const TopoDS_Shape &shape);
 private slots:
     // 槽函数实现
     void selectActionTriggered(QAction *act) {

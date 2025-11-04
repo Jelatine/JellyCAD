@@ -473,7 +473,7 @@ JyShape JyShape::make_compound(const std::vector<JyShape> &_shapes) {
     return compound_shape;
 }
 
-InertialProperties JyShape::inertial(const JyShape &_shape) {
+JyShape::InertialProperties JyShape::inertial(const JyShape &_shape) {
     GProp_GProps props;
     BRepGProp::VolumeProperties(_shape.s_, props);
     gp_Pnt centerOfMass = props.CentreOfMass();
@@ -491,7 +491,7 @@ InertialProperties JyShape::inertial(const JyShape &_shape) {
             {Ixx, Iyy, Izz, Ixy, Ixz, Iyz}};
 }
 
-InertialProperties JyShape::inertial(const std::vector<JyShape> &_shapes) {
+JyShape::InertialProperties JyShape::inertial(const std::vector<JyShape> &_shapes) {
     GProp_GProps system;
     for (const auto &shape: _shapes) {
         if (shape.s_.IsNull()) { continue; }

@@ -26,6 +26,8 @@ public:
      * @param _z 高度
      */
     explicit JyShapeBox(const double &_x = 1, const double &_y = 1, const double &_z = 1);
+
+    explicit JyShapeBox(const std::array<double, 3> p1, const std::array<double, 3> p2);
 };
 
 /**

@@ -63,11 +63,9 @@ void JyLuaVirtualMachine::runScript(const QString &_file_path, const bool &is_fi
     }
     if (!result.valid()) {
         const QString message = result.get<sol::error>().what();
-        lua.collect_gc();// 运行完做一次完整的垃圾收集循环
         emit scriptError("❌" + message);
         qDebug() << "\033[31m" << message << "\033[0m";
     } else {
-        lua.collect_gc();// 运行完做一次完整的垃圾收集循环
         const auto message = QString("success, elapsed: %1 ms").arg(localTimer.elapsed());
         emit scriptFinished("✅" + message);
         qDebug() << "\033[32m" << message << "\033[0m";

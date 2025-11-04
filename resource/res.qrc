@@ -6,6 +6,5 @@
     <qresource prefix="/">
         <file>lua_syntax.json</file>
         <file>style.qss</file>
-        <file>help.html</file>
     </qresource>
 </RCC>

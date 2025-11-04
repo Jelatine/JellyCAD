@@ -67,7 +67,7 @@
         },
         {
             "name": "custom_classes",
-            "pattern": "\\b(shape|box|cylinder|cone|sphere|torus|wedge|vertex|edge|line|circle|ellipse|hyperbola|parabola|wire|polygon|face|plane|cylindrical|conical|text|axes|link|joint)\\b",
+            "pattern": "\\b(shape|box|cylinder|cone|sphere|torus|wedge|vertex|edge|line|circle|ellipse|hyperbola|parabola|bezier|bspline|wire|polygon|face|plane|cylindrical|conical|text|axes|link|joint)\\b",
             "color": "#c679b3"
         },
         {

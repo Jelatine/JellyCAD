@@ -80,6 +80,19 @@ JyEdge::JyEdge(const std::string &_type, const std::array<double, 3> _vec1, cons
     }
 }
 
+/*
+// 用于测试，查看是否会调用析构函数
+class MyGeom_BezierCurve : public Geom_BezierCurve {
+public:
+    MyGeom_BezierCurve(const TColgp_Array1OfPnt &poles) : Geom_BezierCurve(poles) {
+        std::cout << "construct MyGeom_BezierCurve: " << poles.Size() << std::endl;
+    }
+    ~MyGeom_BezierCurve() {
+        std::cout << "destroy MyGeom_BezierCurve" << std::endl;
+    }
+};
+*/
+
 JyBezier::JyBezier(const std::vector<std::array<double, 3>> poles) {
     // 示例：bezier.new({ { 0, 0, 0 }, { 1, 1, 1 }, { 0, 2, 3 } }):show()
     TColgp_Array1OfPnt CurvePoles(1, static_cast<Standard_Integer>(poles.size()));

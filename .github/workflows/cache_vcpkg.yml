@@ -22,7 +22,7 @@ jobs:
           cd ${{github.workspace}}
           git clone https://github.com/Microsoft/vcpkg.git -b 2025.06.13
           ${{github.workspace}}/vcpkg/bootstrap-vcpkg.bat
-          ${{github.workspace}}/vcpkg/vcpkg install lua sol2 tinyxml2 qt5-base opencascade gtest
+          ${{github.workspace}}/vcpkg/vcpkg install lua sol2 qt5-base opencascade gtest
 
       - name: Clean Vcpkg
         shell: bash
@@ -121,7 +121,7 @@ jobs:
 
       - name: vcpack安装other(ubuntu)
         if: steps.cache_vcpkg_ubuntu.outputs.cache-hit != 'true'
-        run: ${{github.workspace}}/vcpkg/vcpkg install lua sol2 tinyxml2 gtest
+        run: ${{github.workspace}}/vcpkg/vcpkg install lua sol2 gtest
 
       - name: Clean Vcpkg for other
         shell: bash
@@ -160,7 +160,7 @@ jobs:
 
       - name: vcpack安装(macos)
         if: steps.cache_vcpkg_macos.outputs.cache-hit != 'true'
-        run: ${{github.workspace}}/vcpkg/vcpkg install qt5-base lua sol2 tinyxml2 opencascade gtest
+        run: ${{github.workspace}}/vcpkg/vcpkg install qt5-base lua sol2 opencascade gtest
 
       - name: Clean Vcpkg
         shell: bash
