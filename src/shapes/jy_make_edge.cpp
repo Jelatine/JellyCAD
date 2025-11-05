@@ -95,6 +95,9 @@ public:
 
 JyBezier::JyBezier(const std::vector<std::array<double, 3>> poles) {
     // 示例：bezier.new({ { 0, 0, 0 }, { 1, 1, 1 }, { 0, 2, 3 } }):show()
+    if ((poles.size() < 2) || (poles.size() > Geom_BezierCurve::MaxDegree() + 1)) {
+        throw std::invalid_argument("Invalid bezier poles! The number of poles must be between 2 and " + std::to_string(Geom_BezierCurve::MaxDegree() + 1));
+    }
     TColgp_Array1OfPnt CurvePoles(1, static_cast<Standard_Integer>(poles.size()));
     for (int i = 0; i < poles.size(); i++) {
         CurvePoles.SetValue(i + 1, gp_Pnt(poles[i][0], poles[i][1], poles[i][2]));
@@ -105,6 +108,9 @@ JyBezier::JyBezier(const std::vector<std::array<double, 3>> poles) {
 }
 JyBezier::JyBezier(const std::vector<std::array<double, 3>> poles, const std::vector<double> weights) {
     // 示例：bezier.new({ { 0, 0, 0 }, { 1, 1, 1 }, { 0, 2, 3 } }, { 1, 0.2, 1 }):show()
+    if ((poles.size() < 2) || (poles.size() > Geom_BezierCurve::MaxDegree() + 1)) {
+        throw std::invalid_argument("Invalid bezier poles! The number of poles must be between 2 and " + std::to_string(Geom_BezierCurve::MaxDegree() + 1));
+    }
     if (poles.size() != weights.size()) {
         throw std::invalid_argument("Invalid bezier weights!");
     }
