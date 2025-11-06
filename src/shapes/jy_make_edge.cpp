@@ -4,6 +4,8 @@
  */
 #include "jy_make_edge.h"
 #include <BRepBuilderAPI_MakeEdge.hxx>
+#include <GC_MakeArcOfCircle.hxx>
+#include <GeomAPI_PointsToBSpline.hxx>
 #include <Geom_BSplineCurve.hxx>
 #include <Geom_BezierCurve.hxx>
 #include <gp_Circ.hxx>
@@ -37,11 +39,15 @@ void JyEdge::configure_usertype(sol::state &lua) {
                                                JyBezier(const std::vector<std::array<double, 3>>, const std::vector<double>)>();
     lua.new_usertype<JyBezier>("bezier", bezier_ctor, sol::base_classes, sol::bases<JyEdge, JyShape>());
     const auto bspline_ctor = sol::constructors<JyBSpline(const JyBSpline &),
+                                                JyBSpline(const std::vector<std::array<double, 3>>),
                                                 JyBSpline(const std::vector<std::array<double, 3>>,
                                                           const std::vector<double>,
                                                           const std::vector<int>,
                                                           const int &)>();
     lua.new_usertype<JyBSpline>("bspline", bspline_ctor, sol::base_classes, sol::bases<JyEdge, JyShape>());
+    const auto arc_ctor = sol::constructors<JyArc(const JyArc &),
+                                            JyArc(const std::array<double, 3>, const std::array<double, 3>, const std::array<double, 3>)>();
+    lua.new_usertype<JyArc>("arc", arc_ctor, sol::base_classes, sol::bases<JyEdge, JyShape>());
 }
 
 JyEdge::JyEdge(const std::string &_type, const std::array<double, 3> _vec1, const std::array<double, 3> _vec2,
@@ -156,6 +162,35 @@ JyBSpline::JyBSpline(const std::vector<std::array<double, 3>> poles,
     s_ = make_edge_bspline;
 }
 
+JyBSpline::JyBSpline(const std::vector<std::array<double, 3>> points) {
+    /*
+    -- 示例：创建一个螺旋线样条曲线
+    local radius = 1
+    local pitch = 2
+    local height = 10
+    local numTurns = height / pitch
+    local numPoints = (numTurns * 100) + 1
+    local points = {}
+    for i = 0, numPoints - 1 do
+        local t = i / (numPoints - 1)
+        local angle = 2.0 * math.pi * numTurns * t
+        table.insert(points, { radius * math.cos(angle), radius * math.sin(angle), height * t })
+    end
+    bspline.new(points):show()
+    */
+    if (points.size() < 2) {
+        throw std::invalid_argument("Invalid bspline points!");
+    }
+    TColgp_Array1OfPnt CurvePoles(1, static_cast<Standard_Integer>(points.size()));
+    for (int i = 0; i < points.size(); i++) {
+        CurvePoles.SetValue(i + 1, gp_Pnt(points[i][0], points[i][1], points[i][2]));
+    }
+    GeomAPI_PointsToBSpline splineBuilder(CurvePoles);
+    Handle(Geom_BSplineCurve) spline = splineBuilder.Curve();
+    TopoDS_Edge edge = BRepBuilderAPI_MakeEdge(spline);
+    s_ = edge;
+}
+
 JyLine::JyLine(const std::array<double, 3> p1, const std::array<double, 3> p2) {
     // 示例：line.new({ 0, 0, 0 }, { 1, 1, 1 }):show()
     const auto pnt1 = gp_Pnt(p1[0], p1[1], p1[2]);
@@ -210,4 +245,37 @@ JyParabola::JyParabola(const std::array<double, 3> center, const std::array<doub
     gp_Parab parab({pnt, dir}, radius);
     BRepBuilderAPI_MakeEdge make_edge_parab(parab, p1, p2);
     s_ = make_edge_parab;
+}
+
+JyArc::JyArc(const std::array<double, 3> p1, const std::array<double, 3> p2, const std::array<double, 3> p3) {
+    // 示例：arc.new({ 0, 0, 0 }, { 1, 1, 1 }, { 0, 0, 2 }):show()
+    const auto pnt1 = gp_Pnt(p1[0], p1[1], p1[2]);
+    const auto pnt2 = gp_Pnt(p2[0], p2[1], p2[2]);
+    const auto pnt3 = gp_Pnt(p3[0], p3[1], p3[2]);
+    const auto make_arc = GC_MakeArcOfCircle(pnt1, pnt2, pnt3);
+    const auto status = make_arc.Status();
+    if (status != gce_Done) {
+        static const std::unordered_map<gce_ErrorType, std::string> error_messages = {
+                {gce_ConfusedPoints, "Two points are coincident"},
+                {gce_NegativeRadius, "Radius value is negative"},
+                {gce_ColinearPoints, "Three points are collinear"},
+                {gce_IntersectionError, "Intersection cannot be computed"},
+                {gce_NullAxis, "Axis is undefined"},
+                {gce_NullAngle, "Angle value is invalid (usually null)"},
+                {gce_NullRadius, "Radius is null"},
+                {gce_InvertAxis, "Axis value is invalid"},
+                {gce_BadAngle, "Angle value is invalid"},
+                {gce_InvertRadius, "Radius value is incorrect (usually with respect to another radius)"},
+                {gce_NullFocusLength, "Focal distance is null"},
+                {gce_NullVector, "Vector is null"},
+                {gce_BadEquation, "Coefficients are incorrect"}};
+        auto it = error_messages.find(status);
+        if (it != error_messages.end()) {
+            throw std::runtime_error("Arc construction error: " + it->second + ".");
+        }
+        throw std::runtime_error("Arc construction error: Unknown error.");
+    }
+    Handle(Geom_TrimmedCurve) anArcOfCircle = make_arc.Value();
+    BRepBuilderAPI_MakeEdge make_edge_arc(anArcOfCircle);
+    s_ = make_edge_arc;
 }

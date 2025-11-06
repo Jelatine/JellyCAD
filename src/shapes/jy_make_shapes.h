@@ -41,6 +41,7 @@ public:
      * @param _h 高度
      */
     explicit JyCylinder(const double &_r = 1, const double &_h = 1);
+    explicit JyCylinder(const std::array<double, 3> pos, const std::array<double, 3> dir, const double &_r, const double &_h);
 };
 
 /**
@@ -112,9 +113,9 @@ public:
 
     /**
      * @brief 根据参数表构造线框
-     * @param _param 参数表
+     * @param shapes wire和edge的列表
      */
-    explicit JyWire(const sol::table &_param);
+    explicit JyWire(const std::vector<JyShape> shapes);
 
     explicit JyWire(const JyEdge &edge);
 };

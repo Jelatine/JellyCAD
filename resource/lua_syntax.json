@@ -62,12 +62,12 @@
         },
         {
             "name": "custom_function",
-            "pattern": ":(type|fuse|cut|common|fillet|chamfer|pipe|scale|x|y|z|rx|ry|rz|pos|rot|move|locate|color|transparency|prism|revol|show|export_stl|export_step|export_iges|mass|copy|next|add|export)\\s*(?=\\()",
+            "pattern": ":(type|fuse|cut|common|fillet|chamfer|pipe|scale|mirror|x|y|z|rx|ry|rz|pos|rot|move|locate|color|transparency|prism|revol|show|export_stl|export_step|export_iges|mass|copy|next|add|export)\\s*(?=\\()",
             "color": "#3466f6"
         },
         {
             "name": "custom_classes",
-            "pattern": "\\b(shape|box|cylinder|cone|sphere|torus|wedge|vertex|edge|line|circle|ellipse|hyperbola|parabola|bezier|bspline|wire|polygon|face|plane|cylindrical|conical|text|axes|link|joint)\\b",
+            "pattern": "\\b(shape|box|cylinder|cone|sphere|torus|wedge|vertex|edge|line|circle|ellipse|hyperbola|parabola|bezier|bspline|arc|wire|polygon|face|plane|cylindrical|conical|text|axes|link|joint)\\b",
             "color": "#c679b3"
         },
         {

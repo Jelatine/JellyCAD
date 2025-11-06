@@ -10,6 +10,7 @@
 #include "jy_code_editor.h"
 #include "jy_lua_virtual_machine.h"
 #include "jy_shape.h"
+#include "jy_shape_info_widget.h"
 #include <QDebug>
 #include <QFileDialog>
 #include <QFileSystemWatcher>
@@ -17,8 +18,6 @@
 #include <QSplitter>
 #include <QTextBrowser>
 #include <QProgressDialog>
-#include <QTreeWidget>
-#include <QPushButton>
 
 class QSettings;
 class JySearchWidget;
@@ -30,14 +29,12 @@ class JyMainWindow : public QMainWindow {
     JyLuaVirtualMachine *lvm;
     JyCodeEditor *code_editor;
     JySearchWidget *search_widget;
+    JyShapeInfoWidget *shape_info_widget;
     bool is_save_from_editor{false};//!< 从编辑器保存的标志, true 从本编辑器保存, false 外部保存
     QString current_file_dir;       //!< 当前文件的路径
     QTextBrowser *text_lua_message;
     QSettings *settings;
     QProgressDialog *m_progressDialog;
-    QTreeWidget *treeShapeInfo;
-    QPushButton *button_edge_info;
-    QString current_edge_info;
 public:
     explicit JyMainWindow(QWidget *parent = nullptr);
     
@@ -51,9 +48,7 @@ public slots:
 
     void slot_button_save_clicked();
 
-    void slot_shape_info(const QJsonDocument &doc);
-
-    void slot_button_edge_info_clicked();
+    void onInsertEdgeInfo(const QString &edgeInfo);
 
 private slots:
     void showSearchWidget();
@@ -74,8 +69,6 @@ private:
 
     void performSearch(bool backward = false);
     QString lastSearchText;
-
-    void addJsonValue(QTreeWidgetItem *parent, const QString &key, const QJsonValue &value);
 
 protected:
     void closeEvent(QCloseEvent *event) override;

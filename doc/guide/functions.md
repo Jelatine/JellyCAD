@@ -216,6 +216,7 @@ bezier.new(poles) -- poles:极点[array3的数组]
 bezier.new(poles, weights) -- weights:权重[number的数组]，数据量与极点相同
 -- B样条曲线
 bspline.new(poles, knots, multiplicities, degree) -- knots:节点向量[number的数组], multiplicities: [number的数组], degree:次数[number]
+bspline.new(points) -- 近似通过一组点的B样条曲线 points:点[array3的数组]
 ```
 
 **示例：**
@@ -229,6 +230,10 @@ parabola.new({ 2, 1, 3 }, { 1, 1, 1 }, 3, -2, 2):show()
 bezier.new({ { 0, 0, 0 }, { 1, 1, 1 }, { 0, 2, 3 } }):show()
 bezier.new({ { 0, 0, 0 }, { 1, 1, 1 }, { 0, 2, 3 } }, { 1, 0.2, 1 }):show()
 bspline.new({ { 0, 0, 0 }, { 1, 2, 1 }, { 2, 2, 2 }, { 3, 0, 3 } }, { 0, 1 }, { 4, 4 }, 3):show()
+-- 创建一个螺旋线样条曲线
+local r,p,h,n=1,2,10,{}
+for i=0,(100*h/p) do t=i/(100*h/p) a=2*p*math.pi*t n[i+1]={r*math.cos(a),r*math.sin(a),h*t}end
+bspline.new(n):show()
 ```
 
 
@@ -280,6 +285,7 @@ face.new(other_face)    -- 复制构造
 -- 平面
 plane.new(origin, normal, uv) -- pos:原点[array3], normal:法向量[array3], uv: XY轴限位[array4]
 -- 圆柱
+cylindrical.new(origin, normal, radius, h) -- radius:半径[number], h: 高度[number]
 cylindrical.new(origin, normal, radius, uv) -- radius:半径[number], uv: 圆弧和高度限位[array4]
 -- 圆锥
 conical.new(origin, normal, angle, radius, uv) -- angle:倾角[number], uv: 圆弧和高度限位[array4]
@@ -289,6 +295,7 @@ conical.new(origin, normal, angle, radius, uv) -- angle:倾角[number], uv: 圆�
 
 ```lua
 plane.new({ 1, 1, 1 }, { 0, 0, 1 }, { -1, 1, -1, 1 }):show()
+cylindrical.new({ 1, 1, 1 }, { 0, 0, 1 }, 3, 5):show()
 cylindrical.new({ 1, 1, 1 }, { 0, 0, 1 }, 3, { 0, 360, -1, 2 }):show()
 conical.new({ 1, 1, 1 }, { 0, 0, 1 }, 45, 3, { 0, 270, -1, 2 }):show()
 ```

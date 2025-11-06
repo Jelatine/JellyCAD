@@ -23,6 +23,7 @@
 #include <TopExp.hxx>
 #include <TopExp_Explorer.hxx>
 #include <V3d_View.hxx>
+#include <gp_Quaternion.hxx>
 
 #ifdef _WIN32
 
@@ -372,6 +373,11 @@ void Jy3DWidget::handleSelectedShape(const TopoDS_Shape &shape) {
             return;
     }
 
+    // 添加位姿信息
+    QJsonObject root = json_doc.object();
+    root["pose"] = calculatePoseJson(shape);
+    json_doc.setObject(root);
+
     emit selectedShapeInfo(json_doc);
 }
 
@@ -577,4 +583,36 @@ QJsonDocument Jy3DWidget::compoundToJson(const TopoDS_Shape &compound) {
                          })},
     }};
     return QJsonDocument(jsonObj);
+}
+
+QJsonObject Jy3DWidget::calculatePoseJson(const TopoDS_Shape &shape) {
+    // 获取形状的变换矩阵
+    gp_Trsf trsf = shape.Location().Transformation();
+
+    // 获取位置（平移部分）
+    gp_XYZ translation = trsf.TranslationPart();
+
+    // 获取旋转四元数并转换为欧拉角
+    gp_Quaternion quat = trsf.GetRotation();
+    double rz, ry, rx;// yaw, pitch, roll
+    quat.GetEulerAngles(gp_YawPitchRoll, rz, ry, rx);
+
+    // 转换为角度
+    double roll = rx * 180.0 / M_PI;
+    double pitch = ry * 180.0 / M_PI;
+    double yaw = rz * 180.0 / M_PI;
+
+    QJsonObject poseObj;
+    poseObj["position"] = QJsonObject({
+            {"x", translation.X()},
+            {"y", translation.Y()},
+            {"z", translation.Z()},
+    });
+    poseObj["orientation"] = QJsonObject({
+            {"roll", roll},
+            {"pitch", pitch},
+            {"yaw", yaw},
+    });
+
+    return poseObj;
 }

@@ -45,6 +45,15 @@ public:
      * @param uv UV参数，{umin, umax, vmin, vmax} U:圆弧限位(度), V:高度限位
      */
     explicit JyCylindrical(const std::array<double, 3> pos, const std::array<double, 3> dir, const double &r, const std::array<double, 4> uv);
+
+    /**
+     * @brief 根据位置、方向、半径和高度构造圆柱面
+     * @param pos 圆柱中心位置
+     * @param dir 圆柱方向向量
+     * @param r 圆柱半径
+     * @param h 圆柱高度
+     */
+    explicit JyCylindrical(const std::array<double, 3> pos, const std::array<double, 3> dir, const double &r, const double &h);
 };
 
 class JyConical : public JyFace {

@@ -23,6 +23,7 @@ void JyMakeShapes::configure_usertype(sol::state &lua) {
                                             JyShapeBox(const double &, const double &, const double &)>();
     const auto cylinder_ctor = sol::constructors<JyCylinder(),
                                                  JyCylinder(const JyCylinder &),
+                                                 JyCylinder(const std::array<double, 3>, const std::array<double, 3>, const double &, const double &),
                                                  JyCylinder(const double &, const double &)>();
     const auto cone_ctor = sol::constructors<JyCone(),
                                              JyCone(const JyCone &),
@@ -52,7 +53,7 @@ void JyMakeShapes::configure_usertype(sol::state &lua) {
     const auto wire_ctor = sol::constructors<JyWire(),
                                              JyWire(const JyWire &),
                                              JyWire(const JyEdge &),
-                                             JyWire(const sol::table &)>();
+                                             JyWire(const std::vector<JyShape>)>();
     lua.new_usertype<JyWire>("wire", wire_ctor, sol::base_classes, sol::bases<JyShape>());
     const auto polygon_ctor = sol::constructors<JyPolygon(),
                                                 JyPolygon(const JyPolygon &),
@@ -83,6 +84,12 @@ JyShapeBox::JyShapeBox(const std::array<double, 3> p1, const std::array<double, 
 
 JyCylinder::JyCylinder(const double &_r, const double &_h) {
     BRepPrimAPI_MakeCylinder make_cylinder(_r, _h);
+    s_ = make_cylinder;
+}
+JyCylinder::JyCylinder(const std::array<double, 3> pos, const std::array<double, 3> dir, const double &_r, const double &_h) {
+    const gp_Pnt pnt(pos[0], pos[1], pos[2]);
+    const gp_Dir dir_(dir[0], dir[1], dir[2]);
+    BRepPrimAPI_MakeCylinder make_cylinder(gp_Ax2(pnt, dir_), _r, _h);
     s_ = make_cylinder;
 }
 
@@ -117,22 +124,17 @@ JyVertex::JyVertex(const double &x, const double &y, const double &z) {
     s_ = make_vertex;
 }
 
-JyWire::JyWire(const sol::table &_param) {
-
+JyWire::JyWire(const std::vector<JyShape> shapes) {
     BRepBuilderAPI_MakeWire make_wire;
-    for (const auto &p: _param) {
-        if (!p.first.is<int>()) { continue; }
-        if (p.second.is<JyEdge>()) {
-            const auto shape = p.second.as<JyEdge>();
-            if (shape.s_.IsNull()) { continue; }
-            const auto edge = TopoDS::Edge(shape.s_);
-            make_wire.Add(edge);
-        } else if (p.second.is<JyWire>()) {
-            const auto shape = p.second.as<JyWire>();
-            if (shape.s_.IsNull()) { continue; }
-            const auto wire = TopoDS::Wire(shape.s_);
-            make_wire.Add(wire);
+    for (const auto &shape: shapes) {
+        const auto s = shape.s_;
+        if (s.IsNull()) { continue; }
+        if (s.ShapeType() == TopAbs_EDGE) {
+            make_wire.Add(TopoDS::Edge(s));
+        } else if (s.ShapeType() == TopAbs_WIRE) {
+            make_wire.Add(TopoDS::Wire(s));
         } else {
+            throw std::runtime_error("wire: shape type not supported!");
         }
     }
     if (!make_wire.IsDone()) { return; }

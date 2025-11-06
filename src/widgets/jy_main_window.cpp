@@ -25,7 +25,8 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
                                               watcher(new QFileSystemWatcher),
                                               lvm(new JyLuaVirtualMachine),
                                               search_widget(new JySearchWidget),
-                                              code_editor(new JyCodeEditor) {
+                                              code_editor(new JyCodeEditor),
+                                              shape_info_widget(new JyShapeInfoWidget) {
     setWindowTitle("Unnamed - JellyCAD");
     const QString default_dir = QApplication::applicationDirPath() + "/scripts";// 默认当前文件目录为应用程序目录下的scripts文件夹
     QDir dir_current(default_dir);
@@ -86,22 +87,15 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
         edit_lua_cmd->clear();
     });
     //!< 形状信息
-    auto widget_shape_info = new QWidget;
-    widget_shape_info->setLayout(new QVBoxLayout);
-    treeShapeInfo = new QTreeWidget;
-    treeShapeInfo->header()->hide();
-    connect(jy_3d_widget, &Jy3DWidget::selectedShapeInfo, this, &JyMainWindow::slot_shape_info);
-    button_edge_info = new QPushButton("Insert edge info to editor");
-    button_edge_info->setVisible(false);
-    connect(button_edge_info, &QPushButton::clicked, this, &JyMainWindow::slot_button_edge_info_clicked);
-    widget_shape_info->layout()->addWidget(button_edge_info);
-    widget_shape_info->layout()->addWidget(treeShapeInfo);
+    connect(jy_3d_widget, &Jy3DWidget::selectedShapeInfo, shape_info_widget, &JyShapeInfoWidget::setShapeInfo);
+    connect(shape_info_widget, &JyShapeInfoWidget::insertEdgeInfo, this, &JyMainWindow::onInsertEdgeInfo);
+    connect(shape_info_widget, &JyShapeInfoWidget::insertEdgeInfo, [=] { m_activity_bar->slot_navigation_buttons_clicked(0); });
 
     //!< 工作台: PAGE1: 脚本编辑器  PAGE2: 终端 PAGE3: 帮助
     auto stack_widget = new QStackedWidget;
     stack_widget->addWidget(widget_editor_group);
     stack_widget->addWidget(widget_terminal);
-    stack_widget->addWidget(widget_shape_info);
+    stack_widget->addWidget(shape_info_widget);
     stack_widget->addWidget(new JyPageHelp);
     //!< 布局
     addToolBar(Qt::LeftToolBarArea, m_activity_bar);// 活动栏，放置在最左侧
@@ -115,7 +109,6 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     connect(watcher, &QFileSystemWatcher::fileChanged, this, &JyMainWindow::slot_file_changed);
     connect(m_activity_bar, &JyActivityBar::sig_set_side_bar_visible, stack_widget, &QStackedWidget::setVisible);
     connect(m_activity_bar, &JyActivityBar::sig_set_side_bar_index, stack_widget, &QStackedWidget::setCurrentIndex);
-    connect(button_edge_info, &QPushButton::clicked, [=] { m_activity_bar->slot_navigation_buttons_clicked(0); });
     connect(code_editor, &QPlainTextEdit::modificationChanged, button_save, &QPushButton::setEnabled);
     connect(code_editor, &QPlainTextEdit::modificationChanged, [=](bool m) {
         m ? setWindowTitle("*" + windowTitle()) : setWindowTitle(windowTitle().remove(0, 1));// 编辑器文档已被编辑时，标题前加*
@@ -265,94 +258,16 @@ void JyMainWindow::slot_button_save_clicked() {
     this->slot_file_changed(save_filename);
 }
 
-void JyMainWindow::addJsonValue(QTreeWidgetItem *parent, const QString &key, const QJsonValue &value) {
-    QTreeWidgetItem *item = new QTreeWidgetItem();
-
-    switch (value.type()) {
-        case QJsonValue::Object: {
-            item->setText(0, key + " {}");
-            QJsonObject obj = value.toObject();
-            for (auto it = obj.begin(); it != obj.end(); ++it) {
-                addJsonValue(item, it.key(), it.value());
-            }
-            break;
-        }
-        case QJsonValue::Array: {
-            QJsonArray array = value.toArray();
-            item->setText(0, key + " [" + QString::number(array.size()) + "]");
-            for (int i = 0; i < array.size(); ++i) {
-                addJsonValue(item, "[" + QString::number(i) + "]", array[i]);
-            }
-            break;
-        }
-        case QJsonValue::String:
-            item->setText(0, key + ": \"" + value.toString() + "\"");
-            break;
-        case QJsonValue::Double:
-            item->setText(0, key + ": " + QString::number(value.toDouble()));
-            break;
-        case QJsonValue::Bool:
-            item->setText(0, key + ": " + (value.toBool() ? "true" : "false"));
-            break;
-        case QJsonValue::Null:
-            item->setText(0, key + ": null");
-            break;
-        default:
-            item->setText(0, key + ": undefined");
-            break;
-    }
-    if (parent) {
-        parent->addChild(item);
-    } else {
-        treeShapeInfo->addTopLevelItem(item);
-    }
-}
-void JyMainWindow::slot_shape_info(const QJsonDocument &doc) {
-    const auto edge = doc["edge"];
-    if (edge.isObject()) {
-        button_edge_info->setVisible(true);
-        const QJsonObject edge_obj = edge.toObject();
-        const auto first = edge_obj["first"].toObject();
-        const auto last = edge_obj["last"].toObject();
-        const auto type = edge_obj["type"].toString();
-        current_edge_info = QString("edge_info = {type = '%1', first = {%2, %3, %4}, last = {%5, %6, %7}, tol = 1e-3}")
-                                    .arg(type)
-                                    .arg(first["x"].toDouble())
-                                    .arg(first["y"].toDouble())
-                                    .arg(first["z"].toDouble())
-                                    .arg(last["x"].toDouble())
-                                    .arg(last["y"].toDouble())
-                                    .arg(last["z"].toDouble());
-    } else {
-        button_edge_info->setVisible(false);
-        current_edge_info.clear();
-    }
-    treeShapeInfo->clear();
-    if (doc.isObject()) {
-        QJsonObject obj = doc.object();
-        for (auto it = obj.begin(); it != obj.end(); ++it) {
-            addJsonValue(nullptr, it.key(), it.value());
-        }
-    } else if (doc.isArray()) {
-        QJsonArray array = doc.array();
-        for (int i = 0; i < array.size(); ++i) {
-            addJsonValue(nullptr, "[" + QString::number(i) + "]", array[i]);
-        }
-    }
-    treeShapeInfo->expandAll();
-}
-
-
-void JyMainWindow::slot_button_edge_info_clicked() {
+void JyMainWindow::onInsertEdgeInfo(const QString &edgeInfo) {
     QTextCursor cursor = code_editor->textCursor();// 获取光标
     cursor.select(QTextCursor::LineUnderCursor);   // 获取当前行的内容
     QString currentLine = cursor.selectedText();
     cursor.clearSelection();
     cursor.movePosition(QTextCursor::EndOfLine);// 移动光标到行尾
     if (currentLine.trimmed().isEmpty()) {
-        cursor.insertText(current_edge_info);// 空行：直接插入文本
+        cursor.insertText(edgeInfo);// 空行：直接插入文本
     } else {
-        cursor.insertText("\n" + current_edge_info);// 非空行：插入换行后再插入文本
+        cursor.insertText("\n" + edgeInfo);// 非空行：插入换行后再插入文本
     }
     code_editor->setTextCursor(cursor);// 设置光标到插入文本之后
 }

@@ -5,6 +5,7 @@
 #include "jy_make_face.h"
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
+#include <GC_MakeTrimmedCylinder.hxx>
 #include <TopoDS.hxx>
 #include <TopoDS_Wire.hxx>
 #include <gp_Cone.hxx>
@@ -19,7 +20,8 @@ void JyFace::configure_usertype(sol::state &lua) {
                                               JyPlane(const std::array<double, 3>, const std::array<double, 3>, const std::array<double, 4>)>();
     lua.new_usertype<JyPlane>("plane", plane_ctor, sol::base_classes, sol::bases<JyFace, JyShape>());
     const auto cylindrical_ctor = sol::constructors<JyCylindrical(const JyCylindrical &),
-                                                    JyCylindrical(const std::array<double, 3>, const std::array<double, 3>, const double &, const std::array<double, 4>)>();
+                                                    JyCylindrical(const std::array<double, 3>, const std::array<double, 3>, const double &, const std::array<double, 4>),
+                                                    JyCylindrical(const std::array<double, 3>, const std::array<double, 3>, const double &, const double &)>();
     lua.new_usertype<JyCylindrical>("cylindrical", cylindrical_ctor, sol::base_classes, sol::bases<JyFace, JyShape>());
     const auto conical_ctor = sol::constructors<JyConical(const JyConical &),
                                                 JyConical(const std::array<double, 3>, const std::array<double, 3>, const double &, const double &, const std::array<double, 4>)>();
@@ -55,6 +57,13 @@ JyCylindrical::JyCylindrical(const std::array<double, 3> pos, const std::array<d
     // 示例：cylindrical.new({ 1, 1, 1 }, { 0, 0, 1 }, 3, { 0, 360, -1, 2 }):show()
     gp_Cylinder cylinder(gp_Ax2(gp_Pnt(pos[0], pos[1], pos[2]), gp_Dir(dir[0], dir[1], dir[2])), r);
     BRepBuilderAPI_MakeFace make_face(cylinder, uv[0] * M_PI / 180, uv[1] * M_PI / 180, uv[2], uv[3]);
+    s_ = make_face;
+}
+
+JyCylindrical::JyCylindrical(const std::array<double, 3> pos, const std::array<double, 3> dir, const double &r, const double &h) {
+    // 示例：cylindrical.new({ 1, 1, 1 }, { 0, 0, 1 }, 3, 5):show()
+    const Handle(Geom_RectangularTrimmedSurface) TrimmedSurface = GC_MakeTrimmedCylinder({gp_Pnt(pos[0], pos[1], pos[2]), gp_Dir(dir[0], dir[1], dir[2])}, r, h);
+    BRepBuilderAPI_MakeFace make_face(TrimmedSurface, 1e-6);
     s_ = make_face;
 }
 

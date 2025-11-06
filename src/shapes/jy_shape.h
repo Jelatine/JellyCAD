@@ -35,6 +35,7 @@ public:
      * @brief 默认构造函数
      */
     explicit JyShape() = default;
+    explicit JyShape(TopoDS_Shape s) : s_(s) {}
 
     /**
      * @brief 从文件构造形状
@@ -118,6 +119,9 @@ public:
 
     //!< 按比例缩放
     JyShape &scale(const double &factor);
+
+    //!< 镜像操作
+    JyShape &mirror(const std::array<double, 3> _pos, const std::array<double, 3> _dir);
 
     // ==================== 位置姿态调整 ====================
     /**

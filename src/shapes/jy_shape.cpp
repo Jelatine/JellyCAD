@@ -48,6 +48,7 @@ sol::usertype<JyShape> JyShape::configure_usertype(sol::state &lua) {
     shape_user["revol"] = &JyShape::revol;
     shape_user["pipe"] = &JyShape::pipe;
     shape_user["scale"] = &JyShape::scale;
+    shape_user["mirror"] = &JyShape::mirror;
     // 位置姿态调整
     shape_user["x"] = &JyShape::x;
     shape_user["y"] = &JyShape::y;
@@ -377,6 +378,17 @@ JyShape &JyShape::pipe(const JyShape &wire) {
 JyShape &JyShape::scale(const double &factor) {
     gp_Trsf transformation;
     transformation.SetScale(gp_Pnt(0, 0, 0), factor);
+    BRepBuilderAPI_Transform transformer(s_, transformation);
+    s_ = transformer.Shape();
+    return *this;
+}
+
+JyShape &JyShape::mirror(const std::array<double, 3> _pos, const std::array<double, 3> _dir) {
+    // 示例：box.new():mirror({ 0, 0, 0 }, { 0, 0, 1 }):show()
+    if (s_.IsNull()) { return *this; }
+    gp_Trsf transformation;
+    gp_Ax1 xAxis = gp_Ax1(gp_Pnt(_pos[0], _pos[1], _pos[2]), gp_Dir(_dir[0], _dir[1], _dir[2]));
+    transformation.SetMirror(xAxis);
     BRepBuilderAPI_Transform transformer(s_, transformation);
     s_ = transformer.Shape();
     return *this;

@@ -37,6 +37,7 @@ public:
                        const std::vector<double> knots,
                        const std::vector<int> multiplicities,
                        const int &degree);
+    explicit JyBSpline(const std::vector<std::array<double, 3>> points);
 };
 
 class JyLine : public JyEdge {
@@ -64,6 +65,11 @@ class JyParabola : public JyEdge {
 public:
     explicit JyParabola(const std::array<double, 3> center, const std::array<double, 3> normal,
                         const double &radius, const double &p1, const double &p2);
+};
+
+class JyArc : public JyEdge {
+public:
+    explicit JyArc(const std::array<double, 3> p1, const std::array<double, 3> p2, const std::array<double, 3> p3);
 };
 
 #endif
