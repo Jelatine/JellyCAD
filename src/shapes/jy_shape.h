@@ -56,6 +56,13 @@ public:
      */
     [[nodiscard]] std::string type() const;
 
+    std::array<double, 6> get_pose() const;
+
+    
+    JyShape get_edge(const sol::table &_cond) const;
+
+    JyShape get_face() const;
+
     // ==================== 布尔运算 ====================
     /**
      * @brief 融合操作（并集）
@@ -87,6 +94,7 @@ public:
      */
     JyShape &fillet(const double &_r, const sol::table &_cond);
     JyShape &fillet(const double &_r) { return fillet(_r, {}); }
+    JyShape &fillet(const double &_r, const JyShape &edge_shape);
 
     /**
      * @brief 倒角操作
@@ -116,6 +124,8 @@ public:
     JyShape &revol(const std::array<double, 3> _pos, const std::array<double, 3> _dir, const double &_angle);//!< 旋转面
 
     JyShape &pipe(const JyShape &wire);
+
+    JyShape &thick(const JyShape &face, const double &offset);
 
     //!< 按比例缩放
     JyShape &scale(const double &factor);

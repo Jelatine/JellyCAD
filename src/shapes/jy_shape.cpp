@@ -15,6 +15,7 @@
 #include <BRepGProp.hxx>
 #include <BRepMesh_IncrementalMesh.hxx>
 #include <BRepOffsetAPI_MakePipe.hxx>
+#include <BRepOffsetAPI_MakeThickSolid.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRepPrimAPI_MakeRevol.hxx>
 #include <BRep_Tool.hxx>
@@ -33,6 +34,8 @@ sol::usertype<JyShape> JyShape::configure_usertype(sol::state &lua) {
                                                                            JyShape(const std::string &)>());
     shape_user["copy"] = [](const JyShape &self) { return JyShape(self); };
     shape_user["type"] = &JyShape::type;
+    shape_user["get_edge"] = &JyShape::get_edge;
+    shape_user["get_face"] = &JyShape::get_face;
     // 布尔运算
     shape_user["fuse"] = &JyShape::fuse;
     shape_user["cut"] = &JyShape::cut;
@@ -40,6 +43,7 @@ sol::usertype<JyShape> JyShape::configure_usertype(sol::state &lua) {
     // 几何变换
     shape_user["fillet"] = sol::overload(
             static_cast<JyShape &(JyShape::*) (const double &)>(&JyShape::fillet),
+            static_cast<JyShape &(JyShape::*) (const double &, const JyShape &)>(&JyShape::fillet),
             static_cast<JyShape &(JyShape::*) (const double &, const sol::table &)>(&JyShape::fillet));
     shape_user["chamfer"] = sol::overload(
             static_cast<JyShape &(JyShape::*) (const double &)>(&JyShape::chamfer),
@@ -47,6 +51,7 @@ sol::usertype<JyShape> JyShape::configure_usertype(sol::state &lua) {
     shape_user["prism"] = &JyShape::prism;
     shape_user["revol"] = &JyShape::revol;
     shape_user["pipe"] = &JyShape::pipe;
+    shape_user["thick"] = &JyShape::thick;
     shape_user["scale"] = &JyShape::scale;
     shape_user["mirror"] = &JyShape::mirror;
     // 位置姿态调整
@@ -133,6 +138,37 @@ std::string JyShape::type() const {
     return "unknown";
 }
 
+
+std::array<double, 6> JyShape::get_pose() const {
+    gp_Trsf trsf = s_.Location().Transformation();
+    gp_XYZ translation = trsf.TranslationPart();
+    gp_Quaternion quat = trsf.GetRotation();
+    double rz, ry, rx;// yaw, pitch, roll
+    quat.GetEulerAngles(gp_YawPitchRoll, rz, ry, rx);
+    double roll = rx * 180.0 / M_PI;
+    double pitch = ry * 180.0 / M_PI;
+    double yaw = rz * 180.0 / M_PI;
+    return {translation.X(), translation.Y(), translation.Z(), roll, pitch, yaw};
+}
+
+JyShape JyShape::get_edge(const sol::table &_cond) const {
+    TopoDS_Edge edge;
+    for (TopExp_Explorer ex(s_, TopAbs_EDGE); ex.More(); ex.Next()) {
+        TopoDS_Edge edge = TopoDS::Edge(ex.Current());
+        if (!_cond || edge_filter(edge, _cond)) { return JyShape(edge); }
+    }
+    throw std::runtime_error("No edge found!");
+}
+
+JyShape JyShape::get_face() const {
+    TopoDS_Face face;
+    for (TopExp_Explorer ex(s_, TopAbs_FACE); ex.More(); ex.Next()) {
+        TopoDS_Face face = TopoDS::Face(ex.Current());
+        return JyShape(face);
+    }
+    throw std::runtime_error("No face found!");
+}
+
 JyShape &JyShape::fuse(const JyShape &_other) {
     return algo<BRepAlgoAPI_Fuse>(_other);
 }
@@ -151,6 +187,23 @@ JyShape &JyShape::fillet(const double &_r, const sol::table &_cond) {
         TopoDS_Edge edge = TopoDS::Edge(ex.Current());
         if (!_cond || edge_filter(edge, _cond)) { MF.Add(_r, TopoDS::Edge(ex.Current())); }
     }
+    if (MF.NbContours() == 0) { return *this; }
+    MF.Build();
+    if (!MF.IsDone()) { return *this; }
+    s_ = MF.Shape();
+    return *this;
+}
+
+
+JyShape &JyShape::fillet(const double &_r, const JyShape &edge_shape) {
+    /*
+    b = box.new()
+    edge_info = { type = 'line', first = { 0, 0, 1 }, last = { 1, 0, 1 }, tol = 1e-3 }
+    b:fillet(0.2, b:get_edge(edge_info)):show()
+    */
+    BRepFilletAPI_MakeFillet MF(s_);
+    TopoDS_Edge edge = TopoDS::Edge(edge_shape.s_);
+    MF.Add(_r, edge);
     if (MF.NbContours() == 0) { return *this; }
     MF.Build();
     if (!MF.IsDone()) { return *this; }
@@ -372,6 +425,20 @@ JyShape &JyShape::pipe(const JyShape &wire) {
     }
     BRepOffsetAPI_MakePipe make_pipe(TopoDS::Wire(wire.s_), s_);
     s_ = make_pipe.Shape();
+    return *this;
+}
+
+
+JyShape &JyShape::thick(const JyShape &face, const double &offset) {
+    // 示例：b = box.new() b:thick(b:get_face(), -0.1):show() -- 抽壳
+    if (s_.IsNull() || face.s_.IsNull()) { throw std::runtime_error("JyShape::thick: shape or face is null!"); }
+    if (s_.ShapeType() > TopAbs_SOLID) { throw std::runtime_error("DomainError :profile is a solid or composite solid."); }
+    if (face.s_.ShapeType() != TopAbs_FACE) { throw std::runtime_error("DomainError :face must be a face."); }
+    BRepOffsetAPI_MakeThickSolid make_thick;
+    TopTools_ListOfShape faces;
+    faces.Append(TopoDS::Face(face.s_));
+    make_thick.MakeThickSolidByJoin(s_, faces, offset, 1.e-3);
+    s_ = make_thick.Shape();
     return *this;
 }
 

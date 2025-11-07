@@ -9,11 +9,8 @@ local r_flank_screw_pos = (d_flank_outer / 2 - 5.3);
 local r_cut = r_base - r_outer;
 
 base = cylinder.new(r_base, h_base + h_flank_thin);
-elips = edge.new('elips', { r_base, 0, h_base + h_flank_thin }, { 0, 1, 0 }, h_base_top + h_flank_thin, r_cut);
-ellipse = face.new(elips);
-ellipse:revol({ 0, 0, 0 }, { 0, 0, 1 }, 360)
-print(ellipse:type())
-base:cut(ellipse)
+elips = ellipse.new({ r_base, 0, h_base + h_flank_thin }, { 0, 1, 0 }, h_base_top + h_flank_thin, r_cut)
+base:cut(face.new(elips):revol({ 0, 0, 0 }, { 0, 0, 1 }, 360))
 base:fillet(3, { type = 'bspline_curve', max = { r_base + 1, 1, h_base - r_cut - h_flank_thin + 1 } });
 base:cut(cylinder.new(r_outer - 2, h_flank_thin):z(h_base));
 for deg = 60, 360, 60 do

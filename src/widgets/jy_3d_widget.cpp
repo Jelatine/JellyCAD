@@ -586,33 +586,17 @@ QJsonDocument Jy3DWidget::compoundToJson(const TopoDS_Shape &compound) {
 }
 
 QJsonObject Jy3DWidget::calculatePoseJson(const TopoDS_Shape &shape) {
-    // 获取形状的变换矩阵
-    gp_Trsf trsf = shape.Location().Transformation();
-
-    // 获取位置（平移部分）
-    gp_XYZ translation = trsf.TranslationPart();
-
-    // 获取旋转四元数并转换为欧拉角
-    gp_Quaternion quat = trsf.GetRotation();
-    double rz, ry, rx;// yaw, pitch, roll
-    quat.GetEulerAngles(gp_YawPitchRoll, rz, ry, rx);
-
-    // 转换为角度
-    double roll = rx * 180.0 / M_PI;
-    double pitch = ry * 180.0 / M_PI;
-    double yaw = rz * 180.0 / M_PI;
-
+    const auto pose = JyShape(shape).get_pose();
     QJsonObject poseObj;
     poseObj["position"] = QJsonObject({
-            {"x", translation.X()},
-            {"y", translation.Y()},
-            {"z", translation.Z()},
+            {"x", pose[0]},
+            {"y", pose[1]},
+            {"z", pose[2]},
     });
     poseObj["orientation"] = QJsonObject({
-            {"roll", roll},
-            {"pitch", pitch},
-            {"yaw", yaw},
+            {"roll", pose[3]},
+            {"pitch", pose[4]},
+            {"yaw", pose[5]},
     });
-
     return poseObj;
 }
