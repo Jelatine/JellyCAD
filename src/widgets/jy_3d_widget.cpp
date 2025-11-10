@@ -375,7 +375,19 @@ void Jy3DWidget::handleSelectedShape(const TopoDS_Shape &shape) {
 
     // 添加位姿信息
     QJsonObject root = json_doc.object();
-    root["pose"] = calculatePoseJson(shape);
+    const auto pose = JyShape(shape).get_pose();
+    QJsonObject poseObj;
+    poseObj["position"] = QJsonObject({
+            {"x", pose[0]},
+            {"y", pose[1]},
+            {"z", pose[2]},
+    });
+    poseObj["orientation"] = QJsonObject({
+            {"roll", pose[3]},
+            {"pitch", pose[4]},
+            {"yaw", pose[5]},
+    });
+    root["pose"] = poseObj;
     json_doc.setObject(root);
 
     emit selectedShapeInfo(json_doc);
@@ -398,43 +410,20 @@ QJsonDocument Jy3DWidget::vertexToJson(const TopoDS_Vertex &vertex) {
 }
 
 QJsonDocument Jy3DWidget::edgeToJson(const TopoDS_Edge &edge) {
-    static const std::unordered_map<int, std::string> type_map = {
-            {GeomAbs_Line, "line"},
-            {GeomAbs_Circle, "circle"},
-            {GeomAbs_Ellipse, "ellipse"},
-            {GeomAbs_Hyperbola, "hyperbola"},
-            {GeomAbs_Parabola, "parabola"},
-            {GeomAbs_BezierCurve, "bezier_curve"},
-            {GeomAbs_BSplineCurve, "bspline_curve"},
-            {GeomAbs_OffsetCurve, "offset_curve"},
-            {GeomAbs_OtherCurve, "other_curve"}};
-
-    BRepAdaptor_Curve curve(edge);
-    const std::string type_str = type_map.find(curve.GetType()) != type_map.end() ? type_map.at(curve.GetType()) : "unknown";
-    QString type = QString::fromStdString(type_str);
-
-    // 获取边的起点和终点
-    const gp_Pnt &start_point = BRep_Tool::Pnt(TopExp::FirstVertex(edge));
-    const gp_Pnt &end_point = BRep_Tool::Pnt(TopExp::LastVertex(edge));
-
-    // 计算边的长度
-    GProp_GProps linear_props;
-    BRepGProp::LinearProperties(edge, linear_props);
-    Standard_Real length = linear_props.Mass();
-
+    const auto props = JyShape::edge_properties(JyShape(edge));
     QJsonObject jsonObj{{
             {"edge", QJsonObject({
-                             {"type", type},
-                             {"length", length},
+                             {"type", QString::fromStdString(props.type)},
+                             {"length", props.length},
                              {"first", QJsonObject({
-                                               {"x", start_point.X()},
-                                               {"y", start_point.Y()},
-                                               {"z", start_point.Z()},
+                                               {"x", props.first[0]},
+                                               {"y", props.first[1]},
+                                               {"z", props.first[2]},
                                        })},
                              {"last", QJsonObject({
-                                              {"x", end_point.X()},
-                                              {"y", end_point.Y()},
-                                              {"z", end_point.Z()},
+                                              {"x", props.last[0]},
+                                              {"y", props.last[1]},
+                                              {"z", props.last[2]},
                                       })},
                      })},
     }};
@@ -442,46 +431,24 @@ QJsonDocument Jy3DWidget::edgeToJson(const TopoDS_Edge &edge) {
 }
 
 QJsonDocument Jy3DWidget::faceToJson(const TopoDS_Face &face) {
-    static const std::unordered_map<int, std::string> type_map = {
-            {GeomAbs_Plane, "plane"},
-            {GeomAbs_Cylinder, "cylinder"},
-            {GeomAbs_Cone, "cone"},
-            {GeomAbs_Sphere, "sphere"},
-            {GeomAbs_Torus, "torus"},
-            {GeomAbs_BezierSurface, "bezier_surface"},
-            {GeomAbs_BSplineSurface, "bspline_surface"},
-            {GeomAbs_SurfaceOfRevolution, "surface_of_revolution"},
-            {GeomAbs_SurfaceOfExtrusion, "surface_of_extrusion"},
-            {GeomAbs_OffsetSurface, "offset_surface"},
-            {GeomAbs_OtherSurface, "other_surface"}};
-
-    BRepAdaptor_Surface surface(face);
-    const std::string type_str = type_map.find(surface.GetType()) != type_map.end() ? type_map.at(surface.GetType()) : "unknown";
-    QString type = QString::fromStdString(type_str);
-
-    // 计算面积
-    GProp_GProps surface_props;
-    BRepGProp::SurfaceProperties(face, surface_props);
-    Standard_Real area = surface_props.Mass();
-
-    // 获取重心
-    gp_Pnt center = surface_props.CentreOfMass();
-
-    // 统计边的数量
-    int edge_count = 0;
-    for (TopExp_Explorer exp(face, TopAbs_EDGE); exp.More(); exp.Next()) {
-        edge_count++;
-    }
+    const auto props = JyShape::face_properties(JyShape(face));
 
     QJsonObject jsonObj{{
             {"face", QJsonObject({
-                             {"type", type},
-                             {"area", area},
-                             {"edge_count", edge_count},
+                             {"type", QString::fromStdString(props.type)},
+                             {"area", props.area},
+                             {"u_range", QJsonObject({
+                                                 {"min", props.uv[0]},
+                                                 {"max", props.uv[1]},
+                                         })},
+                             {"v_range", QJsonObject({
+                                                 {"min", props.uv[2]},
+                                                 {"max", props.uv[3]},
+                                         })},
                              {"center", QJsonObject({
-                                                {"x", center.X()},
-                                                {"y", center.Y()},
-                                                {"z", center.Z()},
+                                                {"x", props.center[0]},
+                                                {"y", props.center[1]},
+                                                {"z", props.center[2]},
                                         })},
                      })},
     }};
@@ -583,20 +550,4 @@ QJsonDocument Jy3DWidget::compoundToJson(const TopoDS_Shape &compound) {
                          })},
     }};
     return QJsonDocument(jsonObj);
-}
-
-QJsonObject Jy3DWidget::calculatePoseJson(const TopoDS_Shape &shape) {
-    const auto pose = JyShape(shape).get_pose();
-    QJsonObject poseObj;
-    poseObj["position"] = QJsonObject({
-            {"x", pose[0]},
-            {"y", pose[1]},
-            {"z", pose[2]},
-    });
-    poseObj["orientation"] = QJsonObject({
-            {"roll", pose[3]},
-            {"pitch", pose[4]},
-            {"yaw", pose[5]},
-    });
-    return poseObj;
 }

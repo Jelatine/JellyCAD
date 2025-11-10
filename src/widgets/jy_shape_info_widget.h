@@ -31,7 +31,7 @@ private:
 
     QTreeWidget *treeShapeInfo;
     QPushButton *button_edge_info;
-    QString current_edge_info;
+    QString current_info;
 };
 
 #endif // JY_SHAPE_INFO_WIDGET_H

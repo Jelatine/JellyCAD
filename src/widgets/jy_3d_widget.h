@@ -94,8 +94,6 @@ private:
     QJsonDocument solidToJson(const TopoDS_Shape &shape);
     QJsonDocument compoundToJson(const TopoDS_Shape &shape);
 
-    // 计算形状的位姿信息
-    QJsonObject calculatePoseJson(const TopoDS_Shape &shape);
 private slots:
     // 槽函数实现
     void selectActionTriggered(QAction *act) {

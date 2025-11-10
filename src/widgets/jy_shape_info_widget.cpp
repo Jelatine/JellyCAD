@@ -26,23 +26,44 @@ JyShapeInfoWidget::JyShapeInfoWidget(QWidget *parent) : QWidget(parent) {
 
 void JyShapeInfoWidget::setShapeInfo(const QJsonDocument &doc) {
     const auto edge = doc["edge"];
+    const auto face = doc["face"];
     if (edge.isObject()) {
+        button_edge_info->setText("Insert edge info to editor");
         button_edge_info->setVisible(true);
         const QJsonObject edge_obj = edge.toObject();
         const auto first = edge_obj["first"].toObject();
         const auto last = edge_obj["last"].toObject();
         const auto type = edge_obj["type"].toString();
-        current_edge_info = QString("edge_info = {type = '%1', first = {%2, %3, %4}, last = {%5, %6, %7}, tol = 1e-3}")
-                                    .arg(type)
-                                    .arg(first["x"].toDouble())
-                                    .arg(first["y"].toDouble())
-                                    .arg(first["z"].toDouble())
-                                    .arg(last["x"].toDouble())
-                                    .arg(last["y"].toDouble())
-                                    .arg(last["z"].toDouble());
+        current_info = QString("edge_info = {type = '%1', first = {%2, %3, %4}, last = {%5, %6, %7}, tol = 1e-3}")
+                               .arg(type)
+                               .arg(first["x"].toDouble())
+                               .arg(first["y"].toDouble())
+                               .arg(first["z"].toDouble())
+                               .arg(last["x"].toDouble())
+                               .arg(last["y"].toDouble())
+                               .arg(last["z"].toDouble());
+    } else if (face.isObject()) {
+        button_edge_info->setText("Insert face info to editor");
+        button_edge_info->setVisible(true);
+        const QJsonObject face_obj = face.toObject();
+        const auto type = face_obj["type"].toString();
+        const auto area = face_obj["area"].toDouble();
+        const auto center = face_obj["center"].toObject();
+        const auto u_range = face_obj["u_range"].toObject();
+        const auto v_range = face_obj["v_range"].toObject();
+        current_info = QString("get_face('%1', %2, {%3, %4, %5}, {%6, %7, %8, %9})")
+                               .arg(type)
+                               .arg(area)
+                               .arg(center["x"].toDouble())
+                               .arg(center["y"].toDouble())
+                               .arg(center["z"].toDouble())
+                               .arg(u_range["min"].toDouble())
+                               .arg(u_range["max"].toDouble())
+                               .arg(v_range["min"].toDouble())
+                               .arg(v_range["max"].toDouble());
     } else {
         button_edge_info->setVisible(false);
-        current_edge_info.clear();
+        current_info.clear();
     }
     treeShapeInfo->clear();
     if (doc.isObject()) {
@@ -60,7 +81,7 @@ void JyShapeInfoWidget::setShapeInfo(const QJsonDocument &doc) {
 }
 
 void JyShapeInfoWidget::onButtonEdgeInfoClicked() {
-    emit insertEdgeInfo(current_edge_info);
+    emit insertEdgeInfo(current_info);
 }
 
 void JyShapeInfoWidget::addJsonValue(QTreeWidgetItem *parent, const QString &key, const QJsonValue &value) {

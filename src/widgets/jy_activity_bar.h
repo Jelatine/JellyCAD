@@ -17,6 +17,8 @@ Q_OBJECT
 public:
     explicit JyActivityBar(QWidget *parent = nullptr);
 
+    void setButtonEnabled(int buttonId, bool enabled);
+
 public slots:
 
     void slot_navigation_buttons_clicked(int id);

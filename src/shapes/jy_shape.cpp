@@ -18,7 +18,9 @@
 #include <BRepOffsetAPI_MakeThickSolid.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRepPrimAPI_MakeRevol.hxx>
+#include <BRepTools.hxx>
 #include <BRep_Tool.hxx>
+#include <GCPnts_AbscissaPoint.hxx>
 #include <GProp_GProps.hxx>
 #include <IGESControl_Writer.hxx>
 #include <STEPControl_Reader.hxx>
@@ -160,11 +162,18 @@ JyShape JyShape::get_edge(const sol::table &_cond) const {
     throw std::runtime_error("No edge found!");
 }
 
-JyShape JyShape::get_face() const {
-    TopoDS_Face face;
+JyShape JyShape::get_face(std::string type, double area, std::array<double, 3> center, std::array<double, 4> uv) const {
+    const auto epsilon = 1e-3;
     for (TopExp_Explorer ex(s_, TopAbs_FACE); ex.More(); ex.Next()) {
-        TopoDS_Face face = TopoDS::Face(ex.Current());
-        return JyShape(face);
+        const auto current_face = JyShape::face_properties(JyShape(ex.Current()));
+        const auto area_match = std::abs(current_face.area - area) < epsilon;
+        const auto center_match = std::equal(current_face.center.begin(), current_face.center.end(), center.begin(),
+                                             [epsilon](double x, double y) { return std::abs(x - y) < epsilon; });
+        const auto uv_match = std::equal(current_face.uv.begin(), current_face.uv.end(), uv.begin(),
+                                         [epsilon](double x, double y) { return std::abs(x - y) < epsilon; });
+        if (current_face.type == type && area_match && center_match && uv_match) {
+            return JyShape(ex.Current());
+        }
     }
     throw std::runtime_error("No face found!");
 }
@@ -430,11 +439,15 @@ JyShape &JyShape::pipe(const JyShape &wire) {
 
 
 JyShape &JyShape::thick(const JyShape &face, const double &offset) {
-    // 示例：b = box.new() b:thick(b:get_face(), -0.1):show() -- 抽壳
-    if (s_.IsNull() || face.s_.IsNull()) { throw std::runtime_error("JyShape::thick: shape or face is null!"); }
+    /* 示例：抽壳
+    b = box.new()
+    f = b:get_face('plane', 1, { 0.5, 0.5, 1 }, { 0, 1, 0, 1 })
+    b:thick(f, -0.1):show()
+    */
+    if (s_.IsNull() || face.s_.IsNull()) { throw std::runtime_error("thick: shape or face is null!"); }
     if (s_.ShapeType() > TopAbs_SOLID) { throw std::runtime_error("DomainError :profile is a solid or composite solid."); }
     if (face.s_.ShapeType() != TopAbs_FACE) { throw std::runtime_error("DomainError :face must be a face."); }
-    BRepOffsetAPI_MakeThickSolid make_thick;
+    BRepOffsetAPI_MakeThickSolid make_thick; // 基于偏置创建实体（抽壳或加厚）
     TopTools_ListOfShape faces;
     faces.Append(TopoDS::Face(face.s_));
     make_thick.MakeThickSolidByJoin(s_, faces, offset, 1.e-3);
@@ -591,4 +604,72 @@ JyShape::InertialProperties JyShape::inertial(const std::vector<JyShape> &_shape
             system.Mass(),
             {centerOfMass.X(), centerOfMass.Y(), centerOfMass.Z()},
             {Ixx, Iyy, Izz, Ixy, Ixz, Iyz}};
+}
+
+JyShape::EdgeProperties JyShape::edge_properties(const JyShape &_shape) {
+    static const std::unordered_map<int, std::string> type_map = {
+            {GeomAbs_Line, "line"},
+            {GeomAbs_Circle, "circle"},
+            {GeomAbs_Ellipse, "ellipse"},
+            {GeomAbs_Hyperbola, "hyperbola"},
+            {GeomAbs_Parabola, "parabola"},
+            {GeomAbs_BezierCurve, "bezier_curve"},
+            {GeomAbs_BSplineCurve, "bspline_curve"},
+            {GeomAbs_OffsetCurve, "offset_curve"},
+            {GeomAbs_OtherCurve, "other_curve"}};
+    const auto edge = TopoDS::Edge(_shape.s_);
+    // 获取参数范围
+    Standard_Real first, last;
+    Handle(Geom_Curve) curve = BRep_Tool::Curve(edge, first, last);
+    if (!curve.IsNull()) {
+        // 获取曲线类型
+        GeomAdaptor_Curve adaptor(curve);
+        GeomAbs_CurveType curveType = adaptor.GetType();
+        // 计算边的长度
+        BRepAdaptor_Curve brep_adaptor(edge);
+        Standard_Real length = GCPnts_AbscissaPoint::Length(brep_adaptor);
+        // 获取起点和终点
+        gp_Pnt firstPnt = adaptor.Value(first);
+        gp_Pnt lastPnt = adaptor.Value(last);
+        return {type_map.at(curveType), length, {firstPnt.X(), firstPnt.Y(), firstPnt.Z()}, {lastPnt.X(), lastPnt.Y(), lastPnt.Z()}};
+    }
+    return EdgeProperties{};
+}
+
+JyShape::FaceProperties JyShape::face_properties(const JyShape &_shape) {
+    static const std::unordered_map<int, std::string> type_map = {
+            {GeomAbs_Plane, "plane"},
+            {GeomAbs_Cylinder, "cylinder"},
+            {GeomAbs_Cone, "cone"},
+            {GeomAbs_Sphere, "sphere"},
+            {GeomAbs_Torus, "torus"},
+            {GeomAbs_BezierSurface, "bezier_surface"},
+            {GeomAbs_BSplineSurface, "bspline_surface"},
+            {GeomAbs_SurfaceOfRevolution, "surface_of_revolution"},
+            {GeomAbs_SurfaceOfExtrusion, "surface_of_extrusion"},
+            {GeomAbs_OffsetSurface, "offset_surface"},
+            {GeomAbs_OtherSurface, "other_surface"}};
+    const auto face = TopoDS::Face(_shape.s_);
+    // 获取曲面
+    Handle(Geom_Surface) surface = BRep_Tool::Surface(face);
+    if (!surface.IsNull()) {
+        // 获取曲面类型
+        GeomAdaptor_Surface adaptor(surface);
+        GeomAbs_SurfaceType surfaceType = adaptor.GetType();
+        // 获取参数范围
+        Standard_Real uMin, uMax, vMin, vMax;
+        BRepTools::UVBounds(face, uMin, uMax, vMin, vMax);
+        // 计算面积和重心
+        GProp_GProps props;
+        BRepGProp::SurfaceProperties(face, props);
+        Standard_Real area = props.Mass();
+        gp_Pnt centerOfMass = props.CentreOfMass();
+        return {
+                type_map.at(surfaceType),
+                area,
+                {centerOfMass.X(), centerOfMass.Y(), centerOfMass.Z()},
+                {uMin, uMax, vMin, vMax},
+        };
+    }
+    return FaceProperties{};
 }

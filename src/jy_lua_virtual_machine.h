@@ -18,14 +18,14 @@ class JyLuaVirtualMachine : public QThread {
     Q_OBJECT
     sol::state lua;
 
+    void registerBindings();
+
 public:
-    explicit JyLuaVirtualMachine();
+    explicit JyLuaVirtualMachine() = default;
 
     void runScript(const QString &_file_path, const bool &is_file = true);
 
     void exec_code(const QString &_code);
-
-    void add_package_path(const std::string &_path);
 
     void executeScript(const QString &fileName);
     void stopScript();
@@ -43,8 +43,6 @@ protected:
 
 private:
     void lua_print(const sol::object &v);
-
-    std::string current_path_;
 
     QString m_fileName;
     QAtomicInt script_mode;// 文件模式: 0 文件, 1 字符串

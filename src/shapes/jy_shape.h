@@ -58,10 +58,10 @@ public:
 
     std::array<double, 6> get_pose() const;
 
-    
+
     JyShape get_edge(const sol::table &_cond) const;
 
-    JyShape get_face() const;
+    JyShape get_face(std::string type, double area, std::array<double, 3> center, std::array<double, 4> uv) const;
 
     // ==================== 布尔运算 ====================
     /**
@@ -93,7 +93,7 @@ public:
      * @return JyShape& 当前形状引用
      */
     JyShape &fillet(const double &_r, const sol::table &_cond);
-    JyShape &fillet(const double &_r) { return fillet(_r, {}); }
+    JyShape &fillet(const double &_r) { return fillet(_r, sol::table{}); }
     JyShape &fillet(const double &_r, const JyShape &edge_shape);
 
     /**
@@ -211,7 +211,7 @@ public:
     JyShape &export_stl(const std::string &_filename, const sol::table &_opt);
     JyShape &export_stl(const std::string &_filename) { return export_stl_common(_filename); }
 
-    JyShape &export_stl_common(const std::string &_filename, const bool is_ascii = false, const double &lin = 0.001);
+    JyShape &export_stl_common(const std::string &_filename, const bool is_ascii = false, const double &lin = 0.01);
 
     /**
      * @brief 导出为STEP格式文件
@@ -237,6 +237,24 @@ public:
     static InertialProperties inertial(const JyShape &_shape);
 
     static InertialProperties inertial(const std::vector<JyShape> &_shapes);
+
+    struct EdgeProperties {
+        std::string type;           // 边类型
+        double length;              // 边长度
+        std::array<double, 3> first;// 起点
+        std::array<double, 3> last; // 终点
+    };
+
+    static EdgeProperties edge_properties(const JyShape &_shape);
+
+    struct FaceProperties {
+        std::string type;            // 面类型
+        double area;                 // 面积
+        std::array<double, 3> center;// 重心
+        std::array<double, 4> uv;    // UV参数范围 [u_min, u_max, v_min, v_max]
+    };
+
+    static FaceProperties face_properties(const JyShape &_shape);
 
 private:
     /**

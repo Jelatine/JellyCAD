@@ -15,12 +15,12 @@
 #include <QFileDialog>
 #include <QFileSystemWatcher>
 #include <QMainWindow>
+#include <QProgressDialog>
 #include <QSplitter>
 #include <QTextBrowser>
-#include <QProgressDialog>
 
-class QSettings;
 class JySearchWidget;
+class JyFileManager;
 
 class JyMainWindow : public QMainWindow {
     Q_OBJECT
@@ -30,23 +30,21 @@ class JyMainWindow : public QMainWindow {
     JyCodeEditor *code_editor;
     JySearchWidget *search_widget;
     JyShapeInfoWidget *shape_info_widget;
+    JyFileManager *file_manager;
     bool is_save_from_editor{false};//!< 从编辑器保存的标志, true 从本编辑器保存, false 外部保存
-    QString current_file_dir;       //!< 当前文件的路径
     QTextBrowser *text_lua_message;
-    QSettings *settings;
     QProgressDialog *m_progressDialog;
+
 public:
     explicit JyMainWindow(QWidget *parent = nullptr);
-    
+
 public slots:
 
     void slot_file_changed(const QString &path);
 
-    void slot_button_new_clicked();
-
-    void slot_button_open_clicked();
-
     void slot_button_save_clicked();
+
+    void slot_button_run_clicked();
 
     void onInsertEdgeInfo(const QString &edgeInfo);
 
@@ -66,6 +64,7 @@ private slots:
 
 private:
     int ask_whether_to_save();//!< 询问是否保存已修改的文件 return 0 if save, 1 if not save, 2 if cancel
+    bool saveFile();//!< 保存文件 return true if saved successfully, false if cancelled or failed
 
     void performSearch(bool backward = false);
     QString lastSearchText;

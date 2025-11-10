@@ -7,6 +7,7 @@
 #include "jy_urdf_generator.h"
 #include <QDebug>
 #include <QElapsedTimer>
+#include <QFileInfo>
 
 std::atomic<bool> should_exit(false);
 // 调试钩子函数
@@ -16,9 +17,8 @@ void debug_hook(lua_State *L, lua_Debug *ar) {
     }
 }
 
-JyLuaVirtualMachine::JyLuaVirtualMachine() {
+void JyLuaVirtualMachine::registerBindings() {
     lua.open_libraries();
-    current_path_ = lua["package"]["path"].get<std::string>();
     lua_sethook(lua.lua_state(), debug_hook, LUA_MASKCOUNT, 1);
     lua["print"] = [=](const sol::object &v) { this->lua_print(v); };
     auto shape_user = JyShape::configure_usertype(lua);
@@ -48,15 +48,18 @@ JyLuaVirtualMachine::JyLuaVirtualMachine() {
         }
     };
     lua["show"] = sol::overload(show_one, show_multi);
-
 }
 
 void JyLuaVirtualMachine::runScript(const QString &_file_path, const bool &is_file) {
     QElapsedTimer localTimer;
     localTimer.start();
-    lua.collect_gc();// 运行前做一次完整的垃圾收集循环
+    lua = sol::state();// 重新赋值会自动清理旧的
+    registerBindings();
     sol::protected_function_result result;
     if (is_file) {
+        QFileInfo fileInfo(_file_path);
+        QString dirPath = fileInfo.absolutePath();
+        lua["package"]["path"] = lua["package"]["path"].get<std::string>() + ";" + dirPath.toStdString() + "/?.lua";
         result = lua.script_file(_file_path.toStdString(), sol::script_pass_on_error);
     } else {
         result = lua.safe_script(_file_path.toStdString(), sol::script_pass_on_error);
@@ -82,10 +85,6 @@ void JyLuaVirtualMachine::exec_code(const QString &_code) {
     script_mode = 1;// 字符串模式
     should_exit = false;
     start();
-}
-
-void JyLuaVirtualMachine::add_package_path(const std::string &_path) {
-    lua["package"]["path"] = current_path_ + ";" + _path;
 }
 
 

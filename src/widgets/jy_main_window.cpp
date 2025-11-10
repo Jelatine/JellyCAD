@@ -3,6 +3,7 @@
  * MIT License
  */
 #include "jy_main_window.h"
+#include "jy_file_manager.h"
 #include "jy_page_help.h"
 #include "jy_search_widget.h"
 #include <QAbstractItemView>
@@ -14,7 +15,6 @@
 #include <QJsonParseError>
 #include <QLineEdit>
 #include <QMessageBox>
-#include <QSettings>
 #include <QShortcut>
 #include <QStackedWidget>
 #include <QStatusBar>
@@ -26,33 +26,23 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
                                               lvm(new JyLuaVirtualMachine),
                                               search_widget(new JySearchWidget),
                                               code_editor(new JyCodeEditor),
-                                              shape_info_widget(new JyShapeInfoWidget) {
-    setWindowTitle("Unnamed - JellyCAD");
-    const QString default_dir = QApplication::applicationDirPath() + "/scripts";// 默认当前文件目录为应用程序目录下的scripts文件夹
-    QDir dir_current(default_dir);
-    if (!dir_current.exists()) { QDir(QApplication::applicationDirPath()).mkdir("scripts"); }
-    // 读取软件配置
-    settings = new QSettings("Jelatine", "JellyCAD", this);
-    current_file_dir = settings->value("lastDirectory", default_dir).toString();
-    if (!QDir(current_file_dir).exists()) { current_file_dir = default_dir; }
-    lvm->add_package_path(current_file_dir.toStdString() + "/?.lua");
+                                              shape_info_widget(new JyShapeInfoWidget),
+                                              file_manager(new JyFileManager) {
+    setWindowTitle('[' + file_manager->getWorkingDirectory() + ']' + " - JellyCAD");
 
     auto m_activity_bar = new JyActivityBar();
 
     const auto widget_editor_group = new QWidget;
-    const auto button_new = new QPushButton("New");
-    const auto button_open = new QPushButton("Open");
     const auto button_save = new QPushButton("Save");
+    const auto button_run = new QPushButton("Run");
     const auto layout_buttons = new QHBoxLayout;
     const auto layout_editor_group = new QVBoxLayout;
 
-    button_new->setToolTip("Ctrl+N");
-    button_open->setToolTip("Ctrl+O");
     button_save->setToolTip("Ctrl+S");
     button_save->setEnabled(false);
-    layout_buttons->addWidget(button_new);
-    layout_buttons->addWidget(button_open);
+    button_run->setToolTip("F5");
     layout_buttons->addWidget(button_save);
+    layout_buttons->addWidget(button_run);
     layout_editor_group->addLayout(layout_buttons);
     layout_editor_group->addWidget(code_editor);
     layout_editor_group->addWidget(search_widget);
@@ -86,13 +76,60 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
         lvm->exec_code(script_text);
         edit_lua_cmd->clear();
     });
+    //!< 文件管理器
+    connect(file_manager, &JyFileManager::fileOpenRequested, [=](const QString &filePath) {
+        QFile file_read(filePath);
+        if (!file_read.open(QIODevice::ReadOnly)) { return; }
+        code_editor->set_text(file_read.readAll());
+        if (!watcher->files().empty()) { watcher->removePaths(watcher->files()); }
+        watcher->addPath(filePath);
+        file_read.close();
+
+        // Clear 3D widget instead of running script
+        jy_3d_widget->remove_all();
+        statusBar()->clearMessage();
+
+        code_editor->document()->setModified(false);
+        code_editor->modificationChanged(false);  // 手动触发信号以确保Save按钮被禁用
+        code_editor->setFilePath(filePath);
+        QDir dir(filePath);
+        QString title = dir.dirName() + '[' + file_manager->getWorkingDirectory() + ']';
+        setWindowTitle(title + " - JellyCAD");
+
+        // 启用脚本编辑按钮
+        m_activity_bar->setButtonEnabled(1, true);
+    });
+    connect(file_manager, &JyFileManager::switchToEditor, [=] { m_activity_bar->slot_navigation_buttons_clicked(1); });
+    connect(file_manager, &JyFileManager::workingDirectoryChanged, [=](const QString &newPath) {
+        // 清除监视的文件
+        if (!watcher->files().empty()) { watcher->removePaths(watcher->files()); }
+
+        // 清除编辑器内容
+        code_editor->clear();
+        code_editor->setFilePath("");
+        code_editor->document()->setModified(false);
+
+        // 清除3D界面内容
+        jy_3d_widget->remove_all();
+
+        // 清除状态栏消息
+        statusBar()->clearMessage();
+
+        // 更新窗口标题
+        setWindowTitle('[' + newPath + ']' + " - JellyCAD");
+
+        // 禁用脚本编辑按钮
+        m_activity_bar->setButtonEnabled(1, false);
+    });
+
     //!< 形状信息
     connect(jy_3d_widget, &Jy3DWidget::selectedShapeInfo, shape_info_widget, &JyShapeInfoWidget::setShapeInfo);
     connect(shape_info_widget, &JyShapeInfoWidget::insertEdgeInfo, this, &JyMainWindow::onInsertEdgeInfo);
-    connect(shape_info_widget, &JyShapeInfoWidget::insertEdgeInfo, [=] { m_activity_bar->slot_navigation_buttons_clicked(0); });
+    connect(shape_info_widget, &JyShapeInfoWidget::insertEdgeInfo, [=] { m_activity_bar->slot_navigation_buttons_clicked(1); });
 
-    //!< 工作台: PAGE1: 脚本编辑器  PAGE2: 终端 PAGE3: 帮助
+    //!< 工作台: PAGE0: 文件管理器  PAGE1: 脚本编辑器  PAGE2: 终端  PAGE3: 形状信息  PAGE4: 帮助
     auto stack_widget = new QStackedWidget;
+    stack_widget->addWidget(file_manager);
     stack_widget->addWidget(widget_editor_group);
     stack_widget->addWidget(widget_terminal);
     stack_widget->addWidget(shape_info_widget);
@@ -109,13 +146,18 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     connect(watcher, &QFileSystemWatcher::fileChanged, this, &JyMainWindow::slot_file_changed);
     connect(m_activity_bar, &JyActivityBar::sig_set_side_bar_visible, stack_widget, &QStackedWidget::setVisible);
     connect(m_activity_bar, &JyActivityBar::sig_set_side_bar_index, stack_widget, &QStackedWidget::setCurrentIndex);
-    connect(code_editor, &QPlainTextEdit::modificationChanged, button_save, &QPushButton::setEnabled);
     connect(code_editor, &QPlainTextEdit::modificationChanged, [=](bool m) {
-        m ? setWindowTitle("*" + windowTitle()) : setWindowTitle(windowTitle().remove(0, 1));// 编辑器文档已被编辑时，标题前加*
+        if (m) {
+            // 添加星号（如果还没有）
+            if (!windowTitle().startsWith("*")) { setWindowTitle("*" + windowTitle()); }
+        } else {
+            // 移除星号（如果有）
+            if (windowTitle().startsWith("*")) { setWindowTitle(windowTitle().mid(1)); }
+        }
     });
-    connect(button_new, &QPushButton::clicked, this, &JyMainWindow::slot_button_new_clicked);
-    connect(button_open, &QPushButton::clicked, this, &JyMainWindow::slot_button_open_clicked);
+    connect(code_editor, &QPlainTextEdit::modificationChanged, button_save, &QPushButton::setEnabled);
     connect(button_save, &QPushButton::clicked, this, &JyMainWindow::slot_button_save_clicked);
+    connect(button_run, &QPushButton::clicked, this, &JyMainWindow::slot_button_run_clicked);
     connect(lvm, &JyLuaVirtualMachine::displayShape, jy_3d_widget, &Jy3DWidget::onDisplayShape, Qt::BlockingQueuedConnection);
     connect(lvm, &JyLuaVirtualMachine::displayAxes, jy_3d_widget, &Jy3DWidget::onDisplayAxes, Qt::BlockingQueuedConnection);
     connect(lvm, &JyLuaVirtualMachine::scriptStarted, this, &JyMainWindow::onScriptStarted);
@@ -132,12 +174,10 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     connect(searchShortcut, &QShortcut::activated, this, &JyMainWindow::showSearchWidget);
     QShortcut *escShortcut = new QShortcut(Qt::Key_Escape, search_widget);
     connect(escShortcut, &QShortcut::activated, this, &JyMainWindow::hideSearchWidget);
-    QShortcut *newShortcut = new QShortcut(QKeySequence::New, this);  // Ctrl+N
-    QShortcut *openShortcut = new QShortcut(QKeySequence::Open, this);// Ctrl+O
     QShortcut *saveShortcut = new QShortcut(QKeySequence::Save, this);// Ctrl+S
-    connect(newShortcut, &QShortcut::activated, button_new, &QPushButton::click);
-    connect(openShortcut, &QShortcut::activated, button_open, &QPushButton::click);
     connect(saveShortcut, &QShortcut::activated, button_save, &QPushButton::click);
+    QShortcut *runShortcut = new QShortcut(Qt::Key_F5, this);// F5
+    connect(runShortcut, &QShortcut::activated, button_run, &QPushButton::click);
 }
 
 void JyMainWindow::slot_file_changed(const QString &path) {
@@ -165,6 +205,7 @@ void JyMainWindow::slot_file_changed(const QString &path) {
         }
     }
     is_save_from_editor = false;// 复位标志
+
     static int i = 0;
     qDebug() << "file changed: " << path << " " << i++;
     jy_3d_widget->remove_all();
@@ -175,87 +216,31 @@ void JyMainWindow::slot_file_changed(const QString &path) {
     lvm->executeScript(path);// 执行脚本
 }
 
-void JyMainWindow::slot_button_new_clicked() {
-    qDebug() << "[BUTTON]new";
-    // 如果文件被修改，询问是否保存
-    const auto res = ask_whether_to_save();
-    if (res == 0) { slot_button_save_clicked(); }// [是]保存后新建
-    else if (res == 1) {
-    }// [否]直接新建
-    else { return; }// [取消]不新建
-    setWindowTitle("Unnamed - JellyCAD");
-    code_editor->clear();
-    if (!watcher->files().empty()) { watcher->removePaths(watcher->files()); }
-    code_editor->document()->setModified(false);
-    code_editor->modificationChanged(false);
-    code_editor->setFilePath();
-    jy_3d_widget->remove_all();// 清空三维显示窗中的所有对象
-    statusBar()->clearMessage();
-}
-
-void JyMainWindow::slot_button_open_clicked() {
-    qDebug() << "[BUTTON]open";
-    const auto filename = QFileDialog::getOpenFileName(this, "open file", current_file_dir, "lua (*.lua);;all (*.*)");
-    if (filename.isEmpty()) { return; }
-    QFile file_read(filename);
-    if (!file_read.open(QIODevice::ReadOnly)) { return; }
-    code_editor->set_text(file_read.readAll());
-    if (!watcher->files().empty()) { watcher->removePaths(watcher->files()); }
-    watcher->addPath(filename);
-    file_read.close();
-    this->slot_file_changed(filename);
-    code_editor->document()->setModified(false);
-    code_editor->setFilePath(filename);
-    QDir dir(filename);
-    QString title = dir.dirName();
-    if (dir.cd("../")) {
-        current_file_dir = dir.absolutePath();
-        title += '[' + current_file_dir + ']';
-        lvm->add_package_path(current_file_dir.toStdString() + "/?.lua");
-        settings->setValue("lastDirectory", current_file_dir);
-        settings->sync();// 确保立即写入
-    }
-    setWindowTitle(title + " - JellyCAD");
-}
-
 void JyMainWindow::slot_button_save_clicked() {
     qDebug() << "[BUTTON]save";
-    QString save_filename = code_editor->getFilePath();
-    if (save_filename.isEmpty()) {
-        // 文件空时，弹出保存对话框，创建文件
-        QString default_filename = current_file_dir + "/unnamed";
-        // 检查是否存在同名文件，如果存在则使用 unnamed(1).lua, unnamed(2).lua 等
-        QFile file_check(default_filename + ".lua");
-        if (file_check.exists()) {
-            int counter = 1;
-            while (QFile(current_file_dir + QString("/unnamed(%1).lua").arg(counter)).exists()) {
-                counter++;
-            }
-            default_filename = current_file_dir + QString("/unnamed(%1)").arg(counter);
+    if (saveFile()) {
+        // Run the script after saving
+        QString saved_filename = code_editor->getFilePath();
+        if (!saved_filename.isEmpty()) {
+            this->slot_file_changed(saved_filename);
         }
-        save_filename = QFileDialog::getSaveFileName(this, "save file", default_filename, "lua (*.lua)");
-        if (save_filename.isEmpty()) { return; }
     }
-    if (!watcher->files().empty()) { watcher->removePaths(watcher->files()); }// 清除观察文件
-    QFile file_save(save_filename);
-    if (!file_save.open(QIODevice::WriteOnly)) { return; }
-    is_save_from_editor = true;// 标记为从编辑器保存
-    file_save.write(code_editor->get_text().toUtf8());
-    file_save.close();
-    code_editor->document()->setModified(false);
-    code_editor->setFilePath(save_filename);
-    QDir dir(save_filename);
-    QString title = dir.dirName();
-    if (dir.cd("../")) {
-        current_file_dir = dir.absolutePath();
-        title += '[' + current_file_dir + ']';
-        lvm->add_package_path(current_file_dir.toStdString() + "/?.lua");
-        settings->setValue("lastDirectory", current_file_dir);
-        settings->sync();// 确保立即写入
+}
+
+void JyMainWindow::slot_button_run_clicked() {
+    qDebug() << "[BUTTON]run";
+
+    // Run the script
+    QString run_filename = code_editor->getFilePath();
+    if(code_editor->document()->isModified()) {
+        // 如果文件被修改，先保存
+        if (!saveFile()) {
+            return; // 保存失败或取消，停止运行
+        }
     }
-    setWindowTitle(title + " - JellyCAD");
-    watcher->addPath(save_filename);
-    this->slot_file_changed(save_filename);
+    if (!run_filename.isEmpty()) {
+        this->slot_file_changed(run_filename);
+    }
 }
 
 void JyMainWindow::onInsertEdgeInfo(const QString &edgeInfo) {
@@ -275,14 +260,17 @@ void JyMainWindow::onInsertEdgeInfo(const QString &edgeInfo) {
 void JyMainWindow::closeEvent(QCloseEvent *event) {
     const auto res = ask_whether_to_save();
     if (res == 0) {
-        slot_button_save_clicked();// [是]保存后退出
-        event->accept();
+        if (saveFile()) {
+            event->accept();// [是]保存成功后退出
+        } else {
+            event->ignore();// 保存失败或取消，不退出
+        }
     } else if (res == 1) {
-        event->accept();
-    }// [否]直接退出
-    else { event->ignore(); }// [取消]忽略关闭事件
+        event->accept();// [否]直接退出
+    } else {
+        event->ignore();// [取消]忽略关闭事件
+    }
 }
-
 
 int JyMainWindow::ask_whether_to_save() {
     if (code_editor->document()->isModified()) {
@@ -292,6 +280,28 @@ int JyMainWindow::ask_whether_to_save() {
                                      tr("Yes"), tr("No"), tr("Cancel"));
     }
     return 1;// 文件未修改
+}
+
+bool JyMainWindow::saveFile() {
+    qDebug() << "[FUNCTION]saveFile";
+    QString save_filename = code_editor->getFilePath();
+
+    if (save_filename.isEmpty()) { return false; }
+
+    // Save the file
+    if (!watcher->files().empty()) { watcher->removePaths(watcher->files()); }
+    QFile file_save(save_filename);
+    if (!file_save.open(QIODevice::WriteOnly)) {
+        return false;
+    }
+    is_save_from_editor = true;
+    file_save.write(code_editor->get_text().toUtf8());
+    file_save.close();
+    code_editor->document()->setModified(false);
+    code_editor->setFilePath(save_filename);
+    watcher->addPath(save_filename);
+
+    return true;
 }
 
 void JyMainWindow::showSearchWidget() {
