@@ -128,12 +128,8 @@ void JyLuaVirtualMachine::stopScript() {
     // if (!wait(3000)) { terminate(); }
 }
 
-bool JyLuaVirtualMachine::isRunning() const {
-    return QThread::isRunning();
-}
-
 void JyLuaVirtualMachine::run() {
-    emit scriptStarted(m_fileName);
+    emit scriptStarted();
     if (script_mode.loadRelaxed() == 0) {
         runScript(m_fileName);
     } else {

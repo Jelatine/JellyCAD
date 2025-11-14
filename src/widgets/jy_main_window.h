@@ -7,33 +7,30 @@
 
 #include "jy_3d_widget.h"
 #include "jy_activity_bar.h"
-#include "jy_code_editor.h"
+#include "jy_editor_widget.h"
 #include "jy_lua_virtual_machine.h"
 #include "jy_shape.h"
 #include "jy_shape_info_widget.h"
 #include <QDebug>
 #include <QFileDialog>
-#include <QFileSystemWatcher>
 #include <QMainWindow>
 #include <QProgressDialog>
 #include <QSplitter>
 #include <QTextBrowser>
 
-class JySearchWidget;
 class JyFileManager;
 
 class JyMainWindow : public QMainWindow {
     Q_OBJECT
     Jy3DWidget *jy_3d_widget;
-    QFileSystemWatcher *watcher;
     JyLuaVirtualMachine *lvm;
-    JyCodeEditor *code_editor;
-    JySearchWidget *search_widget;
+    JyEditorWidget *m_editorWidget;
     JyShapeInfoWidget *shape_info_widget;
     JyFileManager *file_manager;
-    bool is_save_from_editor{false};//!< 从编辑器保存的标志, true 从本编辑器保存, false 外部保存
+    JyActivityBar *m_activity_bar;
     QTextBrowser *text_lua_message;
     QProgressDialog *m_progressDialog;
+    bool m_isStoppingScript;
 
 public:
     explicit JyMainWindow(QWidget *parent = nullptr);
@@ -48,26 +45,21 @@ public slots:
 
     void onInsertEdgeInfo(const QString &edgeInfo);
 
-private slots:
-    void showSearchWidget();
-    void hideSearchWidget();
-    void findNext();
-    void findPrevious();
-    void onSearchTextChanged(const QString &text);
+    void onFileOpenRequested(const QString &filePath);
 
-    void onScriptStarted(const QString &fileName);
+private slots:
+    void onScriptStarted();
     void onScriptFinished(const QString &message);
     void onScriptError(const QString &error);
     void onScriptOutput(const QString &output);
     void onStopScript();
+    void onResetWorkspace();
 
 
 private:
     int ask_whether_to_save();//!< 询问是否保存已修改的文件 return 0 if save, 1 if not save, 2 if cancel
-    bool saveFile();//!< 保存文件 return true if saved successfully, false if cancelled or failed
-
-    void performSearch(bool backward = false);
-    QString lastSearchText;
+    bool saveFile();          //!< 保存文件 return true if saved successfully, false if cancelled or failed
+    void runScript(const QString &path);
 
 protected:
     void closeEvent(QCloseEvent *event) override;

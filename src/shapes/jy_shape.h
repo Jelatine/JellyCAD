@@ -245,6 +245,8 @@ public:
         std::array<double, 3> last; // 终点
     };
 
+    static std::array<double, 3> vertex_properties(const JyShape &_shape);
+
     static EdgeProperties edge_properties(const JyShape &_shape);
 
     struct FaceProperties {

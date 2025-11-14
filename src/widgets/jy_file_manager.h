@@ -9,6 +9,7 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFileSystemWatcher>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMenu>
@@ -25,20 +26,20 @@ class JyFileManager : public QWidget {
 public:
     explicit JyFileManager(QWidget *parent = nullptr);
 
-    void setWorkingDirectory(const QString &path);
     QString getWorkingDirectory() const { return m_workingDirectory; }
+    void setOpenedFile(const QString &filePath);
 
 signals:
     void fileOpenRequested(const QString &filePath);
-    void switchToEditor();
-    void workingDirectoryChanged(const QString &newPath);
+    void resetWorkspace();
+    void openedFileChanged(const QString &filePath);
 
 private slots:
     void onOpenFolderClicked();
     void onFileDoubleClicked(QListWidgetItem *item);
     void onFileListContextMenu(const QPoint &pos);
-    void onRefreshFileList();
     void onEditorFinished();
+    void onFileChanged(const QString &path);
 
 private:
     void refreshFileList();
@@ -49,14 +50,17 @@ private:
     void openWorkingDirectory();
     void finishFileCreation();
     void cancelFileCreation();
+    void updateWatcher();
     bool eventFilter(QObject *obj, QEvent *event) override;
 
     QString m_workingDirectory;
+    QString m_openedFilePath;
     QListWidget *m_fileList;
     QPushButton *m_openFolderButton;
     QListWidgetItem *m_newFileItem;
     QLineEdit *m_newFileEditor;
     QSettings *settings;
+    QFileSystemWatcher *m_watcher;
 };
 
 #endif// JY_FILE_MANAGER_H

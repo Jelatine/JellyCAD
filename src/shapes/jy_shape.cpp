@@ -22,6 +22,7 @@
 #include <BRep_Tool.hxx>
 #include <GCPnts_AbscissaPoint.hxx>
 #include <GProp_GProps.hxx>
+#include <IGESControl_Reader.hxx>
 #include <IGESControl_Writer.hxx>
 #include <STEPControl_Reader.hxx>
 #include <STEPControl_Writer.hxx>
@@ -85,13 +86,20 @@ sol::usertype<JyShape> JyShape::configure_usertype(sol::state &lua) {
     return shape_user;
 }
 
+static bool checkSuffix(const std::string &filename, const std::string &suffix) {
+    // 查找最后一个点的位置
+    size_t dotPos = filename.find_last_of('.');
+    // 如果没有找到点，或者点在开头（隐藏文件），返回空字符串
+    if (dotPos == std::string::npos || dotPos == 0) { return ""; }
+    std::string extension = filename.substr(dotPos + 1);// 从点的下一个位置开始提取（不包含点）
+    // 转换为小写
+    std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
+    return extension == suffix;
+}
+
 JyShape::JyShape(const std::string &_filename) {
     if (_filename.empty()) { throw std::runtime_error("Filename is empty!"); }
-    const auto ends_with = [&_filename](const std::string &suffix) {
-        if (suffix.length() > _filename.length()) { return false; }
-        return (_filename.rfind(suffix) == (_filename.length() - suffix.length()));
-    };
-    if (ends_with(".step") || ends_with(".STEP")) {
+    if (checkSuffix(_filename, "step") || checkSuffix(_filename, "stp")) {
         STEPControl_Reader reader;
         const auto &res = reader.ReadFile(_filename.c_str());// 加载文件只是记忆数据，不转换
         if (res != IFSelect_RetDone) { throw std::runtime_error("Failed Import STEP file!"); }
@@ -100,15 +108,19 @@ JyShape::JyShape(const std::string &_filename) {
         Standard_Integer NbRoots = reader.NbRootsForTransfer();
         Standard_Integer num = reader.TransferRoots();
         s_ = reader.OneShape();
-    } else if (ends_with(".stl") || ends_with(".STL")) {
+    } else if (checkSuffix(_filename, "iges") || checkSuffix(_filename, "igs")) {
+        IGESControl_Reader reader;
+        const auto &res = reader.ReadFile(_filename.c_str());// 加载文件
+        if (res != IFSelect_RetDone) { throw std::runtime_error("Failed Import IGES file!"); }
+        reader.PrintCheckLoad(Standard_False, IFSelect_ItemsByEntity);// 检查加载的文件(不是强制性)
+        //加载iges文件
+        Standard_Integer NbRoots = reader.NbRootsForTransfer();
+        Standard_Integer num = reader.TransferRoots();
+        s_ = reader.OneShape();
+    } else if (checkSuffix(_filename, "stl")) {
         TopoDS_Shape topology_shape;
-#if 1
         StlAPI_Reader reader;
         if (!reader.Read(topology_shape, _filename.c_str())) { throw std::runtime_error("Failed Import STL file!"); }
-#else
-        //!< DEPRECATED
-        if (!StlAPI::Read(topology_shape, _filename.c_str())) { throw std::runtime_error("Failed Import STL file!"); }
-#endif
         s_ = topology_shape;
     } else {
         throw std::runtime_error("Not support file!");
@@ -447,7 +459,7 @@ JyShape &JyShape::thick(const JyShape &face, const double &offset) {
     if (s_.IsNull() || face.s_.IsNull()) { throw std::runtime_error("thick: shape or face is null!"); }
     if (s_.ShapeType() > TopAbs_SOLID) { throw std::runtime_error("DomainError :profile is a solid or composite solid."); }
     if (face.s_.ShapeType() != TopAbs_FACE) { throw std::runtime_error("DomainError :face must be a face."); }
-    BRepOffsetAPI_MakeThickSolid make_thick; // 基于偏置创建实体（抽壳或加厚）
+    BRepOffsetAPI_MakeThickSolid make_thick;// 基于偏置创建实体（抽壳或加厚）
     TopTools_ListOfShape faces;
     faces.Append(TopoDS::Face(face.s_));
     make_thick.MakeThickSolidByJoin(s_, faces, offset, 1.e-3);
@@ -604,6 +616,11 @@ JyShape::InertialProperties JyShape::inertial(const std::vector<JyShape> &_shape
             system.Mass(),
             {centerOfMass.X(), centerOfMass.Y(), centerOfMass.Z()},
             {Ixx, Iyy, Izz, Ixy, Ixz, Iyz}};
+}
+std::array<double, 3> JyShape::vertex_properties(const JyShape &_shape) {
+    const auto vertex = TopoDS::Vertex(_shape.s_);
+    gp_Pnt pnt = BRep_Tool::Pnt(vertex);
+    return {pnt.X(), pnt.Y(), pnt.Z()};
 }
 
 JyShape::EdgeProperties JyShape::edge_properties(const JyShape &_shape) {

@@ -29,10 +29,9 @@ public:
 
     void executeScript(const QString &fileName);
     void stopScript();
-    bool isRunning() const;
 
 signals:
-    void scriptStarted(const QString &fileName);
+    void scriptStarted();
     void scriptFinished(const QString &message);
     void scriptError(const QString &error);
     void scriptOutput(const QString &output);

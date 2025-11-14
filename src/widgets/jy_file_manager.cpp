@@ -5,6 +5,7 @@
 #include "jy_file_manager.h"
 #include <QApplication>
 #include <QClipboard>
+#include <QDebug>
 #include <QFile>
 #include <QIcon>
 #include <QKeyEvent>
@@ -13,7 +14,7 @@
 #include <QSettings>
 #include <QStyle>
 
-JyFileManager::JyFileManager(QWidget *parent) : QWidget(parent), m_newFileItem(nullptr), m_newFileEditor(nullptr) {
+JyFileManager::JyFileManager(QWidget *parent) : QWidget(parent), m_newFileItem(nullptr), m_newFileEditor(nullptr), m_watcher(new QFileSystemWatcher(this)) {
 
     const QString default_dir = QApplication::applicationDirPath() + "/scripts";// 默认当前文件目录为应用程序目录下的scripts文件夹
     QDir dir_current(default_dir);
@@ -25,8 +26,6 @@ JyFileManager::JyFileManager(QWidget *parent) : QWidget(parent), m_newFileItem(n
 
     // Create layout
     auto layout = new QVBoxLayout(this);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(0);
 
     // Create open folder button
     m_openFolderButton = new QPushButton("Open Folder", this);
@@ -44,32 +43,30 @@ JyFileManager::JyFileManager(QWidget *parent) : QWidget(parent), m_newFileItem(n
     connect(m_openFolderButton, &QPushButton::clicked, this, &JyFileManager::onOpenFolderClicked);
     connect(m_fileList, &QListWidget::itemDoubleClicked, this, &JyFileManager::onFileDoubleClicked);
     connect(m_fileList, &QListWidget::customContextMenuRequested, this, &JyFileManager::onFileListContextMenu);
+    connect(m_watcher, &QFileSystemWatcher::fileChanged, this, &JyFileManager::onFileChanged);
 
     refreshFileList();
-}
-
-void JyFileManager::setWorkingDirectory(const QString &path) {
-    if (path.isEmpty()) return;
-
-    // 检查是否是新的工作目录
-    QString oldDirectory = m_workingDirectory;
-    if (path != oldDirectory) {
-        m_workingDirectory = path;
-        settings->setValue("lastDirectory", m_workingDirectory);
-        settings->sync();
-        refreshFileList();
-
-        // 发出工作目录已改变的信号
-        emit workingDirectoryChanged(m_workingDirectory);
-    }
+    updateWatcher();
 }
 
 void JyFileManager::onOpenFolderClicked() {
     QString dir = QFileDialog::getExistingDirectory(this, tr("Select Working Directory"),
                                                     m_workingDirectory,
                                                     QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    if (!dir.isEmpty()) {
-        setWorkingDirectory(dir);
+    if (dir.isEmpty()) return;
+    if (dir == m_workingDirectory) {
+        // 相同目录无需重置工作区
+        refreshFileList();
+        updateWatcher();
+    } else {
+        m_workingDirectory = dir;
+        m_openedFilePath.clear();
+        settings->setValue("lastDirectory", m_workingDirectory);
+        settings->sync();
+        refreshFileList();
+        updateWatcher();
+        // 发出工作目录已改变的信号
+        emit resetWorkspace();
     }
 }
 
@@ -82,7 +79,6 @@ void JyFileManager::onFileDoubleClicked(QListWidgetItem *item) {
     QFileInfo fileInfo(filePath);
     if (fileInfo.exists() && fileInfo.isFile()) {
         emit fileOpenRequested(filePath);
-        emit switchToEditor();
     }
 }
 
@@ -111,10 +107,6 @@ void JyFileManager::onFileListContextMenu(const QPoint &pos) {
     connect(locationAction, &QAction::triggered, this, &JyFileManager::openWorkingDirectory);
 
     menu.exec(m_fileList->mapToGlobal(pos));
-}
-
-void JyFileManager::onRefreshFileList() {
-    refreshFileList();
 }
 
 void JyFileManager::refreshFileList() {
@@ -166,14 +158,7 @@ void JyFileManager::createNewFile() {
 }
 
 void JyFileManager::openSelectedFile() {
-    QListWidgetItem *item = m_fileList->currentItem();
-    if (!item) return;
-
-    QString fileName = item->text();
-    QString filePath = m_workingDirectory + "/" + fileName;
-
-    emit fileOpenRequested(filePath);
-    emit switchToEditor();
+    onFileDoubleClicked(m_fileList->currentItem());
 }
 
 void JyFileManager::deleteSelectedFile() {
@@ -189,8 +174,22 @@ void JyFileManager::deleteSelectedFile() {
                                   QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
+        // Check if deleting the currently opened file
+        bool isDeletingOpenedFile = (filePath == m_openedFilePath);
+
+        // Remove from watcher before deleting
+        if (m_watcher->files().contains(filePath)) {
+            m_watcher->removePath(filePath);
+        }
+
         QFile file(filePath);
         if (file.remove()) {
+            // If deleted file was the opened file, notify and clear
+            if (isDeletingOpenedFile) {
+                m_openedFilePath.clear();
+                emit resetWorkspace();
+            }
+
             refreshFileList();
         } else {
             QMessageBox::warning(this, tr("Error"),
@@ -221,6 +220,9 @@ void JyFileManager::copySelectedFile() {
     } while (QFile::exists(newFilePath));
 
     if (QFile::copy(filePath, newFilePath)) {
+        // Add new file to watcher
+        m_watcher->addPath(newFilePath);
+
         refreshFileList();
 
         // Select the copied file
@@ -280,6 +282,10 @@ void JyFileManager::finishFileCreation() {
 
     if (file.open(QIODevice::WriteOnly)) {
         file.close();
+
+        // Add new file to watcher
+        m_watcher->addPath(filePath);
+
         refreshFileList();
 
         // Select the newly created file
@@ -355,5 +361,42 @@ void JyFileManager::openWorkingDirectory() {
 #else
         QDesktopServices::openUrl(QUrl::fromLocalFile(m_workingDirectory));
 #endif
+    }
+}
+
+void JyFileManager::updateWatcher() {
+    // Clear all watched files
+    if (!m_watcher->files().isEmpty()) {
+        m_watcher->removePaths(m_watcher->files());
+    }
+
+    // Add all lua files in working directory
+    QDir dir(m_workingDirectory);
+    if (!dir.exists()) {
+        return;
+    }
+
+    QStringList filters;
+    filters << "*.lua";
+    dir.setNameFilters(filters);
+    dir.setFilter(QDir::Files);
+
+    QStringList fileList = dir.entryList();
+    for (const QString &fileName: fileList) {
+        QString filePath = m_workingDirectory + "/" + fileName;
+        m_watcher->addPath(filePath);
+    }
+}
+
+void JyFileManager::setOpenedFile(const QString &filePath) {
+    m_openedFilePath = filePath;
+}
+
+void JyFileManager::onFileChanged(const QString &path) {
+    qDebug() << "File changed in JyFileManager:" << path;
+
+    // If the changed file is the opened file, emit signal
+    if (!m_openedFilePath.isEmpty() && path == m_openedFilePath) {
+        emit openedFileChanged(path);
     }
 }

@@ -5,11 +5,12 @@
 #ifndef JY_SHAPE_INFO_WIDGET_H
 #define JY_SHAPE_INFO_WIDGET_H
 
-#include <QWidget>
-#include <QTreeWidget>
-#include <QPushButton>
+#include "jy_shape.h"
 #include <QJsonDocument>
+#include <QPushButton>
+#include <QTreeWidget>
 #include <QVBoxLayout>
+#include <QWidget>
 
 class JyShapeInfoWidget : public QWidget {
     Q_OBJECT
@@ -18,7 +19,7 @@ public:
     explicit JyShapeInfoWidget(QWidget *parent = nullptr);
 
 public slots:
-    void setShapeInfo(const QJsonDocument &doc);
+    void onSelectedShape(const JyShape &shape);
 
 signals:
     void insertEdgeInfo(const QString &edgeInfo);
@@ -34,4 +35,4 @@ private:
     QString current_info;
 };
 
-#endif // JY_SHAPE_INFO_WIDGET_H
+#endif// JY_SHAPE_INFO_WIDGET_H

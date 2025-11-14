@@ -5,25 +5,15 @@
 #include "jy_3d_widget.h"
 #include <AIS_Shape.hxx>
 #include <Aspect_DisplayConnection.hxx>
-#include <BRepAdaptor_Curve.hxx>
-#include <BRepAdaptor_Surface.hxx>
 #include <BRepBndLib.hxx>
-#include <BRepGProp.hxx>
-#include <BRep_Tool.hxx>
-#include <GProp_GProps.hxx>
 #include <Geom_Axis2Placement.hxx>
-#include <Geom_Line.hxx>
 #include <Graphic3d_GraphicDriver.hxx>
 #include <OpenGl_GraphicDriver.hxx>
 #include <QApplication>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QMouseEvent>
+#include <QDebug>
 #include <StdSelect_BRepOwner.hxx>
-#include <TopExp.hxx>
-#include <TopExp_Explorer.hxx>
 #include <V3d_View.hxx>
-#include <gp_Quaternion.hxx>
 
 #ifdef _WIN32
 
@@ -254,7 +244,7 @@ void Jy3DWidget::mousePressEvent(QMouseEvent *event) {
                     Handle(StdSelect_BRepOwner) brepOwner = Handle(StdSelect_BRepOwner)::DownCast(owner);
                     if (!brepOwner.IsNull()) {
                         TopoDS_Shape shape = brepOwner->Shape();
-                        handleSelectedShape(shape);
+                        emit selectedShape(JyShape(shape));
                     }
                 }
             }
@@ -340,214 +330,4 @@ void Jy3DWidget::setSelectionMode(TopAbs_ShapeEnum mode) {
         m_view->Redraw();
         qDebug() << "选择模式已切换到:" << static_cast<int>(mode);
     }
-}
-
-void Jy3DWidget::handleSelectedShape(const TopoDS_Shape &shape) {
-    QJsonDocument json_doc;
-
-    // 根据形状类型调用相应的转换函数
-    switch (shape.ShapeType()) {
-        case TopAbs_VERTEX:
-            json_doc = vertexToJson(TopoDS::Vertex(shape));
-            break;
-        case TopAbs_EDGE:
-            json_doc = edgeToJson(TopoDS::Edge(shape));
-            break;
-        case TopAbs_WIRE:
-            json_doc = wireToJson(shape);
-            break;
-        case TopAbs_FACE:
-            json_doc = faceToJson(TopoDS::Face(shape));
-            break;
-        case TopAbs_SHELL:
-            json_doc = shellToJson(shape);
-            break;
-        case TopAbs_SOLID:
-        case TopAbs_COMPSOLID:
-            json_doc = solidToJson(shape);
-            break;
-        case TopAbs_COMPOUND:
-            json_doc = compoundToJson(shape);
-            break;
-        default:
-            return;
-    }
-
-    // 添加位姿信息
-    QJsonObject root = json_doc.object();
-    const auto pose = JyShape(shape).get_pose();
-    QJsonObject poseObj;
-    poseObj["position"] = QJsonObject({
-            {"x", pose[0]},
-            {"y", pose[1]},
-            {"z", pose[2]},
-    });
-    poseObj["orientation"] = QJsonObject({
-            {"roll", pose[3]},
-            {"pitch", pose[4]},
-            {"yaw", pose[5]},
-    });
-    root["pose"] = poseObj;
-    json_doc.setObject(root);
-
-    emit selectedShapeInfo(json_doc);
-}
-
-QJsonDocument Jy3DWidget::vertexToJson(const TopoDS_Vertex &vertex) {
-    // 获取顶点的坐标和容差
-    gp_Pnt point = BRep_Tool::Pnt(vertex);
-    Standard_Real tolerance = BRep_Tool::Tolerance(vertex);
-
-    QJsonObject jsonObj{
-            {"vertex", QJsonObject({
-                               {"x", point.X()},
-                               {"y", point.Y()},
-                               {"z", point.Z()},
-                               {"tolerance", tolerance},
-                       })},
-    };
-    return QJsonDocument(jsonObj);
-}
-
-QJsonDocument Jy3DWidget::edgeToJson(const TopoDS_Edge &edge) {
-    const auto props = JyShape::edge_properties(JyShape(edge));
-    QJsonObject jsonObj{{
-            {"edge", QJsonObject({
-                             {"type", QString::fromStdString(props.type)},
-                             {"length", props.length},
-                             {"first", QJsonObject({
-                                               {"x", props.first[0]},
-                                               {"y", props.first[1]},
-                                               {"z", props.first[2]},
-                                       })},
-                             {"last", QJsonObject({
-                                              {"x", props.last[0]},
-                                              {"y", props.last[1]},
-                                              {"z", props.last[2]},
-                                      })},
-                     })},
-    }};
-    return QJsonDocument(jsonObj);
-}
-
-QJsonDocument Jy3DWidget::faceToJson(const TopoDS_Face &face) {
-    const auto props = JyShape::face_properties(JyShape(face));
-
-    QJsonObject jsonObj{{
-            {"face", QJsonObject({
-                             {"type", QString::fromStdString(props.type)},
-                             {"area", props.area},
-                             {"u_range", QJsonObject({
-                                                 {"min", props.uv[0]},
-                                                 {"max", props.uv[1]},
-                                         })},
-                             {"v_range", QJsonObject({
-                                                 {"min", props.uv[2]},
-                                                 {"max", props.uv[3]},
-                                         })},
-                             {"center", QJsonObject({
-                                                {"x", props.center[0]},
-                                                {"y", props.center[1]},
-                                                {"z", props.center[2]},
-                                        })},
-                     })},
-    }};
-    return QJsonDocument(jsonObj);
-}
-
-QJsonDocument Jy3DWidget::wireToJson(const TopoDS_Shape &shape) {
-    // 统计边的数量
-    int edge_count = 0;
-    for (TopExp_Explorer exp(shape, TopAbs_EDGE); exp.More(); exp.Next()) { edge_count++; }
-
-    // 计算线框的总长度
-    GProp_GProps linear_props;
-    BRepGProp::LinearProperties(shape, linear_props);
-    Standard_Real length = linear_props.Mass();
-
-    const TopoDS_Wire &wire = TopoDS::Wire(shape);
-    // 检查是否闭合
-    bool is_closed = shape.Closed();
-
-    QJsonObject jsonObj{{
-            {"wire", QJsonObject({
-                             {"edge_count", edge_count},
-                             {"length", length},
-                             {"is_closed", is_closed},
-                     })},
-    }};
-    return QJsonDocument(jsonObj);
-}
-
-QJsonDocument Jy3DWidget::shellToJson(const TopoDS_Shape &shell) {
-    // 统计面的数量
-    int face_count = 0;
-    for (TopExp_Explorer exp(shell, TopAbs_FACE); exp.More(); exp.Next()) { face_count++; }
-    // 计算表面积
-    GProp_GProps surface_props;
-    BRepGProp::SurfaceProperties(shell, surface_props);
-    Standard_Real area = surface_props.Mass();
-    // 检查是否闭合
-    bool is_closed = shell.Closed();
-    QJsonObject jsonObj{{
-            {"shell", QJsonObject({
-                              {"face_count", face_count},
-                              {"area", area},
-                              {"is_closed", is_closed},
-                      })},
-    }};
-    return QJsonDocument(jsonObj);
-}
-
-QJsonDocument Jy3DWidget::solidToJson(const TopoDS_Shape &solid) {
-    // 计算体积
-    GProp_GProps volume_props;
-    BRepGProp::VolumeProperties(solid, volume_props);
-    Standard_Real volume = volume_props.Mass();
-    // 获取重心
-    gp_Pnt center = volume_props.CentreOfMass();
-    // 计算表面积
-    GProp_GProps surface_props;
-    BRepGProp::SurfaceProperties(solid, surface_props);
-    Standard_Real area = surface_props.Mass();
-    // 统计面的数量
-    int face_count = 0;
-    for (TopExp_Explorer exp(solid, TopAbs_FACE); exp.More(); exp.Next()) { face_count++; }
-    QJsonObject jsonObj{{
-            {"solid", QJsonObject({
-                              {"volume", volume},
-                              {"area", area},
-                              {"face_count", face_count},
-                              {"center", QJsonObject({
-                                                 {"x", center.X()},
-                                                 {"y", center.Y()},
-                                                 {"z", center.Z()},
-                                         })},
-                      })},
-    }};
-    return QJsonDocument(jsonObj);
-}
-
-QJsonDocument Jy3DWidget::compoundToJson(const TopoDS_Shape &compound) {
-    // 统计各种类型的子形状数量
-    int vertex_count = 0, edge_count = 0, wire_count = 0;
-    int face_count = 0, shell_count = 0, solid_count = 0;
-    for (TopExp_Explorer exp(compound, TopAbs_VERTEX, TopAbs_EDGE); exp.More(); exp.Next()) vertex_count++;
-    for (TopExp_Explorer exp(compound, TopAbs_EDGE, TopAbs_WIRE); exp.More(); exp.Next()) edge_count++;
-    for (TopExp_Explorer exp(compound, TopAbs_WIRE, TopAbs_FACE); exp.More(); exp.Next()) wire_count++;
-    for (TopExp_Explorer exp(compound, TopAbs_FACE, TopAbs_SHELL); exp.More(); exp.Next()) face_count++;
-    for (TopExp_Explorer exp(compound, TopAbs_SHELL, TopAbs_SOLID); exp.More(); exp.Next()) shell_count++;
-    for (TopExp_Explorer exp(compound, TopAbs_SOLID); exp.More(); exp.Next()) solid_count++;
-
-    QJsonObject jsonObj{{
-            {"compound", QJsonObject({
-                                 {"vertex_count", vertex_count},
-                                 {"edge_count", edge_count},
-                                 {"wire_count", wire_count},
-                                 {"face_count", face_count},
-                                 {"shell_count", shell_count},
-                                 {"solid_count", solid_count},
-                         })},
-    }};
-    return QJsonDocument(jsonObj);
 }

@@ -24,62 +24,6 @@ JyShapeInfoWidget::JyShapeInfoWidget(QWidget *parent) : QWidget(parent) {
     setLayout(layout);
 }
 
-void JyShapeInfoWidget::setShapeInfo(const QJsonDocument &doc) {
-    const auto edge = doc["edge"];
-    const auto face = doc["face"];
-    if (edge.isObject()) {
-        button_edge_info->setText("Insert edge info to editor");
-        button_edge_info->setVisible(true);
-        const QJsonObject edge_obj = edge.toObject();
-        const auto first = edge_obj["first"].toObject();
-        const auto last = edge_obj["last"].toObject();
-        const auto type = edge_obj["type"].toString();
-        current_info = QString("edge_info = {type = '%1', first = {%2, %3, %4}, last = {%5, %6, %7}, tol = 1e-3}")
-                               .arg(type)
-                               .arg(first["x"].toDouble())
-                               .arg(first["y"].toDouble())
-                               .arg(first["z"].toDouble())
-                               .arg(last["x"].toDouble())
-                               .arg(last["y"].toDouble())
-                               .arg(last["z"].toDouble());
-    } else if (face.isObject()) {
-        button_edge_info->setText("Insert face info to editor");
-        button_edge_info->setVisible(true);
-        const QJsonObject face_obj = face.toObject();
-        const auto type = face_obj["type"].toString();
-        const auto area = face_obj["area"].toDouble();
-        const auto center = face_obj["center"].toObject();
-        const auto u_range = face_obj["u_range"].toObject();
-        const auto v_range = face_obj["v_range"].toObject();
-        current_info = QString("get_face('%1', %2, {%3, %4, %5}, {%6, %7, %8, %9})")
-                               .arg(type)
-                               .arg(area)
-                               .arg(center["x"].toDouble())
-                               .arg(center["y"].toDouble())
-                               .arg(center["z"].toDouble())
-                               .arg(u_range["min"].toDouble())
-                               .arg(u_range["max"].toDouble())
-                               .arg(v_range["min"].toDouble())
-                               .arg(v_range["max"].toDouble());
-    } else {
-        button_edge_info->setVisible(false);
-        current_info.clear();
-    }
-    treeShapeInfo->clear();
-    if (doc.isObject()) {
-        QJsonObject obj = doc.object();
-        for (auto it = obj.begin(); it != obj.end(); ++it) {
-            addJsonValue(nullptr, it.key(), it.value());
-        }
-    } else if (doc.isArray()) {
-        QJsonArray array = doc.array();
-        for (int i = 0; i < array.size(); ++i) {
-            addJsonValue(nullptr, "[" + QString::number(i) + "]", array[i]);
-        }
-    }
-    treeShapeInfo->expandAll();
-}
-
 void JyShapeInfoWidget::onButtonEdgeInfoClicked() {
     emit insertEdgeInfo(current_info);
 }
@@ -125,4 +69,141 @@ void JyShapeInfoWidget::addJsonValue(QTreeWidgetItem *parent, const QString &key
     } else {
         treeShapeInfo->addTopLevelItem(item);
     }
+}
+
+
+void JyShapeInfoWidget::onSelectedShape(const JyShape &shape) {
+    const TopoDS_Shape topo_shape = shape.data();
+    current_info.clear();
+    button_edge_info->setVisible(false);
+    QJsonDocument json_doc;
+    switch (topo_shape.ShapeType()) {
+        case TopAbs_VERTEX: {
+            const auto props = JyShape::vertex_properties(shape);
+            QJsonObject jsonObj{{
+                    {"vertex", QJsonObject({
+                                       {"x", props[0]},
+                                       {"y", props[1]},
+                                       {"z", props[2]},
+                               })},
+            }};
+            json_doc.setObject(jsonObj);
+            break;
+        }
+        case TopAbs_EDGE: {
+            const auto props = JyShape::edge_properties(shape);
+            QJsonObject jsonObj{{
+                    {"edge", QJsonObject({
+                                     {"type", QString::fromStdString(props.type)},
+                                     {"length", props.length},
+                                     {"first", QJsonObject({
+                                                       {"x", props.first[0]},
+                                                       {"y", props.first[1]},
+                                                       {"z", props.first[2]},
+                                               })},
+                                     {"last", QJsonObject({
+                                                      {"x", props.last[0]},
+                                                      {"y", props.last[1]},
+                                                      {"z", props.last[2]},
+                                              })},
+                             })},
+            }};
+            json_doc.setObject(jsonObj);
+            button_edge_info->setText("Insert edge info to editor");
+            button_edge_info->setVisible(true);
+            current_info = QString("edge_info = {type = '%1', first = {%2, %3, %4}, last = {%5, %6, %7}, tol = 1e-3}")
+                                   .arg(QString::fromStdString(props.type))
+                                   .arg(props.first[0])
+                                   .arg(props.first[1])
+                                   .arg(props.first[2])
+                                   .arg(props.last[0])
+                                   .arg(props.last[1])
+                                   .arg(props.last[2]);
+            break;
+        }
+        case TopAbs_WIRE: {
+            json_doc.setObject({{"wire", QJsonObject({})}});
+            break;
+        }
+        case TopAbs_FACE: {
+            const auto props = JyShape::face_properties(shape);
+            QJsonObject jsonObj{{
+                    {"face", QJsonObject({
+                                     {"type", QString::fromStdString(props.type)},
+                                     {"area", props.area},
+                                     {"u_range", QJsonObject({
+                                                         {"min", props.uv[0]},
+                                                         {"max", props.uv[1]},
+                                                 })},
+                                     {"v_range", QJsonObject({
+                                                         {"min", props.uv[2]},
+                                                         {"max", props.uv[3]},
+                                                 })},
+                                     {"center", QJsonObject({
+                                                        {"x", props.center[0]},
+                                                        {"y", props.center[1]},
+                                                        {"z", props.center[2]},
+                                                })},
+                             })},
+            }};
+            json_doc.setObject(jsonObj);
+            button_edge_info->setText("Insert face info to editor");
+            button_edge_info->setVisible(true);
+            current_info = QString("get_face('%1', %2, {%3, %4, %5}, {%6, %7, %8, %9})")
+                                   .arg(QString::fromStdString(props.type))
+                                   .arg(props.area)
+                                   .arg(props.center[0])
+                                   .arg(props.center[1])
+                                   .arg(props.center[2])
+                                   .arg(props.uv[0])
+                                   .arg(props.uv[1])
+                                   .arg(props.uv[2])
+                                   .arg(props.uv[3]);
+            break;
+        }
+        case TopAbs_SHELL: {
+            json_doc.setObject({{"shell", QJsonObject({})}});
+            break;
+        }
+        case TopAbs_SOLID:
+        case TopAbs_COMPSOLID: {
+            json_doc.setObject({{"solid", QJsonObject({})}});
+            break;
+        }
+        case TopAbs_COMPOUND: {
+            json_doc.setObject({{"compound", QJsonObject({})}});
+            break;
+        }
+        default:
+            return;
+    }
+    // 添加位姿信息
+    QJsonObject root = json_doc.object();
+    const auto pose = shape.get_pose();
+    QJsonObject poseObj;
+    poseObj["position"] = QJsonObject({
+            {"x", pose[0]},
+            {"y", pose[1]},
+            {"z", pose[2]},
+    });
+    poseObj["orientation"] = QJsonObject({
+            {"roll", pose[3]},
+            {"pitch", pose[4]},
+            {"yaw", pose[5]},
+    });
+    root["pose"] = poseObj;
+    json_doc.setObject(root);
+    treeShapeInfo->clear();
+    if (json_doc.isObject()) {
+        QJsonObject obj = json_doc.object();
+        for (auto it = obj.begin(); it != obj.end(); ++it) {
+            addJsonValue(nullptr, it.key(), it.value());
+        }
+    } else if (json_doc.isArray()) {
+        QJsonArray array = json_doc.array();
+        for (int i = 0; i < array.size(); ++i) {
+            addJsonValue(nullptr, "[" + QString::number(i) + "]", array[i]);
+        }
+    }
+    treeShapeInfo->expandAll();
 }
