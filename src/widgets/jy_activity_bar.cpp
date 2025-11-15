@@ -11,32 +11,33 @@ JyActivityBar::JyActivityBar(QWidget *parent) : QToolBar(parent) {
     button_file_manager->setToolTip(tr("File Manager"));   // 设置提示文字
     const auto button_script = new QPushButton("📄");      // 创建脚本显示按钮
     button_script->setToolTip(tr("Script"));               // 设置提示文字
+    const auto button_git = new QPushButton("🔀");         // 创建Git版本管理按钮
+    button_git->setToolTip(tr("Version Control"));         // 设置提示文字
     const auto button_terminal = new QPushButton("🖥️");    // 创建终端页面选择按钮
     button_terminal->setToolTip(tr("Terminal"));           // 设置提示文字
     const auto button_shape_info = new QPushButton("💎");  // 创建形状信息按钮
     button_shape_info->setToolTip(tr("Shape Info"));       // 设置提示文字
     const auto button_help = new QPushButton("ℹ️");         // 创建帮助页面选择按钮
     button_help->setToolTip(tr("Help"));                   // 设置提示文字
+    // 创建按钮组，按钮的ID及布局排序受addButton的顺序影响
+    button_group = new QButtonGroup(this);
+    button_group->addButton(button_file_manager);
+    button_group->addButton(button_script);
+    button_group->addButton(button_git);
+    button_group->addButton(button_terminal);
+    button_group->addButton(button_shape_info);
+    button_group->addButton(button_help);
     // 转发按钮信号到主窗口，用于显示/隐藏脚本编辑界面
     // 布局
     const auto widget_tool_buttons = new QWidget(this);           // 按钮容器
+    addWidget(widget_tool_buttons);                               //工具栏加入按钮容器
     const auto vbox_layout = new QVBoxLayout(widget_tool_buttons);// 垂直排列按钮
     vbox_layout->setContentsMargins(0, 0, 0, 0);
     vbox_layout->setSpacing(0);
-    vbox_layout->addWidget(button_file_manager);// 加入文件管理器按钮
-    vbox_layout->addWidget(button_script);      // 加入脚本按钮
-    vbox_layout->addWidget(button_terminal);    // 加入终端按钮
-    vbox_layout->addWidget(button_shape_info);  // 加入形状信息按钮
-    vbox_layout->addWidget(button_help);        // 加入帮助按钮
-    addWidget(widget_tool_buttons);             //工具栏加入按钮容器
-    button_group = new QButtonGroup(this);
-    button_group->addButton(button_file_manager, 0);
-    button_group->addButton(button_script, 1);
-    button_group->addButton(button_terminal, 2);
-    button_group->addButton(button_shape_info, 3);
-    button_group->addButton(button_help, 4);
-    const auto buttons = button_group->buttons();
-    for (const auto &button: buttons) {
+    for (int i = 0; i < button_group->buttons().size(); i++) {
+        const auto button = button_group->buttons().at(i);
+        button_group->setId(button, i);
+        vbox_layout->addWidget(button);
         button->setCheckable(true);
     }
     button_file_manager->setChecked(true);// 默认选中文件管理器

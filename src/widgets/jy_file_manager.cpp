@@ -396,7 +396,7 @@ void JyFileManager::onFileChanged(const QString &path) {
     qDebug() << "File changed in JyFileManager:" << path;
 
     // If the changed file is the opened file, emit signal
-    if (!m_openedFilePath.isEmpty() && path == m_openedFilePath) {
+    if (!m_openedFilePath.isEmpty()) {
         emit openedFileChanged(path);
     }
 }

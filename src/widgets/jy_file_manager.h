@@ -28,6 +28,7 @@ public:
 
     QString getWorkingDirectory() const { return m_workingDirectory; }
     void setOpenedFile(const QString &filePath);
+    QString getOpenedFile() const { return m_openedFilePath; }
 
 signals:
     void fileOpenRequested(const QString &filePath);

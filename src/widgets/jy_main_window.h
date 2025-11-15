@@ -19,6 +19,7 @@
 #include <QTextBrowser>
 
 class JyFileManager;
+class JyGitManager;
 
 class JyMainWindow : public QMainWindow {
     Q_OBJECT
@@ -27,6 +28,7 @@ class JyMainWindow : public QMainWindow {
     JyEditorWidget *m_editorWidget;
     JyShapeInfoWidget *shape_info_widget;
     JyFileManager *file_manager;
+    JyGitManager *git_manager;
     JyActivityBar *m_activity_bar;
     QTextBrowser *text_lua_message;
     QProgressDialog *m_progressDialog;

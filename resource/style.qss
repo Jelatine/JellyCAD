@@ -245,6 +245,51 @@ QGroupBox::title {
     color: #FFFFFF;
 }
 
+/* QGroupBox 复选框样式 */
+QGroupBox::indicator {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 2px solid #5C5F66;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #2B2D30,
+                                stop:1 #252629);
+}
+
+QGroupBox::indicator:hover {
+    border-color: #7C7F86;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #3C3F44,
+                                stop:1 #35383D);
+}
+
+QGroupBox::indicator:unchecked {
+    border-color: #5C5F66;
+}
+
+QGroupBox::indicator:unchecked:hover {
+    border-color: #7C7F86;
+}
+
+QGroupBox::indicator:checked {
+    border-color: #3369FF;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #4A7FFF,
+                                stop:1 #3369FF);
+}
+
+QGroupBox::indicator:checked:hover {
+    border-color: #5C8AFF;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #5C8AFF,
+                                stop:1 #4A7FFF);
+}
+
+QGroupBox::indicator:disabled {
+    border-color: #3C3F44;
+    background: #252629;
+}
+
 /* =============================================================================
    分割线样式
    ============================================================================= */
@@ -367,6 +412,149 @@ QListWidget::item:selected:!active {
 QListWidget::item:disabled {
     color: #6B6E76;
     background: transparent;
+}
+
+/* =============================================================================
+   树形控件样式
+   ============================================================================= */
+
+QTreeWidget {
+    background-color: #1A1C1F;
+    color: #E1E3E6;
+    border: 1px solid #3C3F44;
+    border-radius: 4px;
+    outline: none;
+    padding: 4px;
+    alternate-background-color: #1E2023;
+}
+
+QTreeWidget:focus {
+    border-color: #3369FF;
+}
+
+QTreeWidget::item {
+    padding: 6px 8px;
+    margin: 1px 2px;
+    border-radius: 4px;
+    color: #E1E3E6;
+    background: transparent;
+    min-height: 24px;
+}
+
+QTreeWidget::item:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #3C3F44,
+                                stop:1 #35383D);
+    color: #FFFFFF;
+}
+
+QTreeWidget::item:selected {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #4A7FFF,
+                                stop:1 #3369FF);
+    color: #FFFFFF;
+    border: 1px solid #5C8AFF;
+}
+
+QTreeWidget::item:selected:!active {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #4E5157,
+                                stop:1 #45484D);
+    color: #E1E3E6;
+    border: 1px solid #5C5F66;
+}
+
+QTreeWidget::item:disabled {
+    color: #6B6E76;
+    background: transparent;
+}
+
+/* 树形控件分支线 */
+QTreeWidget::branch {
+    background: transparent;
+}
+
+QTreeWidget::branch:has-siblings:!adjoins-item {
+    border-image: none;
+    background: transparent;
+}
+
+QTreeWidget::branch:has-siblings:adjoins-item {
+    border-image: none;
+    background: transparent;
+}
+
+QTreeWidget::branch:!has-children:!has-siblings:adjoins-item {
+    border-image: none;
+    background: transparent;
+}
+
+/* 树形控件展开/折叠指示器 */
+QTreeWidget::branch:has-children:!has-siblings:closed,
+QTreeWidget::branch:closed:has-children:has-siblings {
+    image: url(:/icons/branch-closed.png);
+    background: transparent;
+}
+
+QTreeWidget::branch:open:has-children:!has-siblings,
+QTreeWidget::branch:open:has-children:has-siblings {
+    image: url(:/icons/branch-open.png);
+    background: transparent;
+}
+
+/* 树形控件表头 */
+QTreeWidget QHeaderView {
+    background: transparent;
+    border: none;
+}
+
+QTreeWidget QHeaderView::section {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #2F3136,
+                                stop:1 #2B2D30);
+    color: #B8BCC5;
+    padding: 6px 8px;
+    border: none;
+    border-right: 1px solid #3C3F44;
+    border-bottom: 1px solid #3C3F44;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+QTreeWidget QHeaderView::section:first {
+    border-top-left-radius: 4px;
+}
+
+QTreeWidget QHeaderView::section:last {
+    border-top-right-radius: 4px;
+    border-right: none;
+}
+
+QTreeWidget QHeaderView::section:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #3C3F44,
+                                stop:1 #35383D);
+    color: #FFFFFF;
+}
+
+QTreeWidget QHeaderView::section:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #4A7FFF,
+                                stop:1 #3369FF);
+    color: #FFFFFF;
+}
+
+/* 表头排序指示器 */
+QTreeWidget QHeaderView::down-arrow {
+    image: url(:/icons/arrow-down.png);
+    width: 10px;
+    height: 10px;
+}
+
+QTreeWidget QHeaderView::up-arrow {
+    image: url(:/icons/arrow-up.png);
+    width: 10px;
+    height: 10px;
 }
 
 /* =============================================================================

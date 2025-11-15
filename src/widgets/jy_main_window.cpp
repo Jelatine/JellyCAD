@@ -4,6 +4,7 @@
  */
 #include "jy_main_window.h"
 #include "jy_file_manager.h"
+#include "jy_git_manager.h"
 #include "jy_page_help.h"
 #include <QAbstractItemView>
 #include <QCompleter>
@@ -25,6 +26,7 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
                                               m_editorWidget(new JyEditorWidget),
                                               shape_info_widget(new JyShapeInfoWidget),
                                               file_manager(new JyFileManager),
+                                              git_manager(new JyGitManager),
                                               m_activity_bar(new JyActivityBar()),
                                               m_progressDialog(nullptr),
                                               m_isStoppingScript(false) {
@@ -76,13 +78,17 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     connect(shape_info_widget, &JyShapeInfoWidget::insertEdgeInfo, this, &JyMainWindow::onInsertEdgeInfo);
     connect(shape_info_widget, &JyShapeInfoWidget::insertEdgeInfo, [=] { m_activity_bar->slot_navigation_buttons_clicked(1); });
 
-    //!< 工作台: PAGE0: 文件管理器  PAGE1: 脚本编辑器  PAGE2: 终端  PAGE3: 形状信息  PAGE4: 帮助
+    //!< 工作台: PAGE0: 文件管理器  PAGE1: 脚本编辑器  PAGE2: 终端  PAGE3: 形状信息  PAGE4: Git版本管理  PAGE5: 帮助
     auto stack_widget = new QStackedWidget;
     stack_widget->addWidget(file_manager);
     stack_widget->addWidget(m_editorWidget);
+    stack_widget->addWidget(git_manager);
     stack_widget->addWidget(widget_terminal);
     stack_widget->addWidget(shape_info_widget);
     stack_widget->addWidget(new JyPageHelp);
+
+    // 设置Git管理器的工作目录
+    git_manager->setWorkingDirectory(file_manager->getWorkingDirectory());
     //!< 布局
     addToolBar(Qt::LeftToolBarArea, m_activity_bar);// 活动栏，放置在最左侧
     auto central_widget = new QSplitter;            // 可分割容器，水平分割脚本编辑器与三维显示窗，可拖动分割条调整两控件大小比例
@@ -118,19 +124,18 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
 
 void JyMainWindow::slot_file_changed(const QString &path) {
     qDebug() << "file changed: " << path;
-
-    int how_to_handle = 0;// 0 更新编辑器, 1 不更新
-    if (m_editorWidget->isModified()) {
-        // 用户编辑过该文件，则弹出保存对话框，是否同步到编辑器
-        how_to_handle = QMessageBox::question(this, tr("File Updated"),
-                                              tr("Do you want sync to editor?"),
-                                              tr("Yes"), tr("No"));
+    if (path == file_manager->getOpenedFile()) {
+        int how_to_handle = 0;// 0 更新编辑器, 1 不更新
+        if (m_editorWidget->isModified()) {
+            // 用户编辑过该文件，则弹出保存对话框，是否同步到编辑器
+            how_to_handle = QMessageBox::question(this, tr("File Updated"), tr("Do you want sync to editor?"), tr("Yes"), tr("No"));
+        }
+        // 用户无编辑过该文件，则更新文件内容到编辑器
+        if (how_to_handle == 0) {
+            m_editorWidget->loadFile(path);
+        }
     }
-    // 用户无编辑过该文件，则更新文件内容到编辑器
-    if (how_to_handle == 0) {
-        m_editorWidget->loadFile(path);
-    }
-    runScript(path);
+    runScript(file_manager->getOpenedFile());
 }
 
 void JyMainWindow::onFileOpenRequested(const QString &filePath) {
@@ -333,4 +338,6 @@ void JyMainWindow::onResetWorkspace() {
 
     // 禁用脚本编辑按钮
     m_activity_bar->setButtonEnabled(1, false);
+
+    git_manager->setWorkingDirectory(file_manager->getWorkingDirectory());
 }

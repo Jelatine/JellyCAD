@@ -6,6 +6,7 @@
 #include "jy_make_shapes.h"
 #include "jy_urdf_generator.h"
 #include <QDebug>
+#include <QDir>
 #include <QElapsedTimer>
 #include <QFileInfo>
 
@@ -59,6 +60,7 @@ void JyLuaVirtualMachine::runScript(const QString &_file_path, const bool &is_fi
     if (is_file) {
         QFileInfo fileInfo(_file_path);
         QString dirPath = fileInfo.absolutePath();
+        QDir::setCurrent(dirPath);
         lua["package"]["path"] = lua["package"]["path"].get<std::string>() + ";" + dirPath.toStdString() + "/?.lua";
         result = lua.script_file(_file_path.toStdString(), sol::script_pass_on_error);
     } else {

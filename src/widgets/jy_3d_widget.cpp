@@ -10,8 +10,8 @@
 #include <Graphic3d_GraphicDriver.hxx>
 #include <OpenGl_GraphicDriver.hxx>
 #include <QApplication>
-#include <QMouseEvent>
 #include <QDebug>
+#include <QMouseEvent>
 #include <StdSelect_BRepOwner.hxx>
 #include <V3d_View.hxx>
 
@@ -64,6 +64,7 @@ void Jy3DWidget::onDisplayShape(const JyShape &theIObj) {
     const auto ais_shape = new AIS_Shape(shape);
     ais_shape->SetColor(theIObj.color_);
     ais_shape->SetTransparency(theIObj.transparency_);
+    // 使用Plastic材质 - 具有良好的光泽度和反射特性，适合CAD应用
     ais_shape->SetMaterial(Graphic3d_NameOfMaterial_Stone);
     m_context->Display(ais_shape, Standard_True);
     m_view->FitAll();
@@ -148,19 +149,23 @@ void Jy3DWidget::initialize_context() {
 
     //设置显示模式
     m_context->SetDisplayMode(AIS_Shaded, Standard_True);
-    // 设置模型高亮的风格
+    // 设置模型高亮的风格 - 使用醒目的橙色
     Handle(Prs3d_Drawer) highlight_style = m_context->HighlightStyle();// 获取高亮风格
     highlight_style->SetMethod(Aspect_TOHM_COLOR);                     // 颜色显示方式
-    highlight_style->SetColor(Quantity_NOC_LIGHTYELLOW);               // 设置高亮颜色
-    highlight_style->SetDisplayMode(1);                                // 整体高亮
-    highlight_style->SetTransparency(0.2f);                            // 设置透明度
-    // 设置选择模型的风格
+    Quantity_Color highlight_color;
+    Quantity_Color::ColorFromHex("#FF9800", highlight_color);// 亮橙色 - 更醒目
+    highlight_style->SetColor(highlight_color);
+    highlight_style->SetDisplayMode(1);     // 整体高亮
+    highlight_style->SetTransparency(0.15f);// 降低透明度使颜色更明显
+    // 设置选择模型的风格 - 使用现代青色
     Handle(Prs3d_Drawer) t_select_style = m_context->SelectionStyle();// 获取选择风格
     t_select_style->SetMethod(Aspect_TOHM_COLOR);                     // 颜色显示方式
-    t_select_style->SetColor(Quantity_NOC_LIGHTSEAGREEN);             // 设置选择后颜色
-    t_select_style->SetDisplayMode(1);                                // 整体高亮
-    t_select_style->SetTransparency(0.4f);                            // 设置透明度
-    m_view->SetZoom(100);                                             // 放大
+    Quantity_Color selection_color;
+    Quantity_Color::ColorFromHex("#00BCD4", selection_color);// 现代青色 - 清晰明确
+    t_select_style->SetColor(selection_color);
+    t_select_style->SetDisplayMode(1);    // 整体高亮
+    t_select_style->SetTransparency(0.3f);// 设置透明度
+    m_view->SetZoom(100);                 // 放大
     // 激活二维网格
     m_viewer->SetRectangularGridValues(0, 0, 1, 1, 0);
     m_viewer->SetRectangularGridGraphicValues(2.01, 2.01, 0);
