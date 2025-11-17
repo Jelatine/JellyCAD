@@ -1,4 +1,9 @@
-#pragma once
+/*
+ * Copyright (c) 2024. Li Jianbin. All rights reserved.
+ * MIT License
+ */
+#ifndef JY_GIT_MANAGER_H
+#define JY_GIT_MANAGER_H
 
 #include <QComboBox>
 #include <QGroupBox>
@@ -109,3 +114,4 @@ private:
     QQueue<GitCommand> m_commandQueue;// 命令队列
     bool m_isProcessing;              // 是否正在处理命令
 };
+#endif// JY_GIT_MANAGER_H

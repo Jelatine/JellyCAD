@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2024. Li Jianbin. All rights reserved.
+ * MIT License
+ */
 #include "jy_git_manager.h"
 #include <QDebug>
 #include <QDesktopServices>
