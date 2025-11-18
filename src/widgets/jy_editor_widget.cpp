@@ -3,8 +3,10 @@
  * MIT License
  */
 #include "jy_editor_widget.h"
+#include "jy_llm_dialog.h"
 #include <QFile>
 #include <QHBoxLayout>
+#include <QTextCursor>
 #include <QVBoxLayout>
 
 JyEditorWidget::JyEditorWidget(QWidget *parent)
@@ -12,7 +14,11 @@ JyEditorWidget::JyEditorWidget(QWidget *parent)
       m_codeEditor(new JyCodeEditor(this)),
       m_searchWidget(new JySearchWidget(this)),
       m_saveButton(new QPushButton("Save", this)),
-      m_runButton(new QPushButton("Run", this)) {
+      m_runButton(new QPushButton("Run", this)),
+      m_llmButton(new QPushButton("💬", this)) {
+    m_llmButton->setMaximumWidth(30);
+    m_llmButton->setMinimumWidth(30);
+    m_llmButton->setStyleSheet("min-width:42px;padding-left:2;padding-right:2;font-size: 18px;");
     setupUi();
 }
 
@@ -21,6 +27,7 @@ void JyEditorWidget::setupUi() {
     m_saveButton->setToolTip("Ctrl+S");
     m_saveButton->setEnabled(false);
     m_runButton->setToolTip("F5");
+    m_llmButton->setToolTip("AI Code Assistant");
 
     // Create layout
     auto mainLayout = new QVBoxLayout(this);
@@ -29,6 +36,7 @@ void JyEditorWidget::setupUi() {
     auto buttonLayout = new QHBoxLayout;
     buttonLayout->addWidget(m_saveButton);
     buttonLayout->addWidget(m_runButton);
+    buttonLayout->addWidget(m_llmButton);
 
     // Add widgets to main layout
     mainLayout->addLayout(buttonLayout);
@@ -38,6 +46,7 @@ void JyEditorWidget::setupUi() {
     // Connect signals
     connect(m_saveButton, &QPushButton::clicked, this, &JyEditorWidget::onSaveClicked);
     connect(m_runButton, &QPushButton::clicked, this, &JyEditorWidget::onRunClicked);
+    connect(m_llmButton, &QPushButton::clicked, this, &JyEditorWidget::onLlmClicked);
     connect(m_codeEditor, &QPlainTextEdit::modificationChanged, m_saveButton, &QPushButton::setEnabled);
     connect(m_codeEditor, &QPlainTextEdit::modificationChanged, this, &JyEditorWidget::modificationChanged);
 
@@ -139,6 +148,43 @@ void JyEditorWidget::onSaveClicked() {
 
 void JyEditorWidget::onRunClicked() {
     emit runRequested();
+}
+
+void JyEditorWidget::onLlmClicked() {
+    // Create and show LLM dialog
+    auto dialog = new JyLlmDialog(this);
+
+    // Set current code
+    QString currentCode = m_codeEditor->get_text();
+    dialog->setCurrentCode(currentCode);
+
+    // Flag to track first stream update
+    bool isFirstUpdate = true;
+
+    // Connect stream updates to editor
+    connect(dialog, &JyLlmDialog::codeStreamUpdate, this, [this, &isFirstUpdate](const QString &deltaText) {
+        // On first update, clear the editor to replace old code
+        if (isFirstUpdate) {
+            m_codeEditor->clear();
+            isFirstUpdate = false;
+        }
+
+        // Append delta text to editor in real-time
+        QTextCursor cursor = m_codeEditor->textCursor();
+        cursor.movePosition(QTextCursor::End);
+        cursor.insertText(deltaText);
+        m_codeEditor->setTextCursor(cursor);
+        m_codeEditor->ensureCursorVisible();
+    });
+
+    // Connect generation finished - no need to do anything since we've been streaming
+    connect(dialog, &JyLlmDialog::codeGenerationFinished, this, [this](const QString &fullCode) {
+        Q_UNUSED(fullCode);
+        // Code has already been streamed to the editor
+    });
+
+    dialog->exec();
+    dialog->deleteLater();
 }
 
 void JyEditorWidget::onSearchTextChanged(const QString &text) {

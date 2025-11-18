@@ -27,14 +27,14 @@ find_package(OpenCASCADE CONFIG REQUIRED)
 option(FORCE_QT5 "Force use Qt5 instead of Qt6" OFF)
 # Qt版本检测：优先Qt6，可通过FORCE_QT5选项强制使用Qt5
 if(NOT FORCE_QT5)
-    find_package(Qt6 QUIET COMPONENTS Core Widgets)
+    find_package(Qt6 QUIET COMPONENTS Core Widgets Network)
 endif()
 if (Qt6_FOUND)
     message(STATUS "Found Qt6, using Qt6")
     set(QT_VERSION_MAJOR 6)
     set(QT_VERSION ${Qt6_VERSION})
 else()
-    find_package(Qt5 REQUIRED COMPONENTS Widgets)
+    find_package(Qt5 REQUIRED COMPONENTS Widgets Network)
     message(STATUS "using Qt5")
     set(QT_VERSION_MAJOR 5)
     set(QT_VERSION ${Qt5_VERSION})
@@ -76,6 +76,7 @@ if (QT_VERSION_MAJOR EQUAL 6)
     target_link_libraries(JellyCAD PRIVATE
             Qt6::Core
             Qt6::Widgets
+            Qt6::Network
             ${OpenCASCADE_LIBRARIES}
             ${LUA_LIBRARIES})
     if(WIN32)
@@ -100,6 +101,7 @@ if (QT_VERSION_MAJOR EQUAL 6)
 else()
     target_link_libraries(JellyCAD PRIVATE
             Qt5::Widgets
+            Qt5::Network
             ${OpenCASCADE_LIBRARIES}
             ${LUA_LIBRARIES})
 endif()

@@ -45,6 +45,7 @@ signals:
 private slots:
     void onSaveClicked();
     void onRunClicked();
+    void onLlmClicked();
     void onSearchTextChanged(const QString &text);
     void onSearchClosed();
 
@@ -56,6 +57,7 @@ private:
     JySearchWidget *m_searchWidget;
     QPushButton *m_saveButton;
     QPushButton *m_runButton;
+    QPushButton *m_llmButton;
     QString m_lastSearchText;
 };
 

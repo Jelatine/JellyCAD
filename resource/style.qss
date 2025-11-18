@@ -198,6 +198,117 @@ QLineEdit:read-only {
 }
 
 /* =============================================================================
+   下拉框样式
+   ============================================================================= */
+
+QComboBox {
+    min-height: 28px;
+    padding: 6px 32px 6px 12px;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3C3F44, stop:1 #2B2D30);
+    color: #E1E3E6;
+    border: 1px solid #5C5F66;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+QComboBox:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E5157, stop:1 #3C3F44);
+    border-color: #7C7F86;
+}
+
+QComboBox:focus {
+    border-color: #3369FF;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3C3F44, stop:1 #2F3136);
+}
+
+QComboBox:on {
+    border-color: #3369FF;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2F3136, stop:1 #2B2D30);
+}
+
+QComboBox:disabled {
+    background: #252629;
+    color: #6B6E76;
+    border-color: #3C3F44;
+}
+
+/* 下拉箭头按钮 */
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 28px;
+    border-left: 1px solid #5C5F66;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+    background: transparent;
+}
+
+QComboBox::drop-down:hover {
+    background: rgba(51, 105, 255, 0.1);
+}
+
+QComboBox::drop-down:on {
+    background: rgba(51, 105, 255, 0.2);
+}
+
+/* 下拉箭头图标 */
+QComboBox::down-arrow {
+    image: url(:/icons/arrow-down.svg);
+    width: 12px;
+    height: 12px;
+}
+
+/* 下拉列表容器 */
+QComboBox QAbstractItemView {
+    background: #2B2D30;
+    color: #E1E3E6;
+    border: 1px solid #5C5F66;
+    border-radius: 6px;
+    padding: 4px;
+    outline: none;
+    selection-background-color: #3369FF;
+    selection-color: #FFFFFF;
+}
+
+/* 下拉列表项 */
+QComboBox QAbstractItemView::item {
+    min-height: 28px;
+    padding: 6px 12px;
+    margin: 2px 4px;
+    border-radius: 4px;
+    color: #E1E3E6;
+    background: transparent;
+}
+
+QComboBox QAbstractItemView::item:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #3C3F44,
+                                stop:1 #35383D);
+    color: #FFFFFF;
+}
+
+QComboBox QAbstractItemView::item:selected {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #4A7FFF,
+                                stop:1 #3369FF);
+    color: #FFFFFF;
+}
+
+QComboBox QAbstractItemView::item:disabled {
+    color: #6B6E76;
+    background: transparent;
+}
+
+/* 可编辑下拉框的文本输入框 */
+QComboBox:editable {
+    padding-right: 32px;
+}
+
+QComboBox:editable:focus {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2F3136, stop:1 #2B2D30);
+}
+
+/* =============================================================================
    标签和标题样式
    ============================================================================= */
 
