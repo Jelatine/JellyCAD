@@ -151,44 +151,11 @@ void JyGitManager::setupUi() {
     m_fileChangesTree->header()->setStretchLastSection(false);
     m_fileChangesTree->header()->setSectionResizeMode(0, QHeaderView::Stretch);
     m_fileChangesTree->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    m_fileChangesTree->setMaximumHeight(200);
+    m_fileChangesTree->setMinimumHeight(100);  // 设置最小高度，确保始终可见
     m_fileChangesTree->setContextMenuPolicy(Qt::CustomContextMenu);
+    // 设置大小策略，允许垂直扩展
+    m_fileChangesTree->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
     mainLayout->addWidget(m_fileChangesTree);
-
-    // 文件操作按钮（暂存/取消暂存）
-    auto fileOpsLayout = new QHBoxLayout();
-    fileOpsLayout->setSpacing(1);
-
-    // Stage 相关按钮
-    const QString style_stage_buttons = "padding:1;font-size:12px;";
-    m_stageFileButton = new QPushButton(tr("➕ File"));
-    m_stageFileButton->setToolTip(tr("Stage selected file"));
-    m_stageFileButton->setStyleSheet(style_stage_buttons);
-    fileOpsLayout->addWidget(m_stageFileButton);
-
-    m_stageAllButton = new QPushButton(tr("➕ All"));
-    m_stageAllButton->setToolTip(tr("Stage all files"));
-    m_stageAllButton->setStyleSheet(style_stage_buttons);
-    fileOpsLayout->addWidget(m_stageAllButton);
-
-    // 分割线
-    QFrame *separator = new QFrame();
-    separator->setFrameShape(QFrame::VLine);
-    separator->setFrameShadow(QFrame::Sunken);
-    fileOpsLayout->addWidget(separator);
-
-    // Unstage 相关按钮
-    m_unstageFileButton = new QPushButton(tr("➖ File"));
-    m_unstageFileButton->setToolTip(tr("Unstage selected file"));
-    m_unstageFileButton->setStyleSheet(style_stage_buttons);
-    fileOpsLayout->addWidget(m_unstageFileButton);
-
-    m_unstageAllButton = new QPushButton(tr("➖ All"));
-    m_unstageAllButton->setToolTip(tr("Unstage all files"));
-    m_unstageAllButton->setStyleSheet(style_stage_buttons);
-    fileOpsLayout->addWidget(m_unstageAllButton);
-
-    mainLayout->addLayout(fileOpsLayout);
 
     // 4. Diff Viewer（可折叠，默认隐藏）
     m_diffGroup = new QGroupBox(tr("Diff Viewer"));
@@ -213,9 +180,6 @@ void JyGitManager::setupUi() {
     m_commitHistoryList->setVisible(false);
     historyLayout->addWidget(m_commitHistoryList);
     mainLayout->addWidget(m_historyGroup);
-
-    // 添加弹簧，将内容推到顶部
-    mainLayout->addStretch();
 
     // 创建隐藏的ComboBox（用于内部数据管理，不显示在UI上）
     m_branchComboBox = new QComboBox();
@@ -242,28 +206,6 @@ void JyGitManager::setupUi() {
             this, &JyGitManager::onFileItemDoubleClicked);
     connect(m_fileChangesTree, &QTreeWidget::customContextMenuRequested,
             this, &JyGitManager::onFileTreeContextMenu);
-    connect(m_fileChangesTree, &QTreeWidget::itemSelectionChanged,
-            this, &JyGitManager::updateFileOperationButtons);
-
-    // 文件操作按钮信号连接
-    connect(m_stageFileButton, &QPushButton::clicked, this, [this]() {
-        QTreeWidgetItem *item = m_fileChangesTree->currentItem();
-        if (item) {
-            QString filePath = item->text(0);
-            enqueueCommand("git", QStringList() << "add" << filePath, "stage_file");
-        }
-    });
-
-    connect(m_unstageFileButton, &QPushButton::clicked, this, [this]() {
-        QTreeWidgetItem *item = m_fileChangesTree->currentItem();
-        if (item) {
-            QString filePath = item->text(0);
-            enqueueCommand("git", QStringList() << "reset" << "HEAD" << filePath, "unstage_file");
-        }
-    });
-
-    connect(m_stageAllButton, &QPushButton::clicked, this, &JyGitManager::onStageAllClicked);
-    connect(m_unstageAllButton, &QPushButton::clicked, this, &JyGitManager::onUnstageAllClicked);
 
     // 连接可折叠GroupBox的toggled信号，控制内容显示/隐藏
     connect(m_diffGroup, &QGroupBox::toggled, m_diffViewer, &QWidget::setVisible);
@@ -274,10 +216,6 @@ void JyGitManager::setupUi() {
     m_commitMessageEdit->setEnabled(false);
     m_initRepoButton->setEnabled(false);
     m_menuButton->setEnabled(false);
-    m_stageFileButton->setEnabled(false);
-    m_unstageFileButton->setEnabled(false);
-    m_stageAllButton->setEnabled(false);
-    m_unstageAllButton->setEnabled(false);
 }
 
 void JyGitManager::checkGitInstallation() {
@@ -375,10 +313,6 @@ void JyGitManager::updateStatusLabel() {
         m_commitButton->setVisible(false);
         m_commitMessageEdit->setVisible(false);
         m_fileChangesTree->setVisible(false);
-        m_stageFileButton->setVisible(false);
-        m_unstageFileButton->setVisible(false);
-        m_stageAllButton->setVisible(false);
-        m_unstageAllButton->setVisible(false);
         m_diffGroup->setVisible(false);
         m_historyGroup->setVisible(false);
     } else if (!m_isGitRepository) {
@@ -395,10 +329,6 @@ void JyGitManager::updateStatusLabel() {
         m_commitButton->setVisible(false);
         m_commitMessageEdit->setVisible(false);
         m_fileChangesTree->setVisible(false);
-        m_stageFileButton->setVisible(false);
-        m_unstageFileButton->setVisible(false);
-        m_stageAllButton->setVisible(false);
-        m_unstageAllButton->setVisible(false);
         m_diffGroup->setVisible(false);
         m_historyGroup->setVisible(false);
     } else {
@@ -415,20 +345,12 @@ void JyGitManager::updateStatusLabel() {
         m_commitButton->setVisible(true);
         m_commitMessageEdit->setVisible(true);
         m_fileChangesTree->setVisible(true);
-        m_stageFileButton->setVisible(true);
-        m_unstageFileButton->setVisible(true);
-        m_stageAllButton->setVisible(true);
-        m_unstageAllButton->setVisible(true);
         m_diffGroup->setVisible(true);
         m_historyGroup->setVisible(true);
 
         // 启用git操作
         m_commitButton->setEnabled(true);
         m_commitMessageEdit->setEnabled(true);
-        m_stageFileButton->setEnabled(true);
-        m_unstageFileButton->setEnabled(true);
-        m_stageAllButton->setEnabled(true);
-        m_unstageAllButton->setEnabled(true);
     }
 }
 
@@ -606,6 +528,23 @@ void JyGitManager::onFileTreeContextMenu(const QPoint &pos) {
             });
         }
 
+        // 如果文件在工作区有未暂存的修改（不是未跟踪文件），提供放弃修改选项
+        if (workStatus != ' ' && stagedStatus != '?') {
+            QAction *discardAction = menu.addAction(tr("🗑 Discard Changes"));
+            discardAction->setToolTip(tr("Discard uncommitted changes in working directory"));
+            connect(discardAction, &QAction::triggered, this, [this, filePath]() {
+                auto reply = QMessageBox::warning(this, tr("Discard Changes"),
+                                                  tr("Are you sure you want to discard changes to:\n%1\n\n"
+                                                     "This action cannot be undone!")
+                                                          .arg(filePath),
+                                                  QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+                if (reply == QMessageBox::Yes) {
+                    // 使用 "discard_file:" + filePath 格式，以便在完成后能识别具体文件
+                    enqueueCommand("git", QStringList() << "checkout" << "--" << filePath, "discard_file:" + filePath);
+                }
+            });
+        }
+
         menu.addSeparator();
     }
 
@@ -751,8 +690,6 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
             // 存储原始状态用于后续判断
             item->setData(0, Qt::UserRole, QString("%1%2").arg(stagedStatus).arg(workStatus));
         }
-        // 更新文件操作按钮的启用状态
-        updateFileOperationButtons();
     } else if (m_currentCommand == "log") {
         m_commitHistoryList->clear();
         QStringList lines = output.split('\n', Qt::SkipEmptyParts);
@@ -789,6 +726,20 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
         } else {
             QMessageBox::warning(this, tr("Error"),
                                  tr("Failed to unstage files:\n%1").arg(errorOutput));
+        }
+    } else if (m_currentCommand.startsWith("discard_file:")) {
+        if (exitCode == 0) {
+            // 提取文件路径（格式为 "discard_file:<filePath>"）
+            QString filePath = m_currentCommand.mid(13);// 跳过 "discard_file:" 前缀
+
+            // 发送信号通知文件已被放弃修改，需要重新加载
+            emit fileDiscarded(filePath);
+
+            // 放弃修改成功，刷新状态
+            refreshStatus();
+        } else {
+            QMessageBox::warning(this, tr("Error"),
+                                 tr("Failed to discard changes:\n%1").arg(errorOutput));
         }
     } else if (m_currentCommand == "commit") {
         if (exitCode == 0) {
@@ -1035,73 +986,4 @@ void JyGitManager::onRemoveRemoteClicked() {
     if (reply == QMessageBox::Yes) {
         enqueueCommand("git", QStringList() << "remote" << "remove" << remoteName, "remove_remote");
     }
-}
-
-void JyGitManager::updateFileOperationButtons() {
-    // 检查是否在Git仓库中
-    if (!m_isGitRepository) {
-        m_stageFileButton->setEnabled(false);
-        m_unstageFileButton->setEnabled(false);
-        m_stageAllButton->setEnabled(false);
-        m_unstageAllButton->setEnabled(false);
-        return;
-    }
-
-    // 检查当前选中的文件
-    QTreeWidgetItem *currentItem = m_fileChangesTree->currentItem();
-    bool hasSelectedFile = (currentItem != nullptr);
-    bool canStageSelected = false;
-    bool canUnstageSelected = false;
-
-    if (hasSelectedFile) {
-        QString statusCode = currentItem->data(0, Qt::UserRole).toString();
-        if (statusCode.length() >= 2) {
-            QChar stagedStatus = statusCode.at(0);
-            QChar workStatus = statusCode.at(1);
-
-            // 如果工作区有修改或是未跟踪文件，可以Stage
-            if (workStatus != ' ' || stagedStatus == '?') {
-                canStageSelected = true;
-            }
-
-            // 如果暂存区有内容（不是空格且不是未跟踪），可以Unstage
-            if (stagedStatus != ' ' && stagedStatus != '?') {
-                canUnstageSelected = true;
-            }
-        }
-    }
-
-    m_stageFileButton->setEnabled(canStageSelected);
-    m_unstageFileButton->setEnabled(canUnstageSelected);
-
-    // 检查列表中是否存在可暂存和已暂存的文件
-    bool hasUnstagedFiles = false;
-    bool hasStagedFiles = false;
-
-    for (int i = 0; i < m_fileChangesTree->topLevelItemCount(); ++i) {
-        QTreeWidgetItem *item = m_fileChangesTree->topLevelItem(i);
-        QString statusCode = item->data(0, Qt::UserRole).toString();
-        if (statusCode.length() >= 2) {
-            QChar stagedStatus = statusCode.at(0);
-            QChar workStatus = statusCode.at(1);
-
-            // 工作区有修改或是未跟踪文件
-            if (workStatus != ' ' || stagedStatus == '?') {
-                hasUnstagedFiles = true;
-            }
-
-            // 暂存区有内容
-            if (stagedStatus != ' ' && stagedStatus != '?') {
-                hasStagedFiles = true;
-            }
-
-            // 如果两种都找到了，可以提前退出
-            if (hasUnstagedFiles && hasStagedFiles) {
-                break;
-            }
-        }
-    }
-
-    m_stageAllButton->setEnabled(hasUnstagedFiles);
-    m_unstageAllButton->setEnabled(hasStagedFiles);
 }

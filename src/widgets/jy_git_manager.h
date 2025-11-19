@@ -39,6 +39,7 @@ signals:
     void statusChanged(const QString &status);
     void branchChanged(const QString &branch);
     void errorOccurred(const QString &error);
+    void fileDiscarded(const QString &filePath);  // 文件修改被放弃，需要重新加载
 
 private slots:
     void onRefreshClicked();
@@ -69,7 +70,6 @@ private:
     void executeGitCommand(const QString &command, const QStringList &args);
     void showDiffForFile(const QString &filePath);
     void updateStatusLabel();
-    void updateFileOperationButtons();
 
     // UI组件
     QLabel *m_statusLabel;
@@ -83,10 +83,6 @@ private:
     QPushButton *m_addRemoteButton;
     QPushButton *m_removeRemoteButton;
     QPushButton *m_menuButton;
-    QPushButton *m_stageFileButton;
-    QPushButton *m_unstageFileButton;
-    QPushButton *m_stageAllButton;
-    QPushButton *m_unstageAllButton;
     QTreeWidget *m_fileChangesTree;
     QListWidget *m_commitHistoryList;
     QTextEdit *m_diffViewer;

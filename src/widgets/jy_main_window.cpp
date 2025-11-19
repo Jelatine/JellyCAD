@@ -9,6 +9,7 @@
 #include <QAbstractItemView>
 #include <QCompleter>
 #include <QDateTime>
+#include <QFileInfo>
 #include <QHeaderView>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -72,6 +73,17 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     connect(file_manager, &JyFileManager::fileOpenRequested, this, &JyMainWindow::onFileOpenRequested);
     connect(file_manager, &JyFileManager::resetWorkspace, this, &JyMainWindow::onResetWorkspace);
     connect(file_manager, &JyFileManager::openedFileChanged, this, &JyMainWindow::slot_file_changed);
+
+    //!< Git管理器 - 文件放弃修改后重新加载
+    connect(git_manager, &JyGitManager::fileDiscarded, this, [this](const QString &filePath) {
+        // 检查是否是当前在编辑器中打开的文件
+        QString currentFilePath = m_editorWidget->getFilePath();
+        if (!currentFilePath.isEmpty() && QFileInfo(currentFilePath).absoluteFilePath() == QFileInfo(filePath).absoluteFilePath()) {
+            // 重新加载文件内容到编辑器（loadFile会自动设置为未修改状态）
+            m_editorWidget->loadFile(filePath);
+            qDebug() << "File discarded and reloaded:" << filePath;
+        }
+    });
 
     //!< 形状信息
     connect(jy_3d_widget, &Jy3DWidget::selectedShape, shape_info_widget, &JyShapeInfoWidget::onSelectedShape);

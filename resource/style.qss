@@ -356,49 +356,20 @@ QGroupBox::title {
     color: #FFFFFF;
 }
 
-/* QGroupBox 复选框样式 */
+/* QGroupBox 展开/折叠箭头样式 */
 QGroupBox::indicator {
-    width: 16px;
-    height: 16px;
-    border-radius: 4px;
-    border: 2px solid #5C5F66;
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                stop:0 #2B2D30,
-                                stop:1 #252629);
-}
-
-QGroupBox::indicator:hover {
-    border-color: #7C7F86;
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                stop:0 #3C3F44,
-                                stop:1 #35383D);
+    width: 12px;
+    height: 12px;
+    border: none;
+    background: transparent;
 }
 
 QGroupBox::indicator:unchecked {
-    border-color: #5C5F66;
-}
-
-QGroupBox::indicator:unchecked:hover {
-    border-color: #7C7F86;
+    image: url(:/icons/arrow-right.svg);
 }
 
 QGroupBox::indicator:checked {
-    border-color: #3369FF;
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                stop:0 #4A7FFF,
-                                stop:1 #3369FF);
-}
-
-QGroupBox::indicator:checked:hover {
-    border-color: #5C8AFF;
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                stop:0 #5C8AFF,
-                                stop:1 #4A7FFF);
-}
-
-QGroupBox::indicator:disabled {
-    border-color: #3C3F44;
-    background: #252629;
+    image: url(:/icons/arrow-down.svg);
 }
 
 /* =============================================================================
@@ -603,13 +574,13 @@ QTreeWidget::branch:!has-children:!has-siblings:adjoins-item {
 /* 树形控件展开/折叠指示器 */
 QTreeWidget::branch:has-children:!has-siblings:closed,
 QTreeWidget::branch:closed:has-children:has-siblings {
-    image: url(:/icons/branch-closed.png);
+    image: url(:/icons/arrow-right.svg);
     background: transparent;
 }
 
 QTreeWidget::branch:open:has-children:!has-siblings,
 QTreeWidget::branch:open:has-children:has-siblings {
-    image: url(:/icons/branch-open.png);
+    image: url(:/icons/arrow-down.svg);
     background: transparent;
 }
 
@@ -653,127 +624,6 @@ QTreeWidget QHeaderView::section:pressed {
                                 stop:0 #4A7FFF,
                                 stop:1 #3369FF);
     color: #FFFFFF;
-}
-
-/* 表头排序指示器 */
-QTreeWidget QHeaderView::down-arrow {
-    image: url(:/icons/arrow-down.png);
-    width: 10px;
-    height: 10px;
-}
-
-QTreeWidget QHeaderView::up-arrow {
-    image: url(:/icons/arrow-up.png);
-    width: 10px;
-    height: 10px;
-}
-
-/* =============================================================================
-   滚动条样式
-   ============================================================================= */
-/* 垂直滚动条 */
-QScrollBar:vertical {
-    background-color: #2b2b2b;
-    width: 12px;
-    border: none;
-    border-radius: 6px;
-    margin: 0px;
-}
-
-/* 垂直滚动条滑块 */
-QScrollBar::handle:vertical {
-    background-color: #555555;
-    border-radius: 6px;
-    min-height: 20px;
-    margin: 2px;
-}
-
-/* 垂直滚动条滑块悬停效果 */
-QScrollBar::handle:vertical:hover {
-    background-color: #666666;
-}
-
-/* 垂直滚动条滑块按下效果 */
-QScrollBar::handle:vertical:pressed {
-    background-color: #777777;
-}
-
-/* 垂直滚动条上箭头按钮 */
-QScrollBar::add-line:vertical {
-    border: none;
-    background: none;
-    height: 0px;
-    subcontrol-position: bottom;
-    subcontrol-origin: margin;
-}
-
-/* 垂直滚动条下箭头按钮 */
-QScrollBar::sub-line:vertical {
-    border: none;
-    background: none;
-    height: 0px;
-    subcontrol-position: top;
-    subcontrol-origin: margin;
-}
-
-/* 垂直滚动条上下页区域 */
-QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-    background: none;
-}
-
-/* 水平滚动条 */
-QScrollBar:horizontal {
-    background-color: #2b2b2b;
-    height: 12px;
-    border: none;
-    border-radius: 6px;
-    margin: 0px;
-}
-
-/* 水平滚动条滑块 */
-QScrollBar::handle:horizontal {
-    background-color: #555555;
-    border-radius: 6px;
-    min-width: 20px;
-    margin: 2px;
-}
-
-/* 水平滚动条滑块悬停效果 */
-QScrollBar::handle:horizontal:hover {
-    background-color: #666666;
-}
-
-/* 水平滚动条滑块按下效果 */
-QScrollBar::handle:horizontal:pressed {
-    background-color: #777777;
-}
-
-/* 水平滚动条左箭头按钮 */
-QScrollBar::add-line:horizontal {
-    border: none;
-    background: none;
-    width: 0px;
-    subcontrol-position: right;
-    subcontrol-origin: margin;
-}
-
-/* 水平滚动条右箭头按钮 */
-QScrollBar::sub-line:horizontal {
-    border: none;
-    background: none;
-    width: 0px;
-    subcontrol-position: left;
-    subcontrol-origin: margin;
-}
-
-/* 水平滚动条左右页区域 */
-QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
-    background: none;
-}
-
-/* 滚动条交汇处的角落 */
-QScrollBar::corner {
-    background-color: #2b2b2b;
 }
 
 
@@ -884,4 +734,210 @@ QProgressDialog {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                                 stop:0 #323232,
                                 stop:1 #2b2b2b);
+}
+
+/* =============================================================================
+   滚动条样式
+   ============================================================================= */
+
+/* 垂直滚动条 */
+QScrollBar:vertical {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                stop:0 #2B2D30,
+                                stop:1 #252629);
+    width: 14px;
+    border: 1px solid #3C3F44;
+    border-radius: 3px;
+    margin: 16px 0 16px 0;
+}
+
+QScrollBar::handle:vertical {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                stop:0 #5C5F66,
+                                stop:1 #4E5157);
+    min-height: 30px;
+    border-radius: 2px;
+    border: 1px solid #3C3F44;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                stop:0 #7C7F86,
+                                stop:1 #6B6E76);
+    border-color: #5C5F66;
+}
+
+QScrollBar::handle:vertical:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                stop:0 #3369FF,
+                                stop:1 #2B5EE6);
+    border-color: #4169E1;
+}
+
+/* 垂直滚动条 - 上箭头按钮 */
+QScrollBar::sub-line:vertical {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                stop:0 #3C3F44,
+                                stop:1 #2B2D30);
+    height: 14px;
+    border: 1px solid #3C3F44;
+    border-radius: 3px;
+    subcontrol-position: top;
+    subcontrol-origin: margin;
+}
+
+QScrollBar::sub-line:vertical:hover {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                stop:0 #4E5157,
+                                stop:1 #45484D);
+}
+
+QScrollBar::sub-line:vertical:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                stop:0 #3369FF,
+                                stop:1 #2B5EE6);
+}
+
+/* 垂直滚动条 - 下箭头按钮 */
+QScrollBar::add-line:vertical {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                stop:0 #3C3F44,
+                                stop:1 #2B2D30);
+    height: 14px;
+    border: 1px solid #3C3F44;
+    border-radius: 3px;
+    subcontrol-position: bottom;
+    subcontrol-origin: margin;
+}
+
+QScrollBar::add-line:vertical:hover {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                stop:0 #4E5157,
+                                stop:1 #45484D);
+}
+
+QScrollBar::add-line:vertical:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                stop:0 #3369FF,
+                                stop:1 #2B5EE6);
+}
+
+/* 垂直滚动条箭头图标 */
+QScrollBar::up-arrow:vertical {
+    image: url(:/icons/arrow-up.svg);
+    width: 10px;
+    height: 10px;
+}
+
+QScrollBar::down-arrow:vertical {
+    image: url(:/icons/arrow-down.svg);
+    width: 10px;
+    height: 10px;
+}
+
+/* 垂直滚动条背景区域 */
+QScrollBar::add-page:vertical,
+QScrollBar::sub-page:vertical {
+    background: transparent;
+}
+
+/* 水平滚动条 */
+QScrollBar:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #2B2D30,
+                                stop:1 #252629);
+    height: 14px;
+    border: 1px solid #3C3F44;
+    border-radius: 3px;
+    margin: 0 16px 0 16px;
+}
+
+QScrollBar::handle:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #5C5F66,
+                                stop:1 #4E5157);
+    min-width: 30px;
+    border-radius: 2px;
+    border: 1px solid #3C3F44;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #7C7F86,
+                                stop:1 #6B6E76);
+    border-color: #5C5F66;
+}
+
+QScrollBar::handle:horizontal:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #3369FF,
+                                stop:1 #2B5EE6);
+    border-color: #4169E1;
+}
+
+/* 水平滚动条 - 左箭头按钮 */
+QScrollBar::sub-line:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #3C3F44,
+                                stop:1 #2B2D30);
+    width: 14px;
+    border: 1px solid #3C3F44;
+    border-radius: 3px;
+    subcontrol-position: left;
+    subcontrol-origin: margin;
+}
+
+QScrollBar::sub-line:horizontal:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #4E5157,
+                                stop:1 #45484D);
+}
+
+QScrollBar::sub-line:horizontal:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #3369FF,
+                                stop:1 #2B5EE6);
+}
+
+/* 水平滚动条 - 右箭头按钮 */
+QScrollBar::add-line:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #3C3F44,
+                                stop:1 #2B2D30);
+    width: 14px;
+    border: 1px solid #3C3F44;
+    border-radius: 3px;
+    subcontrol-position: right;
+    subcontrol-origin: margin;
+}
+
+QScrollBar::add-line:horizontal:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #4E5157,
+                                stop:1 #45484D);
+}
+
+QScrollBar::add-line:horizontal:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #3369FF,
+                                stop:1 #2B5EE6);
+}
+
+/* 水平滚动条箭头图标 */
+QScrollBar::left-arrow:horizontal {
+    image: url(:/icons/arrow-left.svg);
+    width: 10px;
+    height: 10px;
+}
+
+QScrollBar::right-arrow:horizontal {
+    image: url(:/icons/arrow-right.svg);
+    width: 10px;
+    height: 10px;
+}
+
+/* 水平滚动条背景区域 */
+QScrollBar::add-page:horizontal,
+QScrollBar::sub-page:horizontal {
+    background: transparent;
 }
