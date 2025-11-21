@@ -14,7 +14,7 @@
 #include <QSettings>
 #include <QStyle>
 
-JyFileManager::JyFileManager(QWidget *parent) : QWidget(parent), m_newFileItem(nullptr), m_newFileEditor(nullptr), m_watcher(new QFileSystemWatcher(this)) {
+JyFileManager::JyFileManager(QWidget *parent) : QWidget(parent), m_newFileItem(nullptr), m_newFileEditor(nullptr), m_renameFileItem(nullptr), m_renameFileEditor(nullptr), m_watcher(new QFileSystemWatcher(this)) {
 
     const QString default_dir = QApplication::applicationDirPath() + "/scripts";// 默认当前文件目录为应用程序目录下的scripts文件夹
     QDir dir_current(default_dir);
@@ -89,11 +89,13 @@ void JyFileManager::onFileListContextMenu(const QPoint &pos) {
     if (item) {
         // File is selected - show file operations menu
         QAction *openAction = menu.addAction(tr("Open"));
+        QAction *renameAction = menu.addAction(tr("Rename"));
         QAction *deleteAction = menu.addAction(tr("Delete"));
         QAction *copyAction = menu.addAction(tr("Copy"));
         menu.addSeparator();
 
         connect(openAction, &QAction::triggered, this, &JyFileManager::openSelectedFile);
+        connect(renameAction, &QAction::triggered, this, &JyFileManager::renameSelectedFile);
         connect(deleteAction, &QAction::triggered, this, &JyFileManager::deleteSelectedFile);
         connect(copyAction, &QAction::triggered, this, &JyFileManager::copySelectedFile);
     } else {
@@ -236,6 +238,130 @@ void JyFileManager::copySelectedFile() {
     }
 }
 
+void JyFileManager::renameSelectedFile() {
+    QListWidgetItem *item = m_fileList->currentItem();
+    if (!item) return;
+
+    // If already renaming a file, cancel it first
+    if (m_renameFileItem != nullptr) {
+        cancelFileRename();
+    }
+
+    // Store the original file name
+    m_originalFileName = item->text();
+    m_renameFileItem = item;
+
+    // Create an inline editor
+    m_renameFileEditor = new QLineEdit(m_fileList);
+
+    // Set the current file name without extension for editing
+    QFileInfo fileInfo(m_originalFileName);
+    QString baseName = fileInfo.completeBaseName();
+    m_renameFileEditor->setText(baseName);
+    m_renameFileEditor->selectAll();
+    m_renameFileEditor->installEventFilter(this);
+
+    // Set the editor as the item widget
+    m_fileList->setItemWidget(m_renameFileItem, m_renameFileEditor);
+    m_renameFileEditor->setFocus();
+}
+
+void JyFileManager::finishFileRename() {
+    if (!m_renameFileItem || !m_renameFileEditor) {
+        return;
+    }
+
+    QString newBaseName = m_renameFileEditor->text().trimmed();
+
+    // Remove the editor
+    m_renameFileEditor->removeEventFilter(this);
+    m_fileList->removeItemWidget(m_renameFileItem);
+    delete m_renameFileEditor;
+    m_renameFileEditor = nullptr;
+
+    // If name is empty or unchanged, cancel rename
+    if (newBaseName.isEmpty()) {
+        m_renameFileItem = nullptr;
+        m_originalFileName.clear();
+        return;
+    }
+
+    // Ensure .lua extension
+    QString newFileName = newBaseName;
+    if (!newFileName.endsWith(".lua", Qt::CaseInsensitive)) {
+        newFileName += ".lua";
+    }
+
+    // If name unchanged, just cancel
+    if (newFileName == m_originalFileName) {
+        m_renameFileItem = nullptr;
+        m_originalFileName.clear();
+        return;
+    }
+
+    QString oldFilePath = m_workingDirectory + "/" + m_originalFileName;
+    QString newFilePath = m_workingDirectory + "/" + newFileName;
+
+    // Check if new file name already exists
+    if (QFile::exists(newFilePath)) {
+        QMessageBox::warning(this, tr("File Exists"),
+                             tr("A file with name '%1' already exists!").arg(newFileName));
+        m_renameFileItem = nullptr;
+        m_originalFileName.clear();
+        return;
+    }
+
+    // Check if renaming the currently opened file
+    bool isRenamingOpenedFile = (oldFilePath == m_openedFilePath);
+
+    // Remove from watcher before renaming
+    if (m_watcher->files().contains(oldFilePath)) {
+        m_watcher->removePath(oldFilePath);
+    }
+
+    // Perform the rename
+    QFile file(oldFilePath);
+    if (file.rename(newFilePath)) {
+        // Add new path to watcher
+        m_watcher->addPath(newFilePath);
+
+        // If renamed file was the opened file, update the path and notify
+        if (isRenamingOpenedFile) {
+            m_openedFilePath = newFilePath;
+            // Emit signal to notify that the file path has changed
+            emit fileOpenRequested(newFilePath);
+        }
+
+        refreshFileList();
+
+        // Select the renamed file
+        QList<QListWidgetItem *> items = m_fileList->findItems(newFileName, Qt::MatchExactly);
+        if (!items.isEmpty()) {
+            m_fileList->setCurrentItem(items.first());
+        }
+    } else {
+        QMessageBox::warning(this, tr("Error"),
+                             tr("Failed to rename file!"));
+    }
+
+    m_renameFileItem = nullptr;
+    m_originalFileName.clear();
+}
+
+void JyFileManager::cancelFileRename() {
+    if (!m_renameFileItem || !m_renameFileEditor) {
+        return;
+    }
+
+    // Remove the editor
+    m_renameFileEditor->removeEventFilter(this);
+    m_fileList->removeItemWidget(m_renameFileItem);
+    delete m_renameFileEditor;
+    m_renameFileEditor = nullptr;
+    m_renameFileItem = nullptr;
+    m_originalFileName.clear();
+}
+
 void JyFileManager::onEditorFinished() {
     if (m_newFileEditor && m_newFileEditor->hasFocus()) {
         // editingFinished can be triggered multiple times, only process when editor has focus
@@ -327,16 +453,39 @@ bool JyFileManager::eventFilter(QObject *obj, QEvent *event) {
             finishFileCreation();
             return true;
         }
+    } else if (obj == m_renameFileEditor && event->type() == QEvent::KeyPress) {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+        if (keyEvent->key() == Qt::Key_Escape) {
+            // Cancel file rename on ESC
+            cancelFileRename();
+            return true;
+        } else if (keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) {
+            // Finish file rename on Enter
+            finishFileRename();
+            return true;
+        }
     } else if (obj == m_fileList && event->type() == QEvent::KeyPress) {
         QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
         if (keyEvent->key() == Qt::Key_Delete) {
             // Delete selected file when Delete key is pressed
             QListWidgetItem *item = m_fileList->currentItem();
-            if (item && item != m_newFileItem) {
-                // Only delete if it's not the new file editor item
+            if (item && item != m_newFileItem && item != m_renameFileItem) {
+                // Only delete if it's not the new file editor item or rename editor item
                 deleteSelectedFile();
                 return true;
             }
+        } else if (keyEvent->key() == Qt::Key_F2) {
+            // Rename selected file when F2 is pressed
+            QListWidgetItem *item = m_fileList->currentItem();
+            if (item && item != m_newFileItem && item != m_renameFileItem) {
+                // Only rename if it's not the new file editor item or already renaming
+                renameSelectedFile();
+                return true;
+            }
+        } else if (keyEvent->key() == Qt::Key_N && keyEvent->modifiers() == Qt::ControlModifier) {
+            // Create new file when Ctrl+N is pressed
+            createNewFile();
+            return true;
         }
     } else if (obj == m_fileList->viewport() && event->type() == QEvent::MouseButtonDblClick) {
         // Handle double click on list widget viewport

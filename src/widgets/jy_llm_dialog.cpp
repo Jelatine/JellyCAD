@@ -208,12 +208,17 @@ void JyLlmDialog::sendRequest(const QString &userMessage) {
 JellyCAD Lua API Reference:
 
 Basic Shapes:
-- box.new(width, height, depth) - Create a box
+- box.new(width,depth,height) - Create a box
+- box.new(P1,P2) - Make a box with corners P1{dx1,dy1,dz1},P2{dx2,dy2,dz2}
 - cylinder.new(radius, height) - Create a cylinder
 - cone.new(radius1, radius2, height) - Create a cone
 - sphere.new(radius) - Create a sphere
-- polygon.new(points) - Create a polygon from points table
 - face.new(polygon) - Create a face from polygon
+- polygon.new(points) - Create a polygon Wire from points table
+- line.new(vertex1, vertex2) - Make a line Edge from vertex1{x1,y1,z1} to vertex2{x2,y2,z2}
+- circle.new(center, normal, radius) - Make a circle Edge with center{cx,cy,cz} and normal{nx,ny,nz} and radius r
+- ellipse.new(center, normal, majorRadius, minorRadius) - Make an ellipse Edge with center{cx,cy,cz} and normal{nx,ny,nz} and major radius r1 and minor radius r2
+- bezier.new(controlPoints) - Make a Bezier Curve Edge from control points table
 
 Object Methods:
 - :pos(x, y, z) - Set position
@@ -238,6 +243,7 @@ Filter examples:
 
 Face Operations:
 - :prism(dx, dy, dz) - Extrude face
+- :revol(pos,dir,angle) - Revolve face around pos{px,py,pz} with dir{dx,dy,dz} and angle (degrees)
 
 Display:
 - show(shape) or show({shape1, shape2, ...}) - Display shapes
@@ -247,6 +253,9 @@ b = box.new(1, 1, 1):color('red'):pos(0, 0, 0)
 c = cylinder.new(0.5, 2):color('blue'):pos(2, 0, 0)
 b:fillet(0.1, {min={0,0,0.9}})
 show({b, c})
+-- Create and show a vase 
+local profile=polygon.new({{0,0,0},{3,0,0},{4,0,2},{3.5,0,5},{4,0,8},{0,0,8}})
+face.new(profile):revol({0,0,0}, {0,0,1}, 360):show()
 )";
 
     QString systemPrompt;

@@ -48,9 +48,12 @@ private:
     void openSelectedFile();
     void deleteSelectedFile();
     void copySelectedFile();
+    void renameSelectedFile();
     void openWorkingDirectory();
     void finishFileCreation();
     void cancelFileCreation();
+    void finishFileRename();
+    void cancelFileRename();
     void updateWatcher();
     bool eventFilter(QObject *obj, QEvent *event) override;
 
@@ -60,6 +63,9 @@ private:
     QPushButton *m_openFolderButton;
     QListWidgetItem *m_newFileItem;
     QLineEdit *m_newFileEditor;
+    QListWidgetItem *m_renameFileItem;
+    QLineEdit *m_renameFileEditor;
+    QString m_originalFileName;
     QSettings *settings;
     QFileSystemWatcher *m_watcher;
 };

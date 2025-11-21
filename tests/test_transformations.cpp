@@ -114,8 +114,8 @@ TEST_F(TransformationsTest, TranslateAlongZ) {
 TEST_F(TransformationsTest, TranslateAllAxes) {
     JyShapeBox box(1.0, 1.0, 1.0);
     auto center_before = GetCenterOfMass(box);
-    EXPECT_NEAR(center_before[0], 0.5, 0.01);
-    EXPECT_NEAR(center_before[1], 0.5, 0.01);
+    EXPECT_NEAR(center_before[0], 0, 0.01);
+    EXPECT_NEAR(center_before[1], 0, 0.01);
     EXPECT_NEAR(center_before[2], 0.5, 0.01);
 
     // Translate along all axes

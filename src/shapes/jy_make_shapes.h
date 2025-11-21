@@ -21,11 +21,11 @@ class JyShapeBox : public JyShape {
 public:
     /**
      * @brief 构造指定尺寸的长方体
-     * @param _x 长度
-     * @param _y 宽度
-     * @param _z 高度
+     * @param width 长度
+     * @param depth 宽度
+     * @param height 高度
      */
-    explicit JyShapeBox(const double &_x = 1, const double &_y = 1, const double &_z = 1);
+    explicit JyShapeBox(const double &width = 1, const double &depth = 1, const double &height = 1);
 
     explicit JyShapeBox(const std::array<double, 3> p1, const std::array<double, 3> p2);
 };

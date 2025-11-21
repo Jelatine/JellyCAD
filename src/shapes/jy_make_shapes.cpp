@@ -67,8 +67,10 @@ void JyMakeShapes::configure_usertype(sol::state &lua) {
     lua.new_usertype<JyText>("text", text_ctor, sol::base_classes, sol::bases<JyShape>());
 }
 
-JyShapeBox::JyShapeBox(const double &_x, const double &_y, const double &_z) {
-    BRepPrimAPI_MakeBox make_box(_x, _y, _z);
+JyShapeBox::JyShapeBox(const double &width, const double &depth, const double &height) {
+    const gp_Pnt pnt1(-width / 2, -depth / 2, 0);
+    const gp_Pnt pnt2(width / 2, depth / 2, height);
+    BRepPrimAPI_MakeBox make_box(pnt1, pnt2);
     if (make_box.Wedge().IsDegeneratedShape()) { throw std::runtime_error("Is Degenerated Shape!"); }
     s_ = make_box;
 }

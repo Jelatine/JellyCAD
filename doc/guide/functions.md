@@ -35,12 +35,16 @@ shape.new(filename)  -- 从文件加载（支持 *.step, *.stl）
 创建一个长方体
 
 ```lua
-box.new()                 -- 默认: x=y=z=1，从(0,0,0)到(1,1,1)
-box.new(x, y, z)          -- 自定义尺寸，从(0,0,0)到(x,y,z)
-box.new(vertex1, vertex2) -- 通过两个顶点构造长方体，从(x1,y1,z1)到(x2,y2,z2)
+box.new()                 -- 默认: width=depth=height=1
+box.new(width, depth, height)          -- 自定义尺寸
+box.new(vertex1, vertex2) -- 通过两个顶点构造长方体，从(vertex1)到(vertex2)
 ```
 **参数：**
-- `x, y, z` - *number* - 盒子对角线从 (0,0,0) 到 (x,y,z)
+- `width` - *number* - 宽度
+- `depth` - *number* - 深度
+- `height` - *number* - 高度
+- `vertex1` - *table* - 第一个顶点 `{x1,y1,z1}`
+- `vertex2` - *table* - 第二个顶点 `{x2,y2,z2}`
 
 **示例：**
 
