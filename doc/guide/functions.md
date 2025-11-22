@@ -221,6 +221,8 @@ bezier.new(poles, weights) -- weights:权重[number的数组]，数据量与极�
 -- B样条曲线
 bspline.new(poles, knots, multiplicities, degree) -- knots:节点向量[number的数组], multiplicities: [number的数组], degree:次数[number]
 bspline.new(points) -- 近似通过一组点的B样条曲线 points:点[array3的数组]
+-- 圆弧
+arc.new(p1, p2, p3) -- p1:起点[array3], p2:圆弧上一点[array3], p3:终点[array3]
 ```
 
 **示例：**
@@ -238,6 +240,7 @@ bspline.new({ { 0, 0, 0 }, { 1, 2, 1 }, { 2, 2, 2 }, { 3, 0, 3 } }, { 0, 1 }, { 
 local r,p,h,n=1,2,10,{}
 for i=0,(100*h/p) do t=i/(100*h/p) a=2*p*math.pi*t n[i+1]={r*math.cos(a),r*math.sin(a),h*t}end
 bspline.new(n):show()
+arc.new({ 0, 0, 0 }, { 1, 1, 1 }, { 0, 0, 2 }):show()
 ```
 
 
@@ -614,7 +617,9 @@ local offset = h_motor / 2 - r_shell
 shell = cylinder.new(r_shell, h_motor)
 shell:fillet(5, { type = 'circle', min = { r_shell - 1e-2, -1e-2, h_motor - 1e-2 } });
 shell:fuse(cylinder.new(r_shell, h_motor / 2):z(h_motor / 2):rx(90));
--- shell:cut(text.new('JellyCAD', 8):pos(-r_shell / 2, -4, h_motor + 1):prism(0, 0, -2)) -- 关节盖刻字(操作很耗时)
+shell:cut(cylinder.new(r_shell - 8, h_motor - 1):z(2));
+-- 电机
+motor = cylinder.new(r_shell - 9, h_motor / 3):color('black')
 -- 生成连接柱
 function get_pole(r_outer, r2, h)
     local r1 = r_outer - 1
@@ -639,42 +644,58 @@ ellipse:revol({ 0, 0, 0 }, { 0, 0, 1 }, 360)
 base_link:cut(ellipse);
 base_link:fillet(3, { type = 'bspline_curve', min = { r_base - 1e-2, -1e-2, (h_base - R0) - 1e-2 } });
 -- 肩部
-sholder = shell:copy():z(h_base);
+sholder = {}
+sholder[1] = shell:copy():z(h_base);
 -- 上臂
 local h_upperarm = 150
 local r_upperarm = 20
 local z_upperarm = h_base + h_motor / 2
-upperarm = shell:copy();
-upperarm:rot(90, 180, 0);
-upperarm:fuse(get_pole(r_shell, r_upperarm, h_upperarm):pos(0, -h_motor / 2, h_motor / 2))
-upperarm:fuse(shell:copy():rot(90, 0, 0):pos(0, 0, h_motor + h_upperarm))
-upperarm:pos(0, -h_motor / 2, z_upperarm)
+upperarm = {}
+upperarm[1] = shell:copy():rot(90, 180, 0)
+upperarm[2] = get_pole(r_shell, r_upperarm, h_upperarm):pos(0, -h_motor / 2, h_motor / 2)
+upperarm[3] = shell:copy():rot(90, 0, 0):pos(0, 0, h_motor + h_upperarm)
+upperarm[1]:move('pos', 0, -h_motor / 2, z_upperarm)
+upperarm[2]:move('pos', 0, -h_motor / 2, z_upperarm)
+upperarm[3]:move('pos', 0, -h_motor / 2, z_upperarm)
 -- 前臂
 local h_forearm = 120
 local r_forearm = 20
 local z_forearm = h_base + h_upperarm + r_shell + h_motor + offset
-forearm = face.new(edge.new('circ', { 0, 0, 0 }, { 0, 0, 1 }, r_shell));
-forearm:revol({ 0, -r_shell, 0 }, { 1, 0, 0 }, -90)
-forearm:fuse(get_pole(r_shell, r_forearm, h_forearm))
-forearm:fuse(shell:copy():rot(90, 0, 180):pos(0, -h_motor / 2, h_motor / 2 + h_forearm))
-forearm:pos(0, -offset, z_forearm + r_shell)
+forearm = {}
+forearm[1] = face.new(edge.new('circ', { 0, 0, 0 }, { 0, 0, 1 }, r_shell)):revol({ 0, -r_shell, 0 }, { 1, 0, 0 }, -90)
+forearm[2] = get_pole(r_shell, r_forearm, h_forearm)
+forearm[3] = shell:copy():rot(90, 0, 180):pos(0, -h_motor / 2, h_motor / 2 + h_forearm)
+forearm[1]:move('pos', 0, -offset, z_forearm + r_shell)
+forearm[2]:move('pos', 0, -offset, z_forearm + r_shell)
+forearm[3]:move('pos', 0, -offset, z_forearm + r_shell)
 -- 手腕1
-local z_wrist1 = z_forearm + h_forearm + h_motor + r_shell
-wrist1 = shell:copy():rot(180, 0, 0):pos(0, -h_motor - offset, z_forearm + h_forearm + h_motor + r_shell)
+wrist1 = {}
+wrist1[1] = shell:copy():rot(180, 0, 0):pos(0, -h_motor - offset, z_forearm + h_forearm + h_motor + r_shell)
 -- 手腕2
+wrist2 = {}
 local z_wrist2 = z_forearm + h_forearm + 2 * h_motor - offset
-wrist2 = shell:copy():rot(90, 0, 180):pos(0, r_shell - 2 * h_motor, z_wrist2)
+wrist2[1] = shell:copy():rot(90, 0, 180):pos(0, r_shell - 2 * h_motor, z_wrist2)
 -- 手腕3
 local h_flank = 10
 wrist3 = cylinder.new(r_shell, h_flank):rot(90, 0, 0):pos(0, r_shell - 2 * h_motor, z_wrist2)
 -- 毫米单位转为米，生成URDF
 base_link:scale(1e-3):color('#6495ED'):mass(0.1)
-sholder:scale(1e-3):color('#8470FF'):mass(0.4)
-upperarm:scale(1e-3):color('#FFC1C1'):mass(1)
-forearm:scale(1e-3):color('#FFC100'):mass(0.8)
-wrist1:scale(1e-3):color('#FF8247'):mass(0.4)
-wrist2:scale(1e-3):color('#FFE7BA'):mass(0.4)
-wrist3:scale(1e-3):color('#C1CDC1'):mass(0.1)
+sholder[1]:scale(1e-3):color('#8470FF'):mass(0.1)                                  -- 肩部模组外壳
+sholder[2] = motor:copy():locate(sholder[1]):move('z', 2):scale(1e-3):mass(0.3)    -- J1电机
+upperarm[1]:scale(1e-3):color('#FFC1C1'):mass(0.1)                                 -- 关节2模组外壳
+upperarm[4] = motor:copy():locate(upperarm[1]):move('y', -2):scale(1e-3):mass(0.3) -- J2电机
+upperarm[2]:scale(1e-3):color('#FFC1C1'):mass(0.2)                                 -- 关节2与关节3之间的连接柱
+upperarm[3]:scale(1e-3):color('#FFC1C1'):mass(0.1)                                 -- 关节3模组外壳
+upperarm[5] = motor:copy():locate(upperarm[3]):move('y', -2):scale(1e-3):mass(0.3) -- J3电机
+forearm[1]:scale(1e-3):color('#FFC100'):mass(0.2)                                  -- 关节3与前臂柱转接器
+forearm[2]:scale(1e-3):color('#FFC100'):mass(0.1)                                  -- 前臂柱
+forearm[3]:scale(1e-3):color('#FFC100'):mass(0.1)                                  -- 关节4模组外壳
+forearm[4] = motor:copy():locate(forearm[3]):move('y', 2):scale(1e-3):mass(0.3)    -- J4电机
+wrist1[1]:scale(1e-3):color('#FF8247'):mass(0.1)                                   -- 手腕1模组外壳
+wrist1[2] = motor:copy():locate(wrist1[1]):move('z', -2):scale(1e-3):mass(0.3)     -- J5电机
+wrist2[1]:scale(1e-3):color('#FFE7BA'):mass(0.1)                                   -- 手腕2模组外壳
+wrist2[2] = motor:copy():locate(wrist2[1]):move('y', 2):scale(1e-3):mass(0.3)      -- J16电机
+wrist3:scale(1e-3):color('#C1CDC1'):mass(0.1)                                      -- 末端法兰
 local d1 = z_upperarm * 1e-3
 local a2 = (h_upperarm + h_motor) * 1e-3
 local a3 = (h_forearm + h_motor / 2 + r_shell) * 1e-3
@@ -711,12 +732,30 @@ link6 = link.new("link6", wrist3)
 link_tool = link.new("link_tool", shape.new())
 urdf:add(joint1):next(link1):add(joint2):next(link2):add(joint3):next(link3):add(joint4):next(link4):add(joint5):next(
     link5):add(joint6):next(link6):add(jointT):next(link_tool)
-show({ base_link, sholder, upperarm, forearm, wrist1, wrist2, wrist3 })
+for _, arr in ipairs({ { base_link }, sholder, upperarm, upperarm, forearm, wrist1, wrist2, { wrist3 } }) do
+    for _, value in ipairs(arr) do
+        value:show()
+    end
+end
 show({ joint_axes1, joint_axes2, joint_axes3, joint_axes4, joint_axes5, joint_axes6, joint_tool })
 urdf:export({ name = 'myrobot', path = 'd:/', ros_version = 2 })
+-- urdf:export({ name = 'myrobot_mujoco', path = 'd:/', mujoco = true }) -- 导出mujoco
 ```
 
 <img src="../example_urdf.png" alt="example_urdf" style="zoom:33%;" />
+
+**ROS1使用方法：**
+
+```bash
+sudo apt update
+sudo apt-get install ros-$ROS_DISTRO-urdf-tutorial
+mkdir -p ~/ws_ros1/src
+cp -r /mnt/d/myrobot ~/ws_ros1/src/
+cd ~/ws_ros1
+catkin_make
+source devel/setup.bash
+roslaunch urdf_tutorial display.launch model:='$(find myrobot)/urdf/myrobot.urdf'
+```
 
 ROS2使用方法
 
