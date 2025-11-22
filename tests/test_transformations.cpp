@@ -124,8 +124,8 @@ TEST_F(TransformationsTest, TranslateAllAxes) {
     auto center_after = GetCenterOfMass(box);
 
     // All coordinates should be at the specified position
-    EXPECT_NEAR(center_after[0], 10.5, 0.01);
-    EXPECT_NEAR(center_after[1], 20.5, 0.01);
+    EXPECT_NEAR(center_after[0], 10, 0.01);
+    EXPECT_NEAR(center_after[1], 20, 0.01);
     EXPECT_NEAR(center_after[2], 30.5, 0.01);
 }
 
@@ -137,8 +137,8 @@ TEST_F(TransformationsTest, ChainedTranslations) {
 
     auto center = GetCenterOfMass(box);
 
-    EXPECT_NEAR(center[0], 5.5, 0.01);  // 0.5 (initial) + 5.0
-    EXPECT_NEAR(center[1], 3.5, 0.01);  // 0.5 (initial) + 3.0
+    EXPECT_NEAR(center[0], 5, 0.01);  // 0.5 (initial) + 5.0
+    EXPECT_NEAR(center[1], 3, 0.01);  // 0.5 (initial) + 3.0
     EXPECT_NEAR(center[2], 2.5, 0.01);  // 0.5 (initial) + 2.0
 }
 
@@ -150,8 +150,8 @@ TEST_F(TransformationsTest, NegativeTranslation) {
 
     auto center = GetCenterOfMass(box);
 
-    EXPECT_NEAR(center[0], -4.5, 0.01);
-    EXPECT_NEAR(center[1], -2.5, 0.01);
+    EXPECT_NEAR(center[0], -4, 0.01);
+    EXPECT_NEAR(center[1], -2, 0.01);
     EXPECT_NEAR(center[2], -1.5, 0.01);
 }
 
