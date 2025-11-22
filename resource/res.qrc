@@ -8,9 +8,9 @@
         <file>style.qss</file>
     </qresource>
     <qresource prefix="/icons">
-        <file>arrow-up.svg</file>
-        <file>arrow-down.svg</file>
-        <file>arrow-left.svg</file>
-        <file>arrow-right.svg</file>
+        <file>arrow-up.png</file>
+        <file>arrow-down.png</file>
+        <file>arrow-left.png</file>
+        <file>arrow-right.png</file>
     </qresource>
 </RCC>

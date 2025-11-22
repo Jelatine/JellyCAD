@@ -253,7 +253,7 @@ QComboBox::drop-down:on {
 
 /* 下拉箭头图标 */
 QComboBox::down-arrow {
-    image: url(:/icons/arrow-down.svg);
+    image: url(:/icons/arrow-down.png);
     width: 12px;
     height: 12px;
 }
@@ -365,11 +365,11 @@ QGroupBox::indicator {
 }
 
 QGroupBox::indicator:unchecked {
-    image: url(:/icons/arrow-right.svg);
+    image: url(:/icons/arrow-right.png);
 }
 
 QGroupBox::indicator:checked {
-    image: url(:/icons/arrow-down.svg);
+    image: url(:/icons/arrow-down.png);
 }
 
 /* =============================================================================
@@ -574,13 +574,13 @@ QTreeWidget::branch:!has-children:!has-siblings:adjoins-item {
 /* 树形控件展开/折叠指示器 */
 QTreeWidget::branch:has-children:!has-siblings:closed,
 QTreeWidget::branch:closed:has-children:has-siblings {
-    image: url(:/icons/arrow-right.svg);
+    image: url(:/icons/arrow-right.png);
     background: transparent;
 }
 
 QTreeWidget::branch:open:has-children:!has-siblings,
 QTreeWidget::branch:open:has-children:has-siblings {
-    image: url(:/icons/arrow-down.svg);
+    image: url(:/icons/arrow-down.png);
     background: transparent;
 }
 
@@ -824,13 +824,13 @@ QScrollBar::add-line:vertical:pressed {
 
 /* 垂直滚动条箭头图标 */
 QScrollBar::up-arrow:vertical {
-    image: url(:/icons/arrow-up.svg);
+    image: url(:/icons/arrow-up.png);
     width: 10px;
     height: 10px;
 }
 
 QScrollBar::down-arrow:vertical {
-    image: url(:/icons/arrow-down.svg);
+    image: url(:/icons/arrow-down.png);
     width: 10px;
     height: 10px;
 }
@@ -925,13 +925,13 @@ QScrollBar::add-line:horizontal:pressed {
 
 /* 水平滚动条箭头图标 */
 QScrollBar::left-arrow:horizontal {
-    image: url(:/icons/arrow-left.svg);
+    image: url(:/icons/arrow-left.png);
     width: 10px;
     height: 10px;
 }
 
 QScrollBar::right-arrow:horizontal {
-    image: url(:/icons/arrow-right.svg);
+    image: url(:/icons/arrow-right.png);
     width: 10px;
     height: 10px;
 }
