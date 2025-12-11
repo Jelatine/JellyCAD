@@ -145,6 +145,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: 安装依赖
+        run: |
+          brew install autoconf automake autoconf-archive
+        
       - name: 缓存vcpkg仓库(macos)
         id: cache_vcpkg_macos
         uses: actions/cache@v4
