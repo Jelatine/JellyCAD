@@ -147,7 +147,7 @@ jobs:
 
       - name: 安装依赖
         run: |
-          brew install autoconf automake autoconf-archive
+          brew install autoconf automake autoconf-archive libtool
         
       - name: 缓存vcpkg仓库(macos)
         id: cache_vcpkg_macos
