@@ -44,8 +44,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: 缓存vcpkg仓库(ubuntu)
+        id: cache_vcpkg_ubuntu
+        uses: actions/cache@v4
+        with:
+          path: ${{github.workspace}}/vcpkg
+          key: cache_vcpkg_ubuntu
+          
       - name: Free Disk Space (Ubuntu)
+        if: steps.cache_vcpkg_ubuntu.outputs.cache-hit != 'true'
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
@@ -55,13 +63,6 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
-
-      - name: 缓存vcpkg仓库(ubuntu)
-        id: cache_vcpkg_ubuntu
-        uses: actions/cache@v4
-        with:
-          path: ${{github.workspace}}/vcpkg
-          key: cache_vcpkg_ubuntu
           
       - name: 安装依赖
         if: steps.cache_vcpkg_ubuntu.outputs.cache-hit != 'true'
@@ -81,7 +82,7 @@ jobs:
           git clone https://github.com/Microsoft/vcpkg.git -b 2025.06.13
           ${{github.workspace}}/vcpkg/bootstrap-vcpkg.sh
 
-      - name: vcpack安装qt5-base(ubuntu)
+      - name: vcpack安装qtbase(ubuntu)
         if: steps.cache_vcpkg_ubuntu.outputs.cache-hit != 'true'
         run: ${{github.workspace}}/vcpkg/vcpkg install qtbase
 
@@ -153,17 +154,17 @@ jobs:
           path: ${{github.workspace}}/vcpkg
           key: cache_vcpkg_macos
 
-      - name: 安装依赖
-        if: steps.cache_vcpkg_macos.outputs.cache-hit != 'true'
-        run: |
-          brew install autoconf automake autoconf-archive libtool
-
       - name: 下载vcpkg仓库(macos)
         if: steps.cache_vcpkg_macos.outputs.cache-hit != 'true'
         run: |
           cd ${{github.workspace}}
           git clone https://github.com/Microsoft/vcpkg.git -b 2025.06.13
           ${{github.workspace}}/vcpkg/bootstrap-vcpkg.sh
+
+      - name: 安装依赖(macos)
+        if: steps.cache_vcpkg_macos.outputs.cache-hit != 'true'
+        run: |
+          brew install autoconf automake autoconf-archive libtool
 
       - name: vcpack安装(macos)
         if: steps.cache_vcpkg_macos.outputs.cache-hit != 'true'
