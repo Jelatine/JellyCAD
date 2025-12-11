@@ -64,6 +64,7 @@ jobs:
           sudo apt-get install -y libxtst-dev pkg-config autoconf libtool bison libglu1-mesa-dev freeglut3-dev
           sudo apt-get install -y libfontconfig1-dev
           sudo apt-get install -y libgles2-mesa-dev libdrm-dev libgbm-dev libsm-dev libcups2-dev libmtdev-dev libts-dev
+          sudo apt-get install -y autoconf-archive
 
       - name: 缓存vcpkg仓库(ubuntu)
         id: cache_vcpkg_ubuntu
