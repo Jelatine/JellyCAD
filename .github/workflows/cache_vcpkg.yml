@@ -55,8 +55,16 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
+
+      - name: 缓存vcpkg仓库(ubuntu)
+        id: cache_vcpkg_ubuntu
+        uses: actions/cache@v4
+        with:
+          path: ${{github.workspace}}/vcpkg
+          key: cache_vcpkg_ubuntu
           
       - name: 安装依赖
+        if: steps.cache_vcpkg_ubuntu.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y libltdl-dev libxcb*
@@ -65,13 +73,6 @@ jobs:
           sudo apt-get install -y libfontconfig1-dev
           sudo apt-get install -y libgles2-mesa-dev libdrm-dev libgbm-dev libsm-dev libcups2-dev libmtdev-dev libts-dev
           sudo apt-get install -y autoconf-archive
-
-      - name: 缓存vcpkg仓库(ubuntu)
-        id: cache_vcpkg_ubuntu
-        uses: actions/cache@v4
-        with:
-          path: ${{github.workspace}}/vcpkg
-          key: cache_vcpkg_ubuntu
 
       - name: 下载vcpkg仓库(ubuntu)
         if: steps.cache_vcpkg_ubuntu.outputs.cache-hit != 'true'
@@ -144,10 +145,6 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: 安装依赖
-        run: |
-          brew install autoconf automake autoconf-archive libtool
         
       - name: 缓存vcpkg仓库(macos)
         id: cache_vcpkg_macos
@@ -155,6 +152,11 @@ jobs:
         with:
           path: ${{github.workspace}}/vcpkg
           key: cache_vcpkg_macos
+
+      - name: 安装依赖
+        if: steps.cache_vcpkg_macos.outputs.cache-hit != 'true'
+        run: |
+          brew install autoconf automake autoconf-archive libtool
 
       - name: 下载vcpkg仓库(macos)
         if: steps.cache_vcpkg_macos.outputs.cache-hit != 'true'
