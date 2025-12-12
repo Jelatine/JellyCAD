@@ -100,7 +100,7 @@ JellyCAD 集成了大模型对话功能，帮助您更高效地编写 Lua 脚本
 
 ### 第三方库
 
-- Qt5-base 5.15.16
+- Qt6
 - OpenCASCADE 7.9.0
 - Sol2 3.5.0
 - Lua 5.4
@@ -120,7 +120,7 @@ JellyCAD 集成了大模型对话功能，帮助您更高效地编写 Lua 脚本
 使用 vcpkg 安装所需的第三方库：
 
 ```bash
-vcpkg install qt5-base lua sol2 opencascade
+vcpkg install qtbase lua sol2 opencascade
 ```
 
 ### 编译项目
