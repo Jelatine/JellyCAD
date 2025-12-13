@@ -84,7 +84,7 @@ void JyFileManager::onFileDoubleClicked(QListWidgetItem *item) {
 
 void JyFileManager::onFileListContextMenu(const QPoint &pos) {
     QListWidgetItem *item = m_fileList->itemAt(pos);
-    QMenu menu(this);
+    QMenu menu(this->window());
 
     if (item) {
         // File is selected - show file operations menu

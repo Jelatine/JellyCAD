@@ -119,7 +119,7 @@ void JyGitManager::setupUi() {
     mainLayout->addLayout(buttonLayout);
 
     // 创建操作菜单
-    m_operationsMenu = new QMenu(this);
+    m_operationsMenu = new QMenu(this->window());
 
     // 添加 Refresh 操作
     m_operationsMenu->addAction(tr("🔄 Refresh"), this, &JyGitManager::onRefreshClicked);
@@ -502,7 +502,7 @@ void JyGitManager::onFileItemDoubleClicked(QTreeWidgetItem *item, int column) {
 
 void JyGitManager::onFileTreeContextMenu(const QPoint &pos) {
     QTreeWidgetItem *item = m_fileChangesTree->itemAt(pos);
-    QMenu menu(this);
+    QMenu menu(this->window());
 
     if (item) {
         // 获取文件状态

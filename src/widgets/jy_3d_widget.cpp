@@ -299,7 +299,7 @@ void Jy3DWidget::wheelEvent(QWheelEvent *event) {
 }
 
 void Jy3DWidget::createContextMenu() {
-    m_contextMenu = new QMenu(this);
+    m_contextMenu = new QMenu(nullptr);
     m_selectionModeGroup = new QActionGroup(this);
     const std::unordered_map<int, QString> shape_type_map = {
             {static_cast<int>(TopAbs_SHAPE), "Shapes"},
