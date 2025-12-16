@@ -19,14 +19,17 @@ endif()
 # 根据配置类型选择正确的Qt插件目录
 if(CONFIG_TYPE STREQUAL "Debug")
     set(QT_PLUGINS_DIR "${Qt6_DIR}/../../debug/Qt6/plugins")
+    set(QT_BIN_DIR "${Qt6_DIR}/../../debug/bin")
     set(CONFIG_NAME "Debug")
 else()
     set(QT_PLUGINS_DIR "${Qt6_DIR}/../../Qt6/plugins")
+    set(QT_BIN_DIR "${Qt6_DIR}/../../bin")
     set(CONFIG_NAME "Release")
 endif()
 
 # 规范化路径
 get_filename_component(QT_PLUGINS_DIR "${QT_PLUGINS_DIR}" ABSOLUTE)
+get_filename_component(QT_BIN_DIR "${QT_BIN_DIR}" ABSOLUTE)
 
 # 检查源目录是否存在
 if(EXISTS "${QT_PLUGINS_DIR}")
@@ -43,4 +46,19 @@ if(EXISTS "${QT_PLUGINS_DIR}")
 else()
     message(WARNING "Qt6 plugins directory not found: ${QT_PLUGINS_DIR}")
     message(WARNING "Plugins may not be copied. Application might not start correctly.")
+endif()
+
+# 复制libssl-3-x64.dll到bin目录
+set(SSL_DLL "${QT_BIN_DIR}/libssl-3-x64.dll")
+if(EXISTS "${SSL_DLL}")
+    message(STATUS "Copying libssl-3-x64.dll...")
+    message(STATUS "  From: ${SSL_DLL}")
+    message(STATUS "  To:   ${TARGET_DIR}/")
+
+    file(COPY "${SSL_DLL}"
+         DESTINATION "${TARGET_DIR}/")
+
+    message(STATUS "libssl-3-x64.dll copied successfully")
+else()
+    message(WARNING "libssl-3-x64.dll not found: ${SSL_DLL}")
 endif()
