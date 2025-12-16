@@ -112,7 +112,6 @@ QToolBar QPushButton {
     border: 1px solid transparent;
     border-radius: 6px;
     background: transparent;
-    color: transparent;
     font-size: 22px;
 }
 
