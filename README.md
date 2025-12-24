@@ -13,6 +13,7 @@
   [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)](https://github.com/Jelatine/JellyCAD)
 
   **[官方主页](https://jelatine.github.io/JellyCAD/)**
+  **[视频教程](https://www.bilibili.com/video/BV1diBMB5EDU)**
 
 </div>
 
