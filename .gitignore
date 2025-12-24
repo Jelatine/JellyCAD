@@ -15,3 +15,5 @@ win/
 doc/.vitepress/cache
 doc/.vitepress/dist
 doc/node_modules
+
+.DS_Store
