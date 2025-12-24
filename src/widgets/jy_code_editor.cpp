@@ -175,6 +175,7 @@ void JyCodeEditor::slot_update_number_area(const QRect &rect, int dy) {
 void JyCodeEditor::contextMenuEvent(QContextMenuEvent *event) {
     // 创建标准右键菜单
     QMenu *menu = createStandardContextMenu();
+    menu->setParent(window(), Qt::Popup);
     // 添加分隔线
     menu->addSeparator();
     // 创建"Open Containing Folder"动作
