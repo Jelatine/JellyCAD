@@ -279,6 +279,7 @@ void Jy3DWidget::mouseMoveEvent(QMouseEvent *event) {
     if ((event->buttons() & Qt::LeftButton)) {
         // 鼠标左右键齐按：执行平移（平移差值需要乘以设备像素比）
         m_view->Pan((event->pos().x() - m_x_max) * ratio, (m_y_max - event->pos().y()) * ratio);
+        light_direction->SetDirection(m_view->Camera()->Direction());
         m_x_max = event->x();
         m_y_max = event->y();
     } else if (event->buttons() & Qt::RightButton) {
@@ -295,7 +296,9 @@ void Jy3DWidget::wheelEvent(QWheelEvent *event) {
     const qreal ratio = devicePixelRatioF();
     // 缩放操作需要乘以设备像素比以处理高DPI屏幕
     m_view->StartZoomAtPoint((int) (event->position().x() * ratio), (int) (event->position().y() * ratio));
-    m_view->ZoomAtPoint(0, 0, event->angleDelta().y(), 0);//执行缩放
+    const auto delta = static_cast<Standard_Integer>(event->angleDelta().y() * 0.05);
+    m_view->ZoomAtPoint(0, 0, delta, 0);//执行缩放
+    light_direction->SetDirection(m_view->Camera()->Direction());
 }
 
 void Jy3DWidget::createContextMenu() {
