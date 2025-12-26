@@ -44,6 +44,7 @@ JyFileManager::JyFileManager(QWidget *parent) : QWidget(parent), m_newFileItem(n
     connect(m_fileList, &QListWidget::itemDoubleClicked, this, &JyFileManager::onFileDoubleClicked);
     connect(m_fileList, &QListWidget::customContextMenuRequested, this, &JyFileManager::onFileListContextMenu);
     connect(m_watcher, &QFileSystemWatcher::fileChanged, this, &JyFileManager::onFileChanged);
+    connect(m_watcher, &QFileSystemWatcher::directoryChanged, this, &JyFileManager::onDirectoryChanged);
 
     refreshFileList();
     updateWatcher();
@@ -514,17 +515,22 @@ void JyFileManager::openWorkingDirectory() {
 }
 
 void JyFileManager::updateWatcher() {
-    // Clear all watched files
+    // Clear all watched files and directories
     if (!m_watcher->files().isEmpty()) {
         m_watcher->removePaths(m_watcher->files());
     }
+    if (!m_watcher->directories().isEmpty()) {
+        m_watcher->removePaths(m_watcher->directories());
+    }
 
-    // Add all lua files in working directory
+    // Add working directory to watcher
     QDir dir(m_workingDirectory);
     if (!dir.exists()) {
         return;
     }
+    m_watcher->addPath(m_workingDirectory);
 
+    // Add all lua files in working directory
     QStringList filters;
     filters << "*.lua";
     dir.setNameFilters(filters);
@@ -547,5 +553,38 @@ void JyFileManager::onFileChanged(const QString &path) {
     // If the changed file is the opened file, emit signal
     if (!m_openedFilePath.isEmpty()) {
         emit openedFileChanged(path);
+    }
+}
+
+void JyFileManager::onDirectoryChanged(const QString &path) {
+    // Check if lua files in directory actually changed
+    QDir dir(m_workingDirectory);
+    if (!dir.exists()) {
+        return;
+    }
+
+    QStringList filters;
+    filters << "*.lua";
+    dir.setNameFilters(filters);
+    dir.setFilter(QDir::Files);
+    dir.setSorting(QDir::Name);
+
+    QStringList newFileList = dir.entryList();
+
+    // Get current file list from the widget
+    QStringList currentFileList;
+    for (int i = 0; i < m_fileList->count(); ++i) {
+        QListWidgetItem *item = m_fileList->item(i);
+        // Skip editor items
+        if (item != m_newFileItem && item != m_renameFileItem) {
+            currentFileList.append(item->text());
+        }
+    }
+
+    // Only refresh if file list actually changed
+    if (newFileList != currentFileList) {
+        qDebug() << "Directory changed, file list updated:" << path;
+        refreshFileList();
+        updateWatcher();
     }
 }

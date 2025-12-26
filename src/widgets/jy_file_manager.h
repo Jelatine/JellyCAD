@@ -41,6 +41,7 @@ private slots:
     void onFileListContextMenu(const QPoint &pos);
     void onEditorFinished();
     void onFileChanged(const QString &path);
+    void onDirectoryChanged(const QString &path);
 
 private:
     void refreshFileList();
