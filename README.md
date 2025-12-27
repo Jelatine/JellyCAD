@@ -18,6 +18,13 @@
 
 </div>
 
+## 🎯 实际应用
+
+在 [mockway_robotics](https://github.com/Jelatine/mockway_robotics) 机械臂项目中，使用 JellyCAD 通过 Lua 脚本快速构建机械臂的基础结构。
+
+[![robotarm_base](doc/robotarm_base.jpeg)](https://www.bilibili.com/video/BV1LzBhBrEbg/)
+
+
 ## ✨ 特点
 
 - 🌐 **跨平台支持** - 兼容 Windows、Linux 和 macOS 系统
