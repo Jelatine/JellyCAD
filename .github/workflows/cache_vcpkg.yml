@@ -20,7 +20,7 @@ jobs:
         if: steps.cache_vcpkg_windows.outputs.cache-hit != 'true'
         run: |
           cd ${{github.workspace}}
-          git clone https://github.com/Microsoft/vcpkg.git
+          git clone https://github.com/Microsoft/vcpkg.git -b 2025.12.12
           ${{github.workspace}}/vcpkg/bootstrap-vcpkg.bat
           ${{github.workspace}}/vcpkg/vcpkg install lua sol2 qtbase opencascade gtest
 
@@ -79,7 +79,7 @@ jobs:
         if: steps.cache_vcpkg_ubuntu.outputs.cache-hit != 'true'
         run: |
           cd ${{github.workspace}}
-          git clone https://github.com/Microsoft/vcpkg.git
+          git clone https://github.com/Microsoft/vcpkg.git -b 2025.12.12
           ${{github.workspace}}/vcpkg/bootstrap-vcpkg.sh
 
       - name: vcpack安装qtbase(ubuntu)
@@ -158,7 +158,7 @@ jobs:
         if: steps.cache_vcpkg_macos.outputs.cache-hit != 'true'
         run: |
           cd ${{github.workspace}}
-          git clone https://github.com/Microsoft/vcpkg.git
+          git clone https://github.com/Microsoft/vcpkg.git -b 2025.12.12
           ${{github.workspace}}/vcpkg/bootstrap-vcpkg.sh
 
       - name: 安装依赖(macos)
