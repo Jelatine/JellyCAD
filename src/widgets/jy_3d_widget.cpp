@@ -236,10 +236,17 @@ void Jy3DWidget::mousePressEvent(QMouseEvent *event) {
 #else
     const qreal ratio = devicePixelRatioF();
 #endif
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    const qreal eventX = event->position().x();
+    const qreal eventY = event->position().y();
+#else
+    const qreal eventX = event->x();
+    const qreal eventY = event->y();
+#endif
     if (event->buttons() & Qt::LeftButton) {
         // 鼠标左右键齐按：初始化平移
-        m_x_max = event->x();
-        m_y_max = event->y();
+        m_x_max = eventX;
+        m_y_max = eventY;
         // 点击前，将鼠标位置传递到交互环境（需要乘以设备像素比以处理高DPI屏幕）
         m_context->MoveTo(event->pos().x() * ratio, event->pos().y() * ratio, m_view, Standard_True);
         // 鼠标左键：选择模型
@@ -262,10 +269,10 @@ void Jy3DWidget::mousePressEvent(QMouseEvent *event) {
     } else if (event->buttons() & Qt::RightButton) {
         m_isDragging = false;
         // 鼠标滚轮键：初始化平移
-        m_x_max = event->x();
-        m_y_max = event->y();
+        m_x_max = eventX;
+        m_y_max = eventY;
         // 鼠标滚轮键：初始化旋转（需要乘以设备像素比）
-        m_view->StartRotation(event->x() * ratio, event->y() * ratio);
+        m_view->StartRotation(eventX * ratio, eventY * ratio);
     }
 }
 
@@ -278,7 +285,11 @@ void Jy3DWidget::mouseReleaseEvent(QMouseEvent *event) {
     // 将鼠标位置传递到交互环境（需要乘以设备像素比）
     m_context->MoveTo(event->pos().x() * ratio, event->pos().y() * ratio, m_view, Standard_True);
     if (!m_isDragging && event->button() == Qt::RightButton) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        m_contextMenu->exec(event->globalPosition().toPoint());
+#else
         m_contextMenu->exec(event->globalPos());
+#endif
     }
 }
 
@@ -288,15 +299,22 @@ void Jy3DWidget::mouseMoveEvent(QMouseEvent *event) {
 #else
     const qreal ratio = devicePixelRatioF();
 #endif
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    const qreal eventX = event->position().x();
+    const qreal eventY = event->position().y();
+#else
+    const qreal eventX = event->x();
+    const qreal eventY = event->y();
+#endif
     if ((event->buttons() & Qt::LeftButton)) {
         // 鼠标左右键齐按：执行平移（平移差值需要乘以设备像素比）
         m_view->Pan((event->pos().x() - m_x_max) * ratio, (m_y_max - event->pos().y()) * ratio);
         light_direction->SetDirection(m_view->Camera()->Direction());
-        m_x_max = event->x();
-        m_y_max = event->y();
+        m_x_max = eventX;
+        m_y_max = eventY;
     } else if (event->buttons() & Qt::RightButton) {
         // 鼠标滚轮键：执行旋转（需要乘以设备像素比）
-        m_view->Rotation(event->x() * ratio, event->y() * ratio);
+        m_view->Rotation(eventX * ratio, eventY * ratio);
         light_direction->SetDirection(m_view->Camera()->Direction());
         m_isDragging = true;
     } else {
