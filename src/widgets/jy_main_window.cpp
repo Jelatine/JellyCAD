@@ -137,13 +137,20 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
 void JyMainWindow::slot_file_changed(const QString &path) {
     qDebug() << "file changed: " << path;
     if (path == file_manager->getOpenedFile()) {
-        int how_to_handle = 0;// 0 更新编辑器, 1 不更新
+        bool should_update = true;
         if (m_editorWidget->isModified()) {
             // 用户编辑过该文件，则弹出保存对话框，是否同步到编辑器
-            how_to_handle = QMessageBox::question(this, tr("File Updated"), tr("Do you want sync to editor?"), tr("Yes"), tr("No"));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 2, 0)
+            auto reply = QMessageBox::question(this, tr("File Updated"), tr("Do you want sync to editor?"),
+                                               QMessageBox::Yes | QMessageBox::No);
+            should_update = (reply == QMessageBox::Yes);
+#else
+            int how_to_handle = QMessageBox::question(this, tr("File Updated"), tr("Do you want sync to editor?"), tr("Yes"), tr("No"));
+            should_update = (how_to_handle == 0);
+#endif
         }
         // 用户无编辑过该文件，则更新文件内容到编辑器
-        if (how_to_handle == 0) {
+        if (should_update) {
             m_editorWidget->loadFile(path);
         }
     }
@@ -233,9 +240,18 @@ void JyMainWindow::closeEvent(QCloseEvent *event) {
 int JyMainWindow::ask_whether_to_save() {
     if (m_editorWidget->isModified()) {
         // 文件未保存，询问是否保存
+#if QT_VERSION >= QT_VERSION_CHECK(6, 2, 0)
+        auto reply = QMessageBox::question(this, tr("File not saved"),
+                                           tr("Do you want to save the file?"),
+                                           QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+        if (reply == QMessageBox::Yes) return 0;
+        if (reply == QMessageBox::No) return 1;
+        return 2; // Cancel
+#else
         return QMessageBox::question(this, tr("File not saved"),
                                      tr("Do you want to save the file?"),
                                      tr("Yes"), tr("No"), tr("Cancel"));
+#endif
     }
     return 1;// 文件未修改
 }
