@@ -21,6 +21,9 @@ void debug_hook(lua_State *L, lua_Debug *ar) {
 void JyLuaVirtualMachine::registerBindings() {
     lua.open_libraries();
     lua_sethook(lua.lua_state(), debug_hook, LUA_MASKCOUNT, 1);
+    if(!lua_checkstack(lua.lua_state(), 1000)){
+        throw std::runtime_error("Lua stack overflow!");
+    }
     lua["print"] = [=](const sol::object &v) { this->lua_print(v); };
     auto shape_user = JyShape::configure_usertype(lua);
     shape_user["show"] = [this](JyShape &self) -> JyShape & { emit this->displayShape(self);return self; };
