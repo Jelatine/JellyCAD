@@ -37,6 +37,7 @@ sol::usertype<JyShape> JyShape::configure_usertype(sol::state &lua) {
                                                                            JyShape(const std::string &)>());
     shape_user["copy"] = [](const JyShape &self) { return JyShape(self); };
     shape_user["type"] = &JyShape::type;
+    shape_user["empty"] = &JyShape::empty;
     shape_user["get_edge"] = &JyShape::get_edge;
     shape_user["get_face"] = &JyShape::get_face;
     // 布尔运算

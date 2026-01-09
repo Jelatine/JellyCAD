@@ -56,6 +56,8 @@ public:
      */
     [[nodiscard]] std::string type() const;
 
+    bool empty() const { return s_.IsNull(); }
+
     std::array<double, 6> get_pose() const;
 
 
