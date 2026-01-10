@@ -17,8 +17,7 @@ void Link::configure_usertype(sol::state &lua) {
             static_cast<void (Link::*)(const std::string &robot_name) const>(&Link::export_urdf),
             static_cast<void (Link::*)(const sol::table &params) const>(&Link::export_urdf));
     link_user["add"] = &Link::add;
-    auto joint_user = lua.new_usertype<Joint>("joint", sol::constructors<Joint(const std::string &, const JyAxes &, const std::string &),
-                                                                         Joint(const std::string &, const JyAxes &, const std::string &, const sol::table &)>());
+    auto joint_user = lua.new_usertype<Joint>("joint", sol::constructors<Joint(const std::string &, const JyAxes &, const std::string &, std::unordered_map<std::string, double>)>());
     joint_user["next"] = &Joint::next;
 }
 

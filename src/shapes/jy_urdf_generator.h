@@ -8,6 +8,7 @@
 #include "shapes/jy_axes.h"
 #include "shapes/jy_shape.h"
 #include <memory>
+#include <map>
 
 class Link;
 
@@ -27,14 +28,12 @@ public:
 
     Joint() : axes_(JyAxes()) {}
 
-    Joint(const std::string &name, const JyAxes &axes, const std::string &type) : name_(name), axes_(axes), type_(type) {}
-
-    Joint(const std::string &name, const JyAxes &axes, const std::string &type, const sol::table &limits) : name_(name), axes_(axes), type_(type) {
-        if (!limits) return;
-        if (limits["lower"].is<double>()) { limits_.lower = limits["lower"].get<double>(); }
-        if (limits["upper"].is<double>()) { limits_.upper = limits["upper"].get<double>(); }
-        if (limits["effort"].is<double>()) { limits_.effort = limits["effort"].get<double>(); }
-        if (limits["velocity"].is<double>()) { limits_.velocity = limits["velocity"].get<double>(); }
+    Joint(const std::string &name, const JyAxes &axes, const std::string &type, std::unordered_map<std::string, double> limits) : name_(name), axes_(axes), type_(type) {
+        if (limits.empty()) return;
+        if (limits.count("lower")) { limits_.lower = limits.at("lower"); }
+        if (limits.count("upper")) { limits_.upper = limits.at("upper"); }
+        if (limits.count("effort")) { limits_.effort = limits.at("effort"); }
+        if (limits.count("velocity")) { limits_.velocity = limits.at("velocity"); }
     }
 
     Link &next(const Link &link) {
