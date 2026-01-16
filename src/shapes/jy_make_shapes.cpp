@@ -63,6 +63,7 @@ void JyMakeShapes::configure_usertype(sol::state &lua) {
     const auto text_ctor = sol::constructors<JyText(),
                                              JyText(const std::string &),
                                              JyText(const std::string &, const double &),
+                                             JyText(const std::string &, const double &, const std::string &),
                                              JyText(const JyText &)>();
     lua.new_usertype<JyText>("text", text_ctor, sol::base_classes, sol::bases<JyShape>());
 }
@@ -160,10 +161,10 @@ JyPolygon::JyPolygon(const std::vector<std::array<double, 3>> _vertices) {
     s_ = make_polygon;
 }
 
-JyText::JyText(const std::string &_text, const double &_size) {
+JyText::JyText(const std::string &_text, const double &_size, const std::string &_font) {
     // 创建3D文本
     StdPrs_BRepFont aFont;
-    const NCollection_String aFontName("Arial");
+    const NCollection_String aFontName(_font.c_str());
     // 尝试加载字体
     if (!aFont.Init(aFontName, Font_FontAspect_Regular, _size)) {
         throw std::runtime_error("Failed init font!");

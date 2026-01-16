@@ -142,6 +142,6 @@ public:
      * @param _text 文本内容
      * @param _size 字体大小
      */
-    explicit JyText(const std::string &_text = "", const double &_size = 1);
+    explicit JyText(const std::string &_text = "", const double &_size = 1, const std::string &_font = "Arial");
 };
 #endif// JY_MAKE_SHAPES_H
