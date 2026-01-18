@@ -59,6 +59,16 @@ void JyLuaVirtualMachine::runScript(const QString &_file_path, const bool &is_fi
     localTimer.start();
     lua = sol::state();// 重新赋值会自动清理旧的
     registerBindings();
+
+    // 设置 arg 表
+    sol::table arg = lua.create_table();
+    if (is_file) {
+        arg[0] = _file_path.toStdString();
+    } else {
+        arg[0] = "=(code)";
+    }
+    lua["arg"] = arg;
+
     sol::protected_function_result result;
     if (is_file) {
         QFileInfo fileInfo(_file_path);
@@ -138,6 +148,11 @@ void JyLuaVirtualMachine::run() {
     if (script_mode.loadRelaxed() == 0) {
         runScript(m_fileName);
     } else {
+        // 为代码执行模式设置 arg 表
+        sol::table arg = lua.create_table();
+        arg[0] = "=(code)";
+        lua["arg"] = arg;
+
         auto result = lua.safe_script(m_fileName.toStdString(), sol::script_pass_on_error);
         if (!result.valid()) {
             const QString message = result.get<sol::error>().what();
