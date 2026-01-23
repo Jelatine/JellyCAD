@@ -3,307 +3,311 @@
 
   # JellyCAD
 
-  **开源可编程 CAD 软件**
+  **Open Source Programmable CAD Software**
 
-  现代开源可编程 CAD 软件专为程序员、机器人开发者和参数化建模爱好者设计
+  Modern open-source programmable CAD software designed for programmers, robotics developers, and parametric modeling enthusiasts
 
   ![cover](doc/cover.png)
 
   [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
   [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)](https://github.com/Jelatine/JellyCAD)
 
-  **[官方主页](https://jelatine.github.io/JellyCAD/)**
-  
-  **[视频介绍](https://www.bilibili.com/video/BV1diBMB5EDU)**
+  **[Official Website](https://jelatine.github.io/JellyCAD/)**
+
+  **[Video Introduction](https://www.bilibili.com/video/BV1diBMB5EDU)**
 
 </div>
 
-## 🎯 实际应用
+**Languages:** English | [中文](README.zh.md)
 
-在 [mockway_robotics](https://github.com/Jelatine/mockway_robotics) 机械臂项目中，使用 JellyCAD 通过 Lua 脚本快速构建机械臂的基础结构。
+---
+
+## 🎯 Real-World Applications
+
+In the [mockway_robotics](https://github.com/Jelatine/mockway_robotics) robotic arm project, JellyCAD is used to quickly build the robotic arm's base structure through Lua scripting.
 
 [![robotarm_base](doc/robotarm_base.jpeg)](https://www.bilibili.com/video/BV1LzBhBrEbg/)
 
 
-## ✨ 特点
+## ✨ Features
 
-- 🌐 **跨平台支持** - 兼容 Windows、Linux 和 macOS 系统
-- 📝 **Lua 脚本编程** - 使用简洁的 Lua 语言构造三维模型
-- 🤖 **机器人开发** - 支持导出URDF和MJCF，方便ROS/ROS2和mujoco开发
-- 💾 **多格式导出** - 支持导出 STL、STEP、IGES 格式文件
-- 🔧 **丰富的操作** - 支持布尔运算、圆角、倒角、拉伸等多种建模操作
-- 💬 **AI 辅助编程** - 集成大模型对话功能，智能生成和修改 Lua 脚本
+- 🌐 **Cross-Platform Support** - Compatible with Windows, Linux, and macOS
+- 📝 **Lua Script Programming** - Build 3D models using concise Lua language
+- 🤖 **Robotics Development** - Export to URDF and MJCF for ROS/ROS2 and MuJoCo development
+- 💾 **Multiple Export Formats** - Support for STL, STEP, and IGES file exports
+- 🔧 **Rich Operations** - Boolean operations, filleting, chamfering, extrusion, and more
+- 💬 **AI-Assisted Programming** - Integrated LLM dialogue for intelligent Lua script generation and modification
 
-## 🤖 机器人应用
+## 🤖 Robotics Applications
 
-JellyCAD 专为机器人开发者设计，提供完整的机器人建模与仿真工作流：
+JellyCAD is designed specifically for robotics developers, providing a complete workflow for robot modeling and simulation:
 
-### 支持的机器人格式
+### Supported Robot Formats
 
-- **URDF (Unified Robot Description Format)** - 兼容 ROS1 和 ROS2，支持完整的连杆、关节、惯性参数定义
-- **MJCF (MuJoCo XML Format)** - 支持 MuJoCo 物理仿真引擎的模型格式
+- **URDF (Unified Robot Description Format)** - Compatible with ROS1 and ROS2, supports complete link, joint, and inertia parameter definitions
+- **MJCF (MuJoCo XML Format)** - Model format for MuJoCo physics simulation engine
 
-### 典型应用场景
+### Typical Use Cases
 
-- 📐 **机械臂建模** - 使用 Lua 脚本快速构建多自由度机械臂模型
-- 🔗 **运动学链设计** - 通过 DH 参数（MDH/SDH）精确定义关节位姿关系
-- ⚙️ **参数化建模** - 利用编程方式批量生成不同配置的机器人模型
-- 🎮 **仿真集成** - 无缝对接 RViz、Gazebo、MuJoCo 等主流仿真平台
-- 🔄 **快速迭代** - 代码化建模方式便于版本控制和设计优化
+- 📐 **Robotic Arm Modeling** - Quickly build multi-DOF robotic arm models using Lua scripts
+- 🔗 **Kinematic Chain Design** - Precisely define joint pose relationships through DH parameters (MDH/SDH)
+- ⚙️ **Parametric Modeling** - Batch generate robot models with different configurations programmatically
+- 🎮 **Simulation Integration** - Seamlessly interface with mainstream simulation platforms like RViz, Gazebo, and MuJoCo
+- 🔄 **Rapid Iteration** - Code-based modeling facilitates version control and design optimization
 
-**Lua 脚本建模示例**
+**Lua Script Modeling Example**
 
 ![robot_lua_script](doc/example_urdf.png)
 
-### 核心优势
+### Core Advantages
 
-相比传统 CAD 软件手动建模后再转换为 URDF，JellyCAD 提供：
+Compared to manually modeling in traditional CAD software and then converting to URDF, JellyCAD provides:
 
-✅ 一键导出完整的 ROS 功能包结构
-✅ 自动计算惯性张量和质心位置
-✅ 支持复杂装配体的层级关系
-✅ 代码化建模便于参数化和批量生成
+✅ One-click export of complete ROS package structure
+✅ Automatic calculation of inertia tensors and center of mass
+✅ Support for hierarchical relationships in complex assemblies
+✅ Code-based modeling for easy parameterization and batch generation
 
-**ROS2 + RViz 可视化**
+**ROS2 + RViz Visualization**
 
 ![ros2_rviz](doc/example_ros2.png)
 
-**MuJoCo 物理仿真**
+**MuJoCo Physics Simulation**
 
 ![mujoco_simulation](doc/example_mujoco.png)
 
-> 详见示例 6 了解如何使用 JellyCAD 构建 6 自由度机械臂并导出 URDF。
+> See Example 6 to learn how to build a 6-DOF robotic arm and export URDF using JellyCAD.
 
-## 💬 AI 辅助编程
+## 💬 AI-Assisted Programming
 
-JellyCAD 集成了大模型对话功能，帮助您更高效地编写 Lua 脚本：
+JellyCAD integrates LLM dialogue functionality to help you write Lua scripts more efficiently:
 
 ![example_llm_car](doc/example_llm_car.gif)
 
-**使用方法：**
+**How to Use:**
 
-1. 点击编辑器工具栏的 **💬 按钮**，打开 LLM 对话窗口
-2. 在设置中配置：
-   - 选择 AI 服务提供商（OpenAI、Claude、DeepSeek、ModelScope、Aliyun 或自定义）
-   - 输入 API Key
-   - 选择模型
-3. 输入您的需求（如"创建一个边长为 10 的立方体"）
-4. 按 `Ctrl+Enter` 发送，AI 将生成相应的 Lua 代码
-5. 生成的代码会自动插入到编辑器中
+1. Click the **💬 button** in the editor toolbar to open the LLM dialogue window
+2. Configure in settings:
+   - Select AI service provider (OpenAI, Claude, DeepSeek, ModelScope, Aliyun, or custom)
+   - Enter API Key
+   - Select model
+3. Enter your requirements (e.g., "Create a cube with side length 10")
+4. Press `Ctrl+Enter` to send, AI will generate corresponding Lua code
+5. Generated code will be automatically inserted into the editor
 
-**功能特点：**
-- ✅ 支持多家主流 AI 服务商
-- ✅ 代码流式生成，实时反馈
-- ✅ 智能理解 JellyCAD API
-- ✅ 支持代码修改和优化
-- ✅ 自动保存配置信息
+**Features:**
+- ✅ Support for multiple mainstream AI service providers
+- ✅ Streaming code generation with real-time feedback
+- ✅ Intelligent understanding of JellyCAD API
+- ✅ Support for code modification and optimization
+- ✅ Automatic configuration saving
 
 
-## 🛠️ 开发环境
+## 🛠️ Development Environment
 
-### 核心依赖
+### Core Dependencies
 
 - **CMake** >= 3.24.0
-- **C++ 编译器** (支持 C++17 或更高版本)
-- **vcpkg** (2025.06.13 或更新版本)
+- **C++ Compiler** (supports C++17 or higher)
+- **vcpkg** (version 2025.06.13 or newer)
 
-### 第三方库
+### Third-Party Libraries
 
 - Qt6
 - OpenCASCADE 7.9.0
 - Sol2 3.5.0
 - Lua 5.4
 
-### 测试平台
+### Tested Platforms
 
 - ✅ Windows 11 23H2 + Visual Studio 2022
 - ✅ Ubuntu 22.04.5 LTS + GCC 11.4.0
 - ✅ macOS 15.5
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-> 📖 完整安装指南请参考：[安装教程](https://jelatine.github.io/JellyCAD/guide/install.html)
+> 📖 For complete installation guide, see: [Installation Tutorial](https://jelatine.github.io/JellyCAD/guide/install.html)
 
-### 安装依赖
+### Install Dependencies
 
-使用 vcpkg 安装所需的第三方库：
+Use vcpkg to install required third-party libraries:
 
 ```bash
 vcpkg install qtbase lua sol2 opencascade
 ```
 
-### 编译项目
+### Build Project
 
 ```bash
-# 克隆仓库
+# Clone repository
 git clone https://github.com/Jelatine/JellyCAD.git
 cd JellyCAD
 
-# 创建构建目录
+# Create build directory
 mkdir build
 cd build
 
-# 配置 CMake（替换 your_vcpkg_dir 为实际路径）
+# Configure CMake (replace your_vcpkg_dir with actual path)
 cmake .. -DCMAKE_TOOLCHAIN_FILE=(your_vcpkg_dir)/scripts/buildsystems/vcpkg.cmake
 
-# 构建项目
+# Build project
 cmake --build .
 ```
 
-### 常见问题
+### Common Issues
 
-**Ubuntu 24 Emoji 显示问题**
+**Ubuntu 24 Emoji Display Issue**
 
 ```bash
 sudo apt install fonts-noto-color-emoji
 ```
 
-## 📖 使用指南
+## 📖 User Guide
 
-### 命令行模式
+### Command Line Mode
 
-运行 Lua 脚本文件：
+Run Lua script file:
 
 ```bash
 ./JellyCAD -f file.lua
 ```
 
-执行 Lua 脚本字符串：
+Execute Lua script string:
 
 ```bash
 ./JellyCAD -c "print('Hello, World!')"
 ./JellyCAD -c "box.new():export_stl('box.stl')"
 ```
 
-### 图形界面模式
+### GUI Mode
 
-#### 🖱️ 鼠标操作
+#### 🖱️ Mouse Operations
 
-| 操作 | 功能 |
+| Operation | Function |
 |------|------|
-| 左键拖拽 | 平移视图 |
-| 右键拖拽 | 旋转视图 |
-| 滚轮 | 缩放视图 |
+| Left Click + Drag | Pan view |
+| Right Click + Drag | Rotate view |
+| Scroll Wheel | Zoom view |
 
-#### ⌨️ 快捷键
+#### ⌨️ Keyboard Shortcuts
 
-| 快捷键 | 功能 |
+| Shortcut | Function |
 |--------|------|
-| `Ctrl+N` | 新建文件 |
-| `Ctrl+S` | 保存文件 |
-| `Ctrl+F` | 编辑器搜索 |
-| `Ctrl+/` | 注释/取消注释 |
-| `F5` | 运行当前脚本 |
+| `Ctrl+N` | New file |
+| `Ctrl+S` | Save file |
+| `Ctrl+F` | Editor search |
+| `Ctrl+/` | Toggle comment |
+| `F5` | Run current script |
 
 
-### 📚 学习资源
+### 📚 Learning Resources
 
-- [JellyCAD 帮助文档](https://jelatine.github.io/JellyCAD/guide/install.html)
-- [Lua 5.4 官方手册](https://www.lua.org/manual/5.4/)
-- [Lua 菜鸟教程](https://www.runoob.com/lua/lua-tutorial.html)
+- [JellyCAD Documentation](https://jelatine.github.io/JellyCAD/guide/install.html)
+- [Lua 5.4 Official Manual](https://www.lua.org/manual/5.4/)
+- [Lua Tutorial](https://www.runoob.com/lua/lua-tutorial.html)
 
-## 🔨 API 参考
+## 🔨 API Reference
 
-### 全局函数
+### Global Functions
 
-| 函数 | 功能 |
+| Function | Description |
 |------|------|
-| `show(shape)` | 在 3D 界面显示单个或多个模型 |
+| `show(shape)` | Display single or multiple models in 3D interface |
 
-### 基础形状类
+### Basic Shape Classes
 
-所有形状类均继承自 `shape` 基类：
+All shape classes inherit from the `shape` base class:
 
-#### 实体类型（SOLID）
+#### Solid Types (SOLID)
 
-- 🎲 `box.new(width, height, depth)` - 长方体
-- 🪵 `cylinder.new(radius, height)` - 圆柱体
-- 🏔️ `cone.new(radius1, radius2, height)` - 圆锥体
-- 🏀 `sphere.new(radius)` - 球体
-- 🍩 `torus.new(majorRadius, minorRadius)` - 圆环体
-- 🧀 `wedge.new(dx, dy, dz, ltx)` - 楔形体
+- 🎲 `box.new(width, height, depth)` - Box
+- 🪵 `cylinder.new(radius, height)` - Cylinder
+- 🏔️ `cone.new(radius1, radius2, height)` - Cone
+- 🏀 `sphere.new(radius)` - Sphere
+- 🍩 `torus.new(majorRadius, minorRadius)` - Torus
+- 🧀 `wedge.new(dx, dy, dz, ltx)` - Wedge
 
-#### 几何元素类型
+#### Geometric Element Types
 
-- 📍 `vertex` - 顶点
-- ➖ `edge` - 边缘（子类型： `line`、`circle`、`ellipse`、`hyperbola`、`parabola`、`bezier` 、`bspline` ）
-- 🛑`wire` - 线（子类型：`polygon`）
-- 🟪 `face` - 面（子类型：`plane`、`cylindrical`、`conical`）
-- 🔠 `text` - 文本
+- 📍 `vertex` - Vertex
+- ➖ `edge` - Edge (subtypes: `line`, `circle`, `ellipse`, `hyperbola`, `parabola`, `bezier`, `bspline`)
+- 🛑 `wire` - Wire (subtype: `polygon`)
+- 🟪 `face` - Face (subtypes: `plane`, `cylindrical`, `conical`)
+- 🔠 `text` - Text
 
-### Shape 基类方法
+### Shape Base Class Methods
 
-#### 文件导入
+#### File Import
 
 ```lua
-s = shape.new('model.stl')  -- 导入 STL 或 STEP 文件
+s = shape.new('model.stl')  -- Import STL or STEP file
 ```
 
-#### 属性和查询
+#### Properties and Queries
 
-| 方法 | 功能 |
+| Method | Description |
 |------|------|
-| `copy()` | 返回形状的副本 |
-| `type()` | 返回形状类型字符串 |
-| `color(color)` | 设置颜色 |
-| `transparency(value)` | 设置透明度 |
+| `copy()` | Return a copy of the shape |
+| `type()` | Return shape type string |
+| `color(color)` | Set color |
+| `transparency(value)` | Set transparency |
 
-#### 布尔运算
+#### Boolean Operations
 
-| 方法 | 功能 |
+| Method | Description |
 |------|------|
-| `fuse(shape)` | 融合操作（并集） |
-| `cut(shape)` | 剪切操作（差集） |
-| `common(shape)` | 相交操作（交集） |
+| `fuse(shape)` | Fusion operation (union) |
+| `cut(shape)` | Cut operation (difference) |
+| `common(shape)` | Intersection operation |
 
-#### 修饰操作
+#### Modification Operations
 
-| 方法 | 功能 |
+| Method | Description |
 |------|------|
-| `fillet(radius, options)` | 圆角 |
-| `chamfer(distance, options)` | 倒角 |
+| `fillet(radius, options)` | Fillet |
+| `chamfer(distance, options)` | Chamfer |
 
-#### 变换操作
+#### Transformation Operations
 
-| 方法 | 功能 |
+| Method | Description |
 |------|------|
-| `pos(x, y, z)` | 绝对位置 |
-| `x(val)/y(val)/z(val)/rx(val)/ry(val)/rz(val)` | 绝对位置/姿态 |
-| `rot(rx, ry, rz)` | 绝对姿态 |
-| `move(move_type, x, y, z)` | 相对平移和旋转，`move_type` 为 `'pos'` 或 `'rot'` |
-| `prism(dx, dy, dz)` | 拉伸操作（`edge→face`、`face→solid`、`wire→shell`） |
-| `revol(pos, dir, angle)` | 旋转体生成操作 |
-| `scale(factor)` | 按比例缩放 |
+| `pos(x, y, z)` | Absolute position |
+| `x(val)/y(val)/z(val)/rx(val)/ry(val)/rz(val)` | Absolute position/pose |
+| `rot(rx, ry, rz)` | Absolute pose |
+| `move(move_type, x, y, z)` | Relative translation and rotation, `move_type` is `'pos'` or `'rot'` |
+| `prism(dx, dy, dz)` | Extrusion operation (`edge→face`, `face→solid`, `wire→shell`) |
+| `revol(pos, dir, angle)` | Revolution operation |
+| `scale(factor)` | Scale proportionally |
 
-#### 导出操作
+#### Export Operations
 
-| 方法 | 功能 |
+| Method | Description |
 |------|------|
-| `export_stl(filename, options)` | 导出 STL 格式文件 |
-| `export_step(filename)` | 导出 STEP 格式文件 |
-| `export_iges(filename)` | 导出 IGES 格式文件 |
+| `export_stl(filename, options)` | Export to STL format |
+| `export_step(filename)` | Export to STEP format |
+| `export_iges(filename)` | Export to IGES format |
 
-#### 机器人导出(URDF/Mujoco)
+#### Robot Export (URDF/MuJoCo)
 
-- 📐 `axes.new(pose, length)` - 坐标系（用于定义关节位姿）
-- 🦴 `link.new(name, shape)` - 机器人连杆
-- 🔗 `joint.new(name, axes, type, limits)` - 机器人关节
+- 📐 `axes.new(pose, length)` - Coordinate system (for defining joint poses)
+- 🦴 `link.new(name, shape)` - Robot link
+- 🔗 `joint.new(name, axes, type, limits)` - Robot joint
 
-| 方法 | 功能 |
+| Method | Description |
 |------|------|
-| `axes:copy()` | 返回坐标系副本 |
-| `axes:move(x, y, z, rx, ry, rz)` | 沿自身坐标系进行平移及RPY姿态变换 |
-| `axes:mdh(alpha, a, d, theta)` | 沿自身坐标系进行 MDH 位姿变换 |
-| `axes:sdh(alpha, a, d, theta)` | 沿自身坐标系进行 SDH 位姿变换 |
-| `joint:next(link)` | 设置下一个连杆, 返回连杆对象 |
-| `link:add(joint)` | 添加关节, 返回关节对象 |
-| `link:export(options)` | 导出 URDF/Mujoco 格式文件 |
+| `axes:copy()` | Return copy of coordinate system |
+| `axes:move(x, y, z, rx, ry, rz)` | Translate and rotate along own coordinate system with RPY |
+| `axes:mdh(alpha, a, d, theta)` | MDH pose transformation along own coordinate system |
+| `axes:sdh(alpha, a, d, theta)` | SDH pose transformation along own coordinate system |
+| `joint:next(link)` | Set next link, return link object |
+| `link:add(joint)` | Add joint, return joint object |
+| `link:export(options)` | Export to URDF/MuJoCo format |
 
-> 详细的 API 参考请参考 [JellyCAD 帮助文档](https://jelatine.github.io/JellyCAD/guide/functions.html)。
+> For detailed API reference, see [JellyCAD Documentation](https://jelatine.github.io/JellyCAD/guide/functions.html).
 
-## 💡 示例代码
+## 💡 Example Code
 
-### 示例 1：基础实体与变换
+### Example 1: Basic Solids and Transformations
 
 ```lua
 print("Hello, World!");
@@ -322,24 +326,24 @@ show({b,c,n,s});  -- display the objects
 
 ![example1](doc/example1.png)
 
-### 示例 2：圆角和倒角
+### Example 2: Fillets and Chamfers
 
 ```lua
 print("Fillet OR Chamfer");
 b1 = box.new(1, 1, 1):color('red3'):pos(2, 2, 0);
-b1:fillet(0.2, { type = 'line', first = { 2, 2, 1 }, last = { 3, 2, 1 }, tol = 1e-4 }); -- 圆角 r=0.2 指定边缘始末点，容差1e-4
+b1:fillet(0.2, { type = 'line', first = { 2, 2, 1 }, last = { 3, 2, 1 }, tol = 1e-4 }); -- fillet r=0.2 with specified edge endpoints, tolerance 1e-4
 b2 = box.new(1, 1, 1):color('green3'):pos(2, -2, 0);
-b2:fillet(0.2, { max = { 3, 3, 3 } }); -- 圆角 r=0.2 边缘始末点同时小于 3,3,3
+b2:fillet(0.2, { max = { 3, 3, 3 } }); -- fillet r=0.2 where edge endpoints are less than 3,3,3
 c = cylinder.new(0.5, 1):color('gray'):pos(-2, -2, 0);
-c:fillet(0.2, { type = 'circle' }); -- 圆角 r=0.2 限制条件为边缘类型是圆形
+c:fillet(0.2, { type = 'circle' }); -- fillet r=0.2 with edge type constraint of circle
 b3 = box.new(1, 1, 1):color('lightblue');
-b3:chamfer(0.3, { min = { 0.5, -1, 0.5 }, max = { 9, 9, 9 } }); -- 倒角 r=0.3 边缘始末点同时大于 0.5,-1,0.5 且小于 9,9,9
+b3:chamfer(0.3, { min = { 0.5, -1, 0.5 }, max = { 9, 9, 9 } }); -- chamfer r=0.3 where edge endpoints are greater than 0.5,-1,0.5 and less than 9,9,9
 show({ b1, b2, b3, c });
 ```
 
 ![example2](doc/example2.png)
 
-### 示例 3：拉伸多边形
+### Example 3: Polygon Extrusion
 
 ```lua
 print('Polygon Prism')
@@ -352,7 +356,7 @@ f:prism(0, 0, 1);
 show(f);
 ```
 
-### 示例 4：布尔操作
+### Example 4: Boolean Operations
 
 ```lua
 print("Boolean Operation");
@@ -374,7 +378,7 @@ show(c1);
 
 ![example4](doc/example4.png)
 
-### 示例 5：导出文件
+### Example 5: Export Files
 
 ```lua
 print("Export");
@@ -383,27 +387,27 @@ sphere.new(10):export_step('sphere.step');
 cone.new(10, 5, 20):color('green4'):export_iges('cone.iges')
 ```
 
-## 📄 许可证
+## 📄 License
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details
 
-## 🔗 参考资源
+## 🔗 References
 
-### 官方文档
+### Official Documentation
 
-- [OpenCASCADE 文档](https://dev.opencascade.org/doc/overview/html/index.html)
-- [Lua 5.4 参考手册](https://www.lua.org/manual/5.4/)
+- [OpenCASCADE Documentation](https://dev.opencascade.org/doc/overview/html/index.html)
+- [Lua 5.4 Reference Manual](https://www.lua.org/manual/5.4/)
 
-### 相关项目
+### Related Projects
 
-- [JellyCAD 旧版本](https://github.com/Jelatine/JellyCAD/tree/master)
-- [Mayo - 3D CAD 查看器](https://github.com/fougue/mayo)
+- [JellyCAD Legacy Version](https://github.com/Jelatine/JellyCAD/tree/master)
+- [Mayo - 3D CAD Viewer](https://github.com/fougue/mayo)
 
-### 技术文章
+### Technical Articles
 
-- [OpenCASCADE 布尔运算](https://blog.csdn.net/weixin_45751713/article/details/139399875)
-- [圆角倒角实现](https://blog.csdn.net/fcqwin/article/details/17204707)
-- [几何变换操作](https://blog.csdn.net/cfyouling/article/details/136400406)
-- [拓扑边操作](https://blog.csdn.net/s634772208/article/details/130101544)
-- [边缘类型判断](https://www.cnblogs.com/occi/p/14619592.html)
-- [实体创建方法](https://developer.aliyun.com/article/235775)
+- [OpenCASCADE Boolean Operations](https://blog.csdn.net/weixin_45751713/article/details/139399875)
+- [Fillet and Chamfer Implementation](https://blog.csdn.net/fcqwin/article/details/17204707)
+- [Geometric Transformation Operations](https://blog.csdn.net/cfyouling/article/details/136400406)
+- [Topological Edge Operations](https://blog.csdn.net/s634772208/article/details/130101544)
+- [Edge Type Detection](https://www.cnblogs.com/occi/p/14619592.html)
+- [Solid Creation Methods](https://developer.aliyun.com/article/235775)
