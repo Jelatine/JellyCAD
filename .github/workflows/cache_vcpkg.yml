@@ -4,7 +4,7 @@ on:
   workflow_dispatch:  # 手动触发
 
 env:
-  VCPKG_VERSION: "2026.01.16"
+  VCPKG_VERSION: "master"
 
 jobs:
   cache_windows:
