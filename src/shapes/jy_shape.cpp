@@ -28,7 +28,9 @@
 #include <STEPControl_Writer.hxx>
 #include <StlAPI.hxx>
 #include <StlAPI_Reader.hxx>
+#include <TopExp.hxx>
 #include <TopExp_Explorer.hxx>
+#include <TopTools_IndexedDataMapOfShapeListOfShape.hxx>
 #include <TopoDS.hxx>
 #include <gp_Quaternion.hxx>
 

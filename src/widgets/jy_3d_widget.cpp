@@ -3,11 +3,13 @@
  * MIT License
  */
 #include "jy_3d_widget.h"
+#include <AIS_ListOfInteractive.hxx>
 #include <AIS_Shape.hxx>
 #include <Aspect_DisplayConnection.hxx>
 #include <BRepBndLib.hxx>
 #include <Geom_Axis2Placement.hxx>
 #include <Graphic3d_GraphicDriver.hxx>
+#include <Graphic3d_Vec2.hxx>
 #include <OpenGl_GraphicDriver.hxx>
 #include <QApplication>
 #include <QDebug>
