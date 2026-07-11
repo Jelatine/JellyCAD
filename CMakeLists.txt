@@ -22,6 +22,10 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 find_package(OpenCASCADE CONFIG REQUIRED)
 
+# 屏蔽 OpenCASCADE 8.0 起对经典类型/头文件的弃用警告（如 Standard_Real、
+# TColgp_Array1OfPnt 等）。OCCT 官方提供该宏用于关闭其弃用警告。
+add_compile_definitions(OCCT_NO_DEPRECATED)
+
 
 # 添加编译选项：强制使用Qt5
 option(FORCE_QT5 "Force use Qt5 instead of Qt6" OFF)

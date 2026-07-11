@@ -60,8 +60,7 @@ int main(int argc, char *argv[]) {
 
         // 加载并应用QSS颜色样式
         QFile style_file(":/style.qss");
-        style_file.open(QFile::ReadOnly);
-        if (style_file.isOpen()) {
+        if (style_file.open(QFile::ReadOnly)) {
             const auto style_str = style_file.readAll();
             a.setStyleSheet(style_str);
             style_file.close();
