@@ -20,7 +20,9 @@ void debug_hook(lua_State *L, lua_Debug *ar) {
 
 void JyLuaVirtualMachine::registerBindings() {
     lua.open_libraries();
-    lua_sethook(lua.lua_state(), debug_hook, LUA_MASKCOUNT, 1);
+    // 每执行100条VM指令检查一次停止标志：相比count=1大幅降低回调开销，
+    // 响应延迟仍在微秒级；阻塞在C++调用内的情况无论count多大都无法打断
+    lua_sethook(lua.lua_state(), debug_hook, LUA_MASKCOUNT, 100);
     if(!lua_checkstack(lua.lua_state(), 1000)){
         throw std::runtime_error("Lua stack overflow!");
     }
