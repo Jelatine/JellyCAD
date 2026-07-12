@@ -118,10 +118,15 @@ void Link::export_urdf(const sol::table &params) const {
 
 void Link::export_urdf_impl(const std::string &robot_name, const std::string &root_path, const ExtendedFile &file_type) const {
     fs::path path = fs::path(root_path) / robot_name;
-    if (fs::exists(path) && fs::is_directory(path)) {
-        fs::remove_all(path);
+    if (fs::exists(path) && !fs::is_directory(path)) {
+        throw std::runtime_error("output path exists and is not a directory: " + path.string());
     }
-    if (!fs::create_directories(path)) {
+    // 只清理本工具生成的子目录，避免robot_name与用户已有目录同名时误删无关数据
+    std::error_code ec;
+    fs::remove_all(path / "meshes", ec);
+    fs::remove_all(path / "urdf", ec);
+    fs::create_directories(path, ec);
+    if (!fs::is_directory(path)) {
         throw std::runtime_error("unable to create robot description directory");
     }
 
@@ -133,14 +138,16 @@ void Link::export_urdf_impl(const std::string &robot_name, const std::string &ro
         file_path = path / (robot_name + ".xml");
     } else {
         path_output_dir = path / "urdf";
-        if (!fs::create_directories(path_output_dir)) {
+        fs::create_directories(path_output_dir, ec);
+        if (!fs::is_directory(path_output_dir)) {
             throw std::runtime_error("unable to create robot urdf directory");
         }
         file_path = path_output_dir / (robot_name + ".urdf");
     }
 
     fs::path path_meshes = path / "meshes";
-    if (!fs::create_directories(path_meshes)) {
+    fs::create_directories(path_meshes, ec);
+    if (!fs::is_directory(path_meshes)) {
         throw std::runtime_error("unable to create robot meshes directory");
     }
 
@@ -402,14 +409,19 @@ std::string Link::handleBody_MuJoCo(const Link &link, const Joint &parent_joint,
     file << " pos=\"" << pose[0] << " " << pose[1] << " " << pose[2] << "\" euler=\"" << pose[3] << " " << pose[4] << " " << pose[5] << "\">\n";
     // 计算惯性属性
     const auto &inertial = JyShape::inertial(shapes);
+    // fullinertia顺序为 Ixx Iyy Izz Ixy Ixz Iyz（相对质心坐标系），
+    // 使用完整惯量矩阵而非diaginertia，避免忽略惯量积导致的误差
     file << std::string(space, ' ') << std::fixed << std::setprecision(3) << "      <inertial pos=\""
          << inertial.center_of_mass[0] << " "
          << inertial.center_of_mass[1] << " "
          << inertial.center_of_mass[2]
-         << "\" mass=\"" << inertial.mass << "\" diaginertia=\"" << std::fixed
+         << "\" mass=\"" << inertial.mass << "\" fullinertia=\"" << std::fixed
          << std::setprecision(6) << inertial.inertia_tensor[0] << " "
          << inertial.inertia_tensor[1] << " "
-         << inertial.inertia_tensor[2] << std::defaultfloat << "\"/>\n";
+         << inertial.inertia_tensor[2] << " "
+         << inertial.inertia_tensor[3] << " "
+         << inertial.inertia_tensor[4] << " "
+         << inertial.inertia_tensor[5] << std::defaultfloat << "\"/>\n";
     const auto &rgba = output_shape.rgba();
     if (!output_shape.s_.IsNull()) {
         file << std::string(space, ' ') << "      <geom type=\"mesh\" mesh=\"" << link.name_ << "\" rgba=\""
@@ -422,24 +434,24 @@ std::string Link::handleBody_MuJoCo(const Link &link, const Joint &parent_joint,
         } else if (parent_joint.type_ == "prismatic") {
             mujoco_type = "slide";
         } else if (parent_joint.type_ == "fixed") {
-            // fixed类型不需要创建joint，由body嵌套表示
-            return "";
+            // fixed类型不需要创建joint，由body嵌套表示（body照常输出）
         } else if (parent_joint.type_ == "floating") {
             mujoco_type = "free";
         } else if (parent_joint.type_ == "planar") {
             // MuJoCo没有直接的planar类型，可以用两个slide joint模拟
-            // 这里简化处理，跳过
-            return "";
+            // 这里简化处理，不输出joint（body照常输出）
         } else {
             throw std::runtime_error("joint type not support for MuJoCo: " + parent_joint.type_);
         }
-        file << std::string(space, ' ') << "      <joint name=\"" << parent_joint.name_ << "\" type=\"" << mujoco_type << "\"";
-        file << " axis=\"0 0 1\"";// Z轴为关节轴
-        // 限位（仅对hinge和slide有效）
-        if (parent_joint.type_ == "revolute" || parent_joint.type_ == "prismatic") {
-            file << " range=\"" << parent_joint.limits_.lower << " " << parent_joint.limits_.upper << "\"";
+        if (!mujoco_type.empty()) {
+            file << std::string(space, ' ') << "      <joint name=\"" << parent_joint.name_ << "\" type=\"" << mujoco_type << "\"";
+            file << " axis=\"0 0 1\"";// Z轴为关节轴
+            // 限位（仅对hinge和slide有效）
+            if (parent_joint.type_ == "revolute" || parent_joint.type_ == "prismatic") {
+                file << " range=\"" << parent_joint.limits_.lower << " " << parent_joint.limits_.upper << "\"";
+            }
+            file << "/>\n";
         }
-        file << "/>\n";
     }
     // 遍历子关节
     for (const auto &joint: link.joints_) {

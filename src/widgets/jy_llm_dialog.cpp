@@ -70,6 +70,7 @@ void JyLlmDialog::setupUi() {
     m_apiKeyEdit = new QLineEdit;
     m_apiKeyEdit->setEchoMode(QLineEdit::Password);
     m_apiKeyEdit->setPlaceholderText(tr("Enter your API key"));
+    m_apiKeyEdit->setToolTip(tr("Warning: the API key is stored in plain text in system settings"));
     settingsLayout->addRow(tr("API Key:"), m_apiKeyEdit);
 
     m_customUrlEdit = new QLineEdit;

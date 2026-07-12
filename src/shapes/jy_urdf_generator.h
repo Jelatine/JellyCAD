@@ -36,6 +36,11 @@ public:
         if (limits.count("velocity")) { limits_.velocity = limits.at("velocity"); }
     }
 
+    /**
+     * @brief 设置子连杆并返回其引用
+     * @note link会被深拷贝，调用后再修改原link对象不会反映到关节树上；
+     *       如需继续构建子树，请使用本函数的返回值
+     */
     Link &next(const Link &link) {
         child_ = std::make_shared<Link>(link);
         return *child_;

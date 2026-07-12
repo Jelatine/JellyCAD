@@ -234,10 +234,8 @@ public:
     struct InertialProperties {
         double mass;
         std::array<double, 3> center_of_mass;
-        std::array<double, 6> inertia_tensor;
+        std::array<double, 6> inertia_tensor;//!< 相对质心坐标系 [Ixx, Iyy, Izz, Ixy, Ixz, Iyz]
     };
-    static InertialProperties inertial(const JyShape &_shape);
-
     static InertialProperties inertial(const std::vector<JyShape> &_shapes);
 
     struct EdgeProperties {
@@ -279,8 +277,9 @@ private:
     JyShape &algo(const JyShape &_other) {
         if (s_.IsNull()) { return *this; }
         if (_other.s_.IsNull()) { return *this; }
-        T algo_fuse(s_, _other.s_);
-        s_ = algo_fuse.Shape();
+        T algo_op(s_, _other.s_);
+        if (!algo_op.IsDone()) { throw std::runtime_error("Boolean operation failed!"); }
+        s_ = algo_op.Shape();
         return *this;
     }
 

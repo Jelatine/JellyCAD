@@ -23,7 +23,7 @@ class JyLuaVirtualMachine : public QThread {
 public:
     explicit JyLuaVirtualMachine() = default;
 
-    void runScript(const QString &_file_path, const bool &is_file = true);
+    bool runScript(const QString &_file_path, const bool &is_file = true);
 
     void exec_code(const QString &_code);
 

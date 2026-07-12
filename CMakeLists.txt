@@ -2,7 +2,8 @@
 # Copyright (c) 2024. Li Jianbin. All rights reserved.
 # MIT License
 #
-cmake_minimum_required(VERSION 3.14)
+# 3.15+: WIN32_EXECUTABLE属性支持生成器表达式
+cmake_minimum_required(VERSION 3.15)
 project(JellyCAD)
 set(CMAKE_CXX_STANDARD 17)
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
@@ -82,7 +83,8 @@ if (QT_VERSION_MAJOR EQUAL 6)
             Qt6::Widgets
             Qt6::Network
             ${OpenCASCADE_LIBRARIES}
-            ${LUA_LIBRARIES})
+            ${LUA_LIBRARIES}
+            sol2::sol2)
     if(WIN32)
         # 在构建时根据配置类型（Debug/Release）动态复制Qt插件
         # 使用 $<CONFIG> 生成器表达式确保多配置生成器（如Visual Studio）能正确工作
@@ -107,11 +109,13 @@ else()
             Qt5::Widgets
             Qt5::Network
             ${OpenCASCADE_LIBRARIES}
-            ${LUA_LIBRARIES})
+            ${LUA_LIBRARIES}
+            sol2::sol2)
 endif()
 
-if ((${CMAKE_SYSTEM_NAME} MATCHES "Windows") AND (${CMAKE_BUILD_TYPE} STREQUAL "Release"))
-    set_target_properties(JellyCAD PROPERTIES WIN32_EXECUTABLE ON)
+# 使用生成器表达式，保证Visual Studio等多配置生成器下Release也是GUI程序（CMAKE_BUILD_TYPE对多配置生成器无效）
+if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+    set_target_properties(JellyCAD PROPERTIES WIN32_EXECUTABLE $<CONFIG:Release>)
 endif ()
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin/scripts)
@@ -181,6 +185,7 @@ if(BUILD_TESTS AND GTest_FOUND)
         GTest::gtest_main
         ${OpenCASCADE_LIBRARIES}
         ${LUA_LIBRARIES}
+        sol2::sol2
     )
     include(GoogleTest)
     gtest_discover_tests(JellyCAD_tests)

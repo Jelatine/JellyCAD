@@ -54,7 +54,7 @@ void JyLuaVirtualMachine::registerBindings() {
     lua["show"] = sol::overload(show_one, show_multi);
 }
 
-void JyLuaVirtualMachine::runScript(const QString &_file_path, const bool &is_file) {
+bool JyLuaVirtualMachine::runScript(const QString &_file_path, const bool &is_file) {
     QElapsedTimer localTimer;
     localTimer.start();
     lua = sol::state();// 重新赋值会自动清理旧的
@@ -83,11 +83,12 @@ void JyLuaVirtualMachine::runScript(const QString &_file_path, const bool &is_fi
         const QString message = result.get<sol::error>().what();
         emit scriptError("❌" + message);
         qDebug() << "\033[31m" << message << "\033[0m";
-    } else {
-        const auto message = QString("success, elapsed: %1 ms").arg(localTimer.elapsed());
-        emit scriptFinished("✅" + message);
-        qDebug() << "\033[32m" << message << "\033[0m";
+        return false;
     }
+    const auto message = QString("success, elapsed: %1 ms").arg(localTimer.elapsed());
+    emit scriptFinished("✅" + message);
+    qDebug() << "\033[32m" << message << "\033[0m";
+    return true;
 }
 
 
@@ -145,20 +146,7 @@ void JyLuaVirtualMachine::stopScript() {
 
 void JyLuaVirtualMachine::run() {
     emit scriptStarted();
-    if (script_mode.loadRelaxed() == 0) {
-        runScript(m_fileName);
-    } else {
-        // 为代码执行模式设置 arg 表
-        sol::table arg = lua.create_table();
-        arg[0] = "=(code)";
-        lua["arg"] = arg;
-
-        auto result = lua.safe_script(m_fileName.toStdString(), sol::script_pass_on_error);
-        if (!result.valid()) {
-            const QString message = result.get<sol::error>().what();
-            emit scriptError("❌" + message);
-        } else {
-            emit scriptFinished("");
-        }
-    }
+    // 文件模式和字符串模式统一走runScript：
+    // 每次执行都重建Lua状态并注册绑定、安装中断钩子，保证字符串模式也能使用绑定和停止功能
+    runScript(m_fileName, script_mode.loadRelaxed() == 0);
 }

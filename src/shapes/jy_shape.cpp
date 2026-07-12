@@ -92,8 +92,8 @@ sol::usertype<JyShape> JyShape::configure_usertype(sol::state &lua) {
 static bool checkSuffix(const std::string &filename, const std::string &suffix) {
     // 查找最后一个点的位置
     size_t dotPos = filename.find_last_of('.');
-    // 如果没有找到点，或者点在开头（隐藏文件），返回空字符串
-    if (dotPos == std::string::npos || dotPos == 0) { return ""; }
+    // 如果没有找到点，或者点在开头（隐藏文件），视为没有扩展名
+    if (dotPos == std::string::npos || dotPos == 0) { return false; }
     std::string extension = filename.substr(dotPos + 1);// 从点的下一个位置开始提取（不包含点）
     // 转换为小写
     std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
@@ -169,7 +169,6 @@ std::array<double, 6> JyShape::get_pose() const {
 }
 
 JyShape JyShape::get_edge(const sol::table &_cond) const {
-    TopoDS_Edge edge;
     for (TopExp_Explorer ex(s_, TopAbs_EDGE); ex.More(); ex.Next()) {
         TopoDS_Edge edge = TopoDS::Edge(ex.Current());
         if (!_cond || edge_filter(edge, _cond)) { return JyShape(edge); }
@@ -213,7 +212,7 @@ JyShape &JyShape::fillet(const double &_r, const sol::table &_cond) {
     }
     if (MF.NbContours() == 0) { return *this; }
     MF.Build();
-    if (!MF.IsDone()) { return *this; }
+    if (!MF.IsDone()) { throw std::runtime_error("fillet: build failed! (radius may be too large)"); }
     s_ = MF.Shape();
     return *this;
 }
@@ -230,7 +229,7 @@ JyShape &JyShape::fillet(const double &_r, const JyShape &edge_shape) {
     MF.Add(_r, edge);
     if (MF.NbContours() == 0) { return *this; }
     MF.Build();
-    if (!MF.IsDone()) { return *this; }
+    if (!MF.IsDone()) { throw std::runtime_error("fillet: build failed! (radius may be too large)"); }
     s_ = MF.Shape();
     return *this;
 }
@@ -239,14 +238,14 @@ JyShape &JyShape::chamfer(const double &_dis, const sol::table &_cond) {
     BRepFilletAPI_MakeChamfer MC(s_);
     TopTools_IndexedDataMapOfShapeListOfShape M;
     TopExp::MapShapesAndAncestors(s_, TopAbs_EDGE, TopAbs_FACE, M);
-    for (Standard_Integer i = 1; i < M.Extent(); i++) {
+    for (Standard_Integer i = 1; i <= M.Extent(); i++) {
         TopoDS_Edge E = TopoDS::Edge(M.FindKey(i));
         TopoDS_Face F = TopoDS::Face(M.FindFromIndex(i).First());
         if (!_cond || edge_filter(E, _cond)) { MC.Add(_dis, _dis, E, F); }
     }
     if (MC.NbContours() == 0) { return *this; }
     MC.Build();
-    if (!MC.IsDone()) { return *this; }
+    if (!MC.IsDone()) { throw std::runtime_error("chamfer: build failed! (distance may be too large)"); }
     s_ = MC.Shape();
     return *this;
 }
@@ -521,7 +520,8 @@ JyShape &JyShape::mass(const double &_mass) {
 }
 
 JyShape &JyShape::export_stl(const std::string &_filename, const sol::table &_opt) {
-    Standard_Boolean theAsciiMode = Standard_True;
+    // 默认值与无选项版本 export_stl_common 保持一致：二进制格式，线性偏差0.01
+    Standard_Boolean theAsciiMode = Standard_False;
     if (_opt && _opt["type"].is<std::string>()) {
         const std::string type_name = _opt["type"];
         if (type_name == "ascii") {
@@ -532,7 +532,13 @@ JyShape &JyShape::export_stl(const std::string &_filename, const sol::table &_op
             throw std::runtime_error("Invalid type!");
         }
     }
-    const double theLinDeflection = (_opt && _opt["radian"].is<double>()) ? _opt["radian"] : 0.1;
+    // 网格线性偏差，选项名为deflection（保留radian作为旧脚本的兼容别名）
+    double theLinDeflection = 0.01;
+    if (_opt && _opt["deflection"].is<double>()) {
+        theLinDeflection = _opt["deflection"];
+    } else if (_opt && _opt["radian"].is<double>()) {
+        theLinDeflection = _opt["radian"];
+    }
     return export_stl_common(_filename, theAsciiMode, theLinDeflection);
 }
 
@@ -580,33 +586,25 @@ JyShape JyShape::make_compound(const std::vector<JyShape> &_shapes) {
     return compound_shape;
 }
 
-JyShape::InertialProperties JyShape::inertial(const JyShape &_shape) {
-    GProp_GProps props;
-    BRepGProp::VolumeProperties(_shape.s_, props);
-    gp_Pnt centerOfMass = props.CentreOfMass();
-    gp_Mat inertiaMatrix = props.MatrixOfInertia();
-    Standard_Real Ixx, Iyy, Izz, Ixy, Ixz, Iyz;
-    Ixx = inertiaMatrix.Value(1, 1);
-    Iyy = inertiaMatrix.Value(2, 2);
-    Izz = inertiaMatrix.Value(3, 3);
-    Ixy = inertiaMatrix.Value(1, 2);
-    Ixz = inertiaMatrix.Value(1, 3);
-    Iyz = inertiaMatrix.Value(2, 3);
-    return {
-            props.Mass(),
-            {centerOfMass.X(), centerOfMass.Y(), centerOfMass.Z()},
-            {Ixx, Iyy, Izz, Ixy, Ixz, Iyz}};
-}
-
 JyShape::InertialProperties JyShape::inertial(const std::vector<JyShape> &_shapes) {
-    GProp_GProps system;
+    // 第一遍：以原点为参考累加，得到总质量与质心
+    GProp_GProps origin_system;
+    for (const auto &shape: _shapes) {
+        if (shape.s_.IsNull()) { continue; }
+        GProp_GProps one_system;
+        BRepGProp::VolumeProperties(shape.s_, one_system);
+        origin_system.Add(one_system, shape.density_);
+    }
+    gp_Pnt centerOfMass = origin_system.CentreOfMass();
+    // 第二遍：以质心为参考累加。URDF/MuJoCo要求惯量矩阵相对质心坐标系，
+    // 而GProp_GProps的MatrixOfInertia是相对其参考点的，默认参考点为原点
+    GProp_GProps system(centerOfMass);
     for (const auto &shape: _shapes) {
         if (shape.s_.IsNull()) { continue; }
         GProp_GProps one_system;
         BRepGProp::VolumeProperties(shape.s_, one_system);
         system.Add(one_system, shape.density_);
     }
-    gp_Pnt centerOfMass = system.CentreOfMass();
     gp_Mat inertiaMatrix = system.MatrixOfInertia();
     Standard_Real Ixx, Iyy, Izz, Ixy, Ixz, Iyz;
     Ixx = inertiaMatrix.Value(1, 1);

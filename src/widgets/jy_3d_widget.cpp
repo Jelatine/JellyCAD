@@ -340,7 +340,8 @@ void Jy3DWidget::wheelEvent(QWheelEvent *event) {
 void Jy3DWidget::createContextMenu() {
     m_contextMenu = new QMenu(nullptr);
     m_selectionModeGroup = new QActionGroup(this);
-    const std::unordered_map<int, QString> shape_type_map = {
+    // 使用vector保证菜单项顺序固定（unordered_map遍历顺序不确定）
+    const std::vector<std::pair<int, QString>> shape_type_map = {
             {static_cast<int>(TopAbs_SHAPE), "Shapes"},
             {static_cast<int>(TopAbs_VERTEX), "Vertices"},
             {static_cast<int>(TopAbs_EDGE), "Edges"},

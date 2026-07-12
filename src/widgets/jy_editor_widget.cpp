@@ -5,6 +5,7 @@
 #include "jy_editor_widget.h"
 #include "jy_llm_dialog.h"
 #include <QFile>
+#include <memory>
 #include <QHBoxLayout>
 #include <QTextCursor>
 #include <QVBoxLayout>
@@ -159,14 +160,15 @@ void JyEditorWidget::onLlmClicked() {
     dialog->setCurrentCode(currentCode);
 
     // Flag to track first stream update
-    bool isFirstUpdate = true;
+    // (shared_ptr而非按引用捕获局部变量，避免连接生命周期超出本函数时产生悬垂引用)
+    auto isFirstUpdate = std::make_shared<bool>(true);
 
     // Connect stream updates to editor
-    connect(dialog, &JyLlmDialog::codeStreamUpdate, this, [this, &isFirstUpdate](const QString &deltaText) {
+    connect(dialog, &JyLlmDialog::codeStreamUpdate, this, [this, isFirstUpdate](const QString &deltaText) {
         // On first update, clear the editor to replace old code
-        if (isFirstUpdate) {
+        if (*isFirstUpdate) {
             m_codeEditor->clear();
-            isFirstUpdate = false;
+            *isFirstUpdate = false;
         }
 
         // Append delta text to editor in real-time

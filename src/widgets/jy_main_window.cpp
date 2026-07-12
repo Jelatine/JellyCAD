@@ -90,7 +90,8 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     connect(shape_info_widget, &JyShapeInfoWidget::insertEdgeInfo, this, &JyMainWindow::onInsertEdgeInfo);
     connect(shape_info_widget, &JyShapeInfoWidget::insertEdgeInfo, [=] { m_activity_bar->slot_navigation_buttons_clicked(1); });
 
-    //!< 工作台: PAGE0: 文件管理器  PAGE1: 脚本编辑器  PAGE2: 终端  PAGE3: 形状信息  PAGE4: Git版本管理  PAGE5: 帮助
+    //!< 工作台: PAGE0: 文件管理器  PAGE1: 脚本编辑器  PAGE2: Git版本管理  PAGE3: 终端  PAGE4: 形状信息  PAGE5: 帮助
+    //!< 注意：页面顺序需与JyActivityBar中按钮的添加顺序一致
     auto stack_widget = new QStackedWidget;
     stack_widget->addWidget(file_manager);
     stack_widget->addWidget(m_editorWidget);
@@ -234,6 +235,11 @@ void JyMainWindow::closeEvent(QCloseEvent *event) {
         event->accept();// [否]直接退出
     } else {
         event->ignore();// [取消]忽略关闭事件
+    }
+    // 退出前停止正在运行的脚本线程，避免析构运行中的QThread导致崩溃
+    if (event->isAccepted() && lvm && lvm->isRunning()) {
+        lvm->stopScript();
+        lvm->wait(3000);// 最多等待3秒（脚本可能阻塞在与主线程的交互上）
     }
 }
 

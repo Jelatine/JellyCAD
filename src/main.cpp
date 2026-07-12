@@ -43,31 +43,29 @@ int main(int argc, char *argv[]) {
     qRegisterMetaType<JyShape>("JyShape");
     qRegisterMetaType<JyAxes>("JyAxes");
 
-    // 创建主窗口实例
-    JyMainWindow w;
-
     // 根据命令行参数选择运行模式
     if (parser.isSet(file_option)) {
-        // 模式1：执行脚本文件（无GUI）
-        const auto lvm = new JyLuaVirtualMachine();
-        lvm->runScript(parser.value(file_option));
-    } else if (parser.isSet(code_option)) {
-        // 模式2：执行代码字符串（无GUI）
-        const auto lvm = new JyLuaVirtualMachine();
-        lvm->runScript(parser.value(code_option), false);
-    } else {
-        // 模式3：启动GUI界面
-
-        // 加载并应用QSS颜色样式
-        QFile style_file(":/style.qss");
-        if (style_file.open(QFile::ReadOnly)) {
-            const auto style_str = style_file.readAll();
-            a.setStyleSheet(style_str);
-            style_file.close();
-        }
-
-        // 显示主窗口并进入事件循环
-        w.show();
-        QApplication::exec();
+        // 模式1：执行脚本文件（无GUI），脚本失败时返回非零退出码
+        JyLuaVirtualMachine lvm;
+        return lvm.runScript(parser.value(file_option)) ? 0 : 1;
     }
+    if (parser.isSet(code_option)) {
+        // 模式2：执行代码字符串（无GUI），脚本失败时返回非零退出码
+        JyLuaVirtualMachine lvm;
+        return lvm.runScript(parser.value(code_option), false) ? 0 : 1;
+    }
+    // 模式3：启动GUI界面
+
+    // 加载并应用QSS颜色样式
+    QFile style_file(":/style.qss");
+    if (style_file.open(QFile::ReadOnly)) {
+        const auto style_str = style_file.readAll();
+        a.setStyleSheet(style_str);
+        style_file.close();
+    }
+
+    // 显示主窗口并进入事件循环
+    JyMainWindow w;
+    w.show();
+    return QApplication::exec();
 }
