@@ -52,7 +52,6 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     auto edit_lua_cmd = new QLineEdit;
     auto command_completer = new QCompleter(m_editorWidget->codeEditor()->keyword_list());
     command_completer->setWrapAround(false);
-    command_completer->popup()->setStyleSheet("font-size: 20px;");
     command_completer->popup()->setFocusPolicy(Qt::NoFocus);
     edit_lua_cmd->setCompleter(command_completer);
     text_lua_message = new QTextBrowser;

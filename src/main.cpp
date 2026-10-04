@@ -3,6 +3,7 @@
  * MIT License
  */
 #include "jy_main_window.h"
+#include "jy_theme.h"
 #include <QApplication>
 #include <QCommandLineOption>
 #include <QCommandLineParser>
@@ -56,13 +57,8 @@ int main(int argc, char *argv[]) {
     }
     // 模式3：启动GUI界面
 
-    // 加载并应用QSS颜色样式
-    QFile style_file(":/style.qss");
-    if (style_file.open(QFile::ReadOnly)) {
-        const auto style_str = style_file.readAll();
-        a.setStyleSheet(style_str);
-        style_file.close();
-    }
+    // 加载并应用QSS样式（替换其中的设计变量）
+    a.setStyleSheet(JyTheme::styleSheet());
 
     // 显示主窗口并进入事件循环
     JyMainWindow w;

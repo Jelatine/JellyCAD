@@ -3,6 +3,7 @@
  * MIT License
  */
 #include "jy_page_help.h"
+#include "jy_theme.h"
 #include "lua.hpp"
 #include <QDateTime>
 #include <QDesktopServices>
@@ -85,7 +86,7 @@ JyPageHelp::JyPageHelp(QWidget *parent)
     layout()->addWidget(dependencies_container);
 
     // Add check update button
-    m_checkUpdateButton = new QPushButton(tr("🔄 Check for Updates"));
+    m_checkUpdateButton = new QPushButton(JyTheme::icon("refresh-cw"), tr("Check for Updates"));
     m_checkUpdateButton->setMaximumWidth(200);
     connect(m_checkUpdateButton, &QPushButton::clicked, this, &JyPageHelp::onCheckUpdateClicked);
     layout()->addWidget(m_checkUpdateButton);

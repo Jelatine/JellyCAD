@@ -3,6 +3,7 @@
  * MIT License
  */
 #include "jy_llm_dialog.h"
+#include "jy_theme.h"
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QJsonArray>
@@ -52,7 +53,7 @@ void JyLlmDialog::setupUi() {
     mainLayout->setSpacing(10);
 
     // Settings toggle button
-    m_settingsToggleButton = new QPushButton(tr("⚙ Settings"));
+    m_settingsToggleButton = new QPushButton(JyTheme::icon("settings"), tr("Settings"));
     m_settingsToggleButton->setCheckable(true);
     m_settingsToggleButton->setMaximumWidth(100);
     mainLayout->addWidget(m_settingsToggleButton);
@@ -95,12 +96,13 @@ void JyLlmDialog::setupUi() {
 
     // Send button
     m_sendButton = new QPushButton(tr("Send"));
+    m_sendButton->setProperty("primary", true);
     m_sendButton->setDefault(true);
     mainLayout->addWidget(m_sendButton);
 
     // Progress area
     m_statusLabel = new QLabel(tr("Ready"));
-    m_statusLabel->setStyleSheet("color: #666;");
+    m_statusLabel->setProperty("class", "caption");
     mainLayout->addWidget(m_statusLabel);
 
     m_progressBar = new QProgressBar;

@@ -7,10 +7,35 @@
         <file>lua_syntax.json</file>
         <file>style.qss</file>
     </qresource>
+    <!-- 图标来自 Lucide (ISC License)，见 icons/LICENSE-lucide.txt -->
     <qresource prefix="/icons">
-        <file>arrow-up.png</file>
-        <file>arrow-down.png</file>
-        <file>arrow-left.png</file>
-        <file>arrow-right.png</file>
+        <file alias="arrow-down-to-line.png">icons/arrow-down-to-line.png</file>
+        <file alias="arrow-up-from-line.png">icons/arrow-up-from-line.png</file>
+        <file alias="box.png">icons/box.png</file>
+        <file alias="check.png">icons/check.png</file>
+        <file alias="chevron-down-muted.png">icons/chevron-down-muted.png</file>
+        <file alias="chevron-down.png">icons/chevron-down.png</file>
+        <file alias="chevron-left-muted.png">icons/chevron-left-muted.png</file>
+        <file alias="chevron-left.png">icons/chevron-left.png</file>
+        <file alias="chevron-right-muted.png">icons/chevron-right-muted.png</file>
+        <file alias="chevron-right.png">icons/chevron-right.png</file>
+        <file alias="chevron-up-muted.png">icons/chevron-up-muted.png</file>
+        <file alias="chevron-up.png">icons/chevron-up.png</file>
+        <file alias="cloud.png">icons/cloud.png</file>
+        <file alias="file-code.png">icons/file-code.png</file>
+        <file alias="file.png">icons/file.png</file>
+        <file alias="folder.png">icons/folder.png</file>
+        <file alias="git-branch.png">icons/git-branch.png</file>
+        <file alias="info.png">icons/info.png</file>
+        <file alias="minus.png">icons/minus.png</file>
+        <file alias="play.png">icons/play.png</file>
+        <file alias="plus.png">icons/plus.png</file>
+        <file alias="refresh-cw.png">icons/refresh-cw.png</file>
+        <file alias="save.png">icons/save.png</file>
+        <file alias="settings.png">icons/settings.png</file>
+        <file alias="sparkles.png">icons/sparkles.png</file>
+        <file alias="square-terminal.png">icons/square-terminal.png</file>
+        <file alias="undo-2.png">icons/undo-2.png</file>
+        <file alias="x.png">icons/x.png</file>
     </qresource>
 </RCC>

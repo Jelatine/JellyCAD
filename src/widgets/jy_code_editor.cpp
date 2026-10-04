@@ -3,6 +3,7 @@
  * MIT License
  */
 #include "jy_code_editor.h"
+#include "jy_theme.h"
 #include <QDesktopServices>
 #include <QDir>
 #include <QFileInfo>
@@ -40,7 +41,7 @@ JyCodeEditor::JyCodeEditor(QWidget *parent) : QPlainTextEdit(parent), number_are
     connect(this, &JyCodeEditor::blockCountChanged, this, &JyCodeEditor::slot_update_number_width);
     connect(this, &JyCodeEditor::updateRequest, this, &JyCodeEditor::slot_update_number_area);
     slot_update_number_width(0);
-    viewport()->setStyleSheet("border-left: 1px solid #4b5059;");
+    viewport()->setStyleSheet(QString("border-left: 1px solid %1;").arg(JyTheme::color("border").name()));
 }
 void JyCodeEditor::init_highlighter() {
     highlighter_ = new Highlighter(this->document());
@@ -140,7 +141,7 @@ void JyCodeEditor::paint_line_number(QPaintEvent *event) {
         if (t_first_visible_block.isVisible() && t_bottom >= event->rect().top()) {
             int t_number = t_block_number + 1;
             //            painter.setPen(opt.palette.color(QPalette::WindowText));    // 行号栏字体色
-            painter.setPen(QColor("#4b5059"));// 行号栏字体色
+            painter.setPen(JyTheme::color("text-disabled"));// 行号栏字体色
             const auto rect = QRect(0, t_top, number_area_->width(), fontMetrics().height());
             painter.drawText(rect, Qt::AlignRight, QString::number(t_number));
         }

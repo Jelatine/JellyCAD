@@ -4,6 +4,7 @@
  */
 #include "jy_editor_widget.h"
 #include "jy_llm_dialog.h"
+#include "jy_theme.h"
 #include <QFile>
 #include <memory>
 #include <QHBoxLayout>
@@ -14,12 +15,11 @@ JyEditorWidget::JyEditorWidget(QWidget *parent)
     : QWidget(parent),
       m_codeEditor(new JyCodeEditor(this)),
       m_searchWidget(new JySearchWidget(this)),
-      m_saveButton(new QPushButton("Save", this)),
-      m_runButton(new QPushButton("Run", this)),
-      m_llmButton(new QPushButton("💬", this)) {
-    m_llmButton->setMaximumWidth(30);
-    m_llmButton->setMinimumWidth(30);
-    m_llmButton->setStyleSheet("min-width:42px;padding-left:2;padding-right:2;font-size: 18px;");
+      m_saveButton(new QPushButton(JyTheme::icon("save"), "Save", this)),
+      m_runButton(new QPushButton(JyTheme::icon("play", JyTheme::color("text-on-accent")), "Run", this)),
+      m_llmButton(new QPushButton(JyTheme::icon("sparkles"), "", this)) {
+    m_runButton->setProperty("primary", true);
+    m_llmButton->setFlat(true);
     setupUi();
 }
 
@@ -35,8 +35,9 @@ void JyEditorWidget::setupUi() {
 
     // Button layout
     auto buttonLayout = new QHBoxLayout;
-    buttonLayout->addWidget(m_saveButton);
     buttonLayout->addWidget(m_runButton);
+    buttonLayout->addWidget(m_saveButton);
+    buttonLayout->addStretch();
     buttonLayout->addWidget(m_llmButton);
 
     // Add widgets to main layout

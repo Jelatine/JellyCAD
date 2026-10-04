@@ -3,6 +3,7 @@
  * MIT License
  */
 #include "jy_git_manager.h"
+#include "jy_theme.h"
 #include <QDebug>
 #include <QDesktopServices>
 #include <QDir>
@@ -109,10 +110,9 @@ void JyGitManager::setupUi() {
     buttonLayout->addWidget(m_commitButton);
 
     // 操作菜单按钮（只显示图标，最窄布局）
-    m_menuButton = new QPushButton(tr("⚙"));
-    m_menuButton->setMaximumWidth(30);// 设置为最窄
-    m_menuButton->setMinimumWidth(30);
-    m_menuButton->setStyleSheet("min-width:42px;padding-left:8;padding-right:0;font-size: 18px;");// 紧凑的左右内边距
+    m_menuButton = new QPushButton(JyTheme::icon("settings"), "");
+    m_menuButton->setFlat(true);
+    m_menuButton->setFixedWidth(32);
     m_menuButton->setToolTip(tr("Git Operations"));
     buttonLayout->addWidget(m_menuButton);
 
@@ -122,16 +122,17 @@ void JyGitManager::setupUi() {
     m_operationsMenu = new QMenu(this->window());
 
     // 添加 Refresh 操作
-    m_operationsMenu->addAction(tr("🔄 Refresh"), this, &JyGitManager::onRefreshClicked);
+    m_operationsMenu->addAction(JyTheme::icon("refresh-cw"), tr("Refresh"), this, &JyGitManager::onRefreshClicked);
     m_operationsMenu->addSeparator();
 
     // 添加 Pull 和 Push 操作
-    m_operationsMenu->addAction(tr("⬇ Pull"), this, &JyGitManager::onPullClicked);
-    m_operationsMenu->addAction(tr("⬆ Push"), this, &JyGitManager::onPushClicked);
+    m_operationsMenu->addAction(JyTheme::icon("arrow-down-to-line"), tr("Pull"), this, &JyGitManager::onPullClicked);
+    m_operationsMenu->addAction(JyTheme::icon("arrow-up-from-line"), tr("Push"), this, &JyGitManager::onPushClicked);
     m_operationsMenu->addSeparator();
 
     // 创建 Branch 子菜单
     m_branchMenu = new QMenu(tr("Branch"), this);
+    m_branchMenu->setIcon(JyTheme::icon("git-branch"));
     m_operationsMenu->addMenu(m_branchMenu);
 
     // 创建 Remote 子菜单
@@ -317,7 +318,7 @@ void JyGitManager::updateStatusLabel() {
         m_historyGroup->setVisible(false);
     } else if (!m_isGitRepository) {
         // 不是Git仓库：只显示初始化按钮
-        m_statusLabel->setText(tr("📁 Not a Git repository"));
+        m_statusLabel->setText(tr("Not a Git repository"));
         m_statusLabel->setTextFormat(Qt::PlainText);
 
         // 显示初始化按钮
@@ -514,7 +515,7 @@ void JyGitManager::onFileTreeContextMenu(const QPoint &pos) {
         // 根据文件状态显示不同的菜单项
         if (stagedStatus != ' ' && stagedStatus != '?') {
             // 文件已暂存，提供 Unstage 选项
-            QAction *unstageAction = menu.addAction(tr("📤 Unstage This File"));
+            QAction *unstageAction = menu.addAction(JyTheme::icon("minus"), tr("Unstage This File"));
             connect(unstageAction, &QAction::triggered, this, [this, filePath]() {
                 enqueueCommand("git", QStringList() << "reset" << "HEAD" << filePath, "unstage_file");
             });
@@ -522,7 +523,7 @@ void JyGitManager::onFileTreeContextMenu(const QPoint &pos) {
 
         if (workStatus != ' ' || stagedStatus == '?') {
             // 文件有未暂存的修改或未跟踪，提供 Stage 选项
-            QAction *stageAction = menu.addAction(tr("📥 Stage This File"));
+            QAction *stageAction = menu.addAction(JyTheme::icon("plus"), tr("Stage This File"));
             connect(stageAction, &QAction::triggered, this, [this, filePath]() {
                 enqueueCommand("git", QStringList() << "add" << filePath, "stage_file");
             });
@@ -530,7 +531,7 @@ void JyGitManager::onFileTreeContextMenu(const QPoint &pos) {
 
         // 如果文件在工作区有未暂存的修改（不是未跟踪文件），提供放弃修改选项
         if (workStatus != ' ' && stagedStatus != '?') {
-            QAction *discardAction = menu.addAction(tr("🗑 Discard Changes"));
+            QAction *discardAction = menu.addAction(JyTheme::icon("undo-2"), tr("Discard Changes"));
             discardAction->setToolTip(tr("Discard uncommitted changes in working directory"));
             connect(discardAction, &QAction::triggered, this, [this, filePath]() {
                 auto reply = QMessageBox::warning(this, tr("Discard Changes"),
@@ -549,10 +550,10 @@ void JyGitManager::onFileTreeContextMenu(const QPoint &pos) {
     }
 
     // 批量操作（始终显示）
-    QAction *stageAllAction = menu.addAction(tr("📥 Stage All Files"));
+    QAction *stageAllAction = menu.addAction(JyTheme::icon("plus"), tr("Stage All Files"));
     connect(stageAllAction, &QAction::triggered, this, &JyGitManager::onStageAllClicked);
 
-    QAction *unstageAllAction = menu.addAction(tr("📤 Unstage All Files"));
+    QAction *unstageAllAction = menu.addAction(JyTheme::icon("minus"), tr("Unstage All Files"));
     connect(unstageAllAction, &QAction::triggered, this, &JyGitManager::onUnstageAllClicked);
 
     menu.exec(m_fileChangesTree->mapToGlobal(pos));
@@ -806,7 +807,7 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
             // 在菜单中显示现有的remote（只读信息）
             if (!remoteMap.isEmpty()) {
                 for (auto it = remoteMap.constBegin(); it != remoteMap.constEnd(); ++it) {
-                    QAction *infoAction = m_remoteMenu->addAction(QString("📍 %1: %2").arg(it.key(), it.value()));
+                    QAction *infoAction = m_remoteMenu->addAction(JyTheme::icon("cloud"), QString("%1: %2").arg(it.key(), it.value()));
                     infoAction->setEnabled(false);// 只是信息展示，不可点击
                 }
                 m_remoteMenu->addSeparator();
@@ -814,8 +815,8 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
         }
 
         // 添加操作菜单项
-        m_remoteMenu->addAction(tr("➕ Add Remote..."), this, &JyGitManager::onAddRemoteClicked);
-        m_remoteMenu->addAction(tr("➖ Remove Remote..."), this, &JyGitManager::onRemoveRemoteClicked);
+        m_remoteMenu->addAction(JyTheme::icon("plus"), tr("Add Remote..."), this, &JyGitManager::onAddRemoteClicked);
+        m_remoteMenu->addAction(JyTheme::icon("minus"), tr("Remove Remote..."), this, &JyGitManager::onRemoveRemoteClicked);
     } else if (m_currentCommand == "add_remote") {
         if (exitCode == 0) {
             QMessageBox::information(this, tr("Success"),

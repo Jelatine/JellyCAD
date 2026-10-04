@@ -3,6 +3,7 @@
  * MIT License
  */
 #include "jy_search_widget.h"
+#include "jy_theme.h"
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QShortcut>
@@ -10,7 +11,6 @@
 
 JySearchWidget::JySearchWidget(QWidget *parent) : QWidget(parent) {
     hide();
-    setStyleSheet("QPushButton{min-width: 28px; min-height: 28px;font-size: 22px;padding: 4px;}");
 
     // 创建水平布局
     QHBoxLayout *layout = new QHBoxLayout(this);
@@ -18,7 +18,7 @@ JySearchWidget::JySearchWidget(QWidget *parent) : QWidget(parent) {
 
     // 关闭按钮
     closeButton = new QPushButton(this);
-    closeButton->setIcon(style()->standardIcon(QStyle::SP_TitleBarCloseButton));
+    closeButton->setIcon(JyTheme::icon("x"));
     closeButton->setFlat(true);
     closeButton->setToolTip("Close the search box (Esc)");
     connect(closeButton, &QPushButton::clicked, this, &JySearchWidget::closed);
@@ -31,13 +31,13 @@ JySearchWidget::JySearchWidget(QWidget *parent) : QWidget(parent) {
     connect(searchLineEdit, &QLineEdit::returnPressed, this, &JySearchWidget::findNext);
 
     // Previous button
-    prevButton = new QPushButton("⬆️", this);
+    prevButton = new QPushButton(JyTheme::icon("chevron-up"), "", this);
     prevButton->setFlat(true);
     prevButton->setToolTip("Find previous (Shift+F3)");
     connect(prevButton, &QPushButton::clicked, this, &JySearchWidget::findPrevious);
 
     // Next button
-    nextButton = new QPushButton("⬇️", this);
+    nextButton = new QPushButton(JyTheme::icon("chevron-down"), "", this);
     nextButton->setFlat(true);
     nextButton->setToolTip("Find next (F3)");
     connect(nextButton, &QPushButton::clicked, this, &JySearchWidget::findNext);
@@ -62,6 +62,6 @@ void JySearchWidget::setFoundStatus(bool found) {
     if (found) {
         searchLineEdit->setStyleSheet("");
     } else {
-        searchLineEdit->setStyleSheet("QLineEdit { color: #DA5140; }");
+        searchLineEdit->setStyleSheet(QString("QLineEdit { color: %1; }").arg(JyTheme::color("danger").name()));
     }
 }

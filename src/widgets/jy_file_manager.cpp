@@ -3,6 +3,7 @@
  * MIT License
  */
 #include "jy_file_manager.h"
+#include "jy_theme.h"
 #include <QApplication>
 #include <QClipboard>
 #include <QDebug>
@@ -130,7 +131,7 @@ void JyFileManager::refreshFileList() {
     QStringList fileList = dir.entryList();
 
     // Add items with icon
-    QIcon fileIcon = style()->standardIcon(QStyle::SP_FileIcon);
+    QIcon fileIcon = JyTheme::icon("file-code");
     for (const QString &fileName: fileList) {
         QListWidgetItem *item = new QListWidgetItem(fileIcon, fileName);
         m_fileList->addItem(item);
