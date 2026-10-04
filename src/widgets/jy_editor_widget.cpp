@@ -11,6 +11,8 @@
 #include <QHBoxLayout>
 #include <QTextCursor>
 #include <QVBoxLayout>
+#include <QToolButton>
+#include <QMenu>
 
 JyEditorWidget::JyEditorWidget(QWidget *parent)
     : QWidget(parent),
@@ -38,6 +40,13 @@ void JyEditorWidget::setupUi() {
     auto buttonLayout = new QHBoxLayout;
     buttonLayout->addWidget(m_runButton);
     buttonLayout->addWidget(m_saveButton);
+    auto *codeButton = new QToolButton(this);
+    codeButton->setText(tr("Code"));
+    codeButton->setPopupMode(QToolButton::InstantPopup);
+    auto *codeMenu = new QMenu(codeButton);
+    codeMenu->addActions(m_codeEditor->codeActions());
+    codeButton->setMenu(codeMenu);
+    buttonLayout->addWidget(codeButton);
     buttonLayout->addStretch();
     buttonLayout->addWidget(m_llmButton);
 
@@ -45,6 +54,68 @@ void JyEditorWidget::setupUi() {
     mainLayout->addLayout(buttonLayout);
     mainLayout->addWidget(m_codeEditor);
     mainLayout->addWidget(m_searchWidget);
+    m_results = new QTabWidget(this);
+    m_results->setObjectName("luaResults");
+    m_results->setMaximumHeight(160);
+    m_problems = new QListWidget(m_results);
+    m_problems->setObjectName("luaProblems");
+    m_references = new QListWidget(m_results);
+    m_references->setObjectName("luaReferences");
+    m_results->addTab(m_problems, tr("Problems"));
+    m_results->addTab(m_references, tr("References"));
+    auto *closeResults = new QToolButton(m_results);
+    closeResults->setText(QStringLiteral("×"));
+    closeResults->setToolTip(tr("Hide results"));
+    m_results->setCornerWidget(closeResults);
+    connect(closeResults, &QToolButton::clicked, m_results, &QWidget::hide);
+    mainLayout->addWidget(m_results);
+    m_results->hide();
+    m_languageStatus = new QLabel(this);
+    m_languageStatus->setTextFormat(Qt::RichText);
+    mainLayout->addWidget(m_languageStatus);
+    connect(m_languageStatus, &QLabel::linkActivated, this, [this] {
+        m_results->setCurrentWidget(m_problems); m_results->setVisible(!m_results->isVisible());
+    });
+    for (auto *list : {m_problems, m_references}) {
+        connect(list, &QListWidget::itemActivated, this, [this](QListWidgetItem *item) {
+            m_codeEditor->goToPosition(item->data(Qt::UserRole).toInt());
+        });
+        connect(list, &QListWidget::itemClicked, this, [this](QListWidgetItem *item) {
+            m_codeEditor->goToPosition(item->data(Qt::UserRole).toInt());
+        });
+    }
+    connect(m_codeEditor, &JyCodeEditor::analysisUpdated, this, [this] {
+        m_problems->clear();
+        int errors = 0, warnings = 0;
+        for (const auto &diagnostic : m_codeEditor->analysis().diagnostics) {
+            const auto block = m_codeEditor->document()->findBlock(diagnostic.start);
+            auto *item = new QListWidgetItem(tr("%1 · Line %2: %3")
+                .arg(diagnostic.warning ? tr("Warning") : tr("Error")).arg(block.blockNumber() + 1).arg(diagnostic.message), m_problems);
+            item->setData(Qt::UserRole, diagnostic.start);
+            item->setToolTip(diagnostic.message);
+            if (diagnostic.warning) ++warnings; else ++errors;
+        }
+        m_results->setTabText(0, tr("Problems (%1)").arg(errors + warnings));
+        m_languageStatus->setText(tr("<a href=\"problems\">Lua: %1 errors, %2 warnings</a> · UTF-8 · 4 spaces").arg(errors).arg(warnings));
+    });
+    connect(m_codeEditor, &QPlainTextEdit::textChanged, this, [this] {
+        m_references->clear(); // Stored offsets are invalid as soon as the document changes.
+        m_problems->clear();
+        m_languageStatus->setText(tr("Checking Lua…"));
+    });
+    connect(m_codeEditor, &JyCodeEditor::referencesFound, this, [this](const QVector<int> &positions) {
+        m_references->clear();
+        for (int position : positions) {
+            const auto block = m_codeEditor->document()->findBlock(position);
+            auto *item = new QListWidgetItem(tr("Line %1: %2").arg(block.blockNumber() + 1).arg(block.text().trimmed()), m_references);
+            item->setData(Qt::UserRole, position);
+        }
+        m_results->setTabText(1, tr("References (%1)").arg(positions.size()));
+        m_results->setCurrentWidget(m_references); m_results->show();
+    });
+    connect(m_codeEditor, &JyCodeEditor::editorMessage, this, [this](const QString &message) {
+        m_languageStatus->setText(message.toHtmlEscaped());
+    });
 
     // Connect signals
     connect(m_saveButton, &QPushButton::clicked, this, &JyEditorWidget::onSaveClicked);

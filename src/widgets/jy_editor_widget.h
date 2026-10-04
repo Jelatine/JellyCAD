@@ -8,6 +8,9 @@
 #include "jy_code_editor.h"
 #include "jy_search_widget.h"
 #include <QPushButton>
+#include <QListWidget>
+#include <QTabWidget>
+#include <QLabel>
 #include <QWidget>
 
 class JyEditorWidget : public QWidget {
@@ -59,6 +62,10 @@ private:
     QPushButton *m_runButton;
     QPushButton *m_llmButton;
     QString m_lastSearchText;
+    QListWidget *m_problems = nullptr;
+    QListWidget *m_references = nullptr;
+    QTabWidget *m_results = nullptr;
+    QLabel *m_languageStatus = nullptr;
 };
 
 #endif// JY_EDITOR_WIDGET_H
