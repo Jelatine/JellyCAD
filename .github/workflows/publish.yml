@@ -13,6 +13,9 @@ on:
         required: true
         default: 'v1.0.0'
 
+env:
+  VCPKG_VERSION: "2026.06.24"  # 对应 Jelatine/JellyCAD-vcpkg 的 Release tag: vcpkg-<版本>
+
 jobs:
   build:
     strategy:
@@ -67,29 +70,14 @@ jobs:
           sudo apt-get install -y libfontconfig1-dev
           sudo apt-get install -y libgles2-mesa-dev libdrm-dev libgbm-dev libsm-dev libcups2-dev libmtdev-dev libts-dev
 
-      - name: 缓存vcpkg仓库(ubuntu)
-        if: ${{ matrix.os=='ubuntu-latest' }}
-        id: cache_vcpkg_ubuntu
-        uses: actions/cache@v4
-        with:
-          path: ${{github.workspace}}/vcpkg
-          key: cache_vcpkg_ubuntu
-
-      - name: 缓存vcpkg仓库(windows)
-        if: ${{ matrix.os=='windows-latest' }}
-        id: cache_vcpkg_windows
-        uses: actions/cache@v4
-        with:
-          path: ${{github.workspace}}/vcpkg
-          key: cache_vcpkg_windows
-
-      - name: 缓存vcpkg仓库(macos)
-        if: ${{ matrix.os=='macos-latest' }}
-        id: cache_vcpkg_macos
-        uses: actions/cache@v4
-        with:
-          path: ${{github.workspace}}/vcpkg
-          key: cache_vcpkg_macos
+      - name: 下载vcpkg产物
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "vcpkg-${VCPKG_VERSION}" -R Jelatine/JellyCAD-vcpkg -p "vcpkg-${RUNNER_OS}.tar.gz.part-*" -D vcpkg_dl
+          cat vcpkg_dl/* | tar -xzf -
+          rm -rf vcpkg_dl
 
       - name: Configure CMake
         run: cmake -B ${{github.workspace}}/build -DTAG_VERSION="${{ steps.get_version.outputs.version }}" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
