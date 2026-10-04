@@ -93,7 +93,7 @@ jobs:
 
       - name: 上传构建产物(ubuntu)
         if: ${{ matrix.os=='ubuntu-24.04' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-ubuntu-x64
           path: build/JellyCAD_Setup_${{ steps.get_version.outputs.version }}.sh
@@ -108,7 +108,7 @@ jobs:
 
       - name: 上传构建产物(windows)
         if: ${{ matrix.os=='windows-2025-vs2026' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-windows-x64
           path: build/JellyCAD_Setup_${{ steps.get_version.outputs.version }}.exe
@@ -121,7 +121,7 @@ jobs:
           cpack
       - name: 上传构建产物(macos)
         if: ${{ matrix.os=='macos-26' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-macos-x64
           path: build/JellyCAD_Setup_${{ steps.get_version.outputs.version }}.dmg
@@ -169,7 +169,7 @@ jobs:
           echo "$EOF" >> $GITHUB_OUTPUT
 
       - name: 下载所有构建产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
           merge-multiple: true
