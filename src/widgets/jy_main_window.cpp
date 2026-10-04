@@ -6,6 +6,7 @@
 #include "jy_file_manager.h"
 #include "jy_git_manager.h"
 #include "jy_page_help.h"
+#include "jy_title_bar.h"
 #include <QAbstractItemView>
 #include <QCompleter>
 #include <QDateTime>
@@ -33,6 +34,9 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
                                               m_activity_bar(new JyActivityBar()),
                                               m_progressDialog(nullptr),
                                               m_isStoppingScript(false) {
+    setWindowFlag(Qt::FramelessWindowHint);
+    setContentsMargins(5, 5, 5, 5);
+    setMenuWidget(new JyTitleBar(this));
     m_preview = new JyPreviewScheduler(this);
     auto autoPreview = new QCheckBox(tr("Auto preview"), this);
     QSettings settings("Jelatine", "JellyCAD");

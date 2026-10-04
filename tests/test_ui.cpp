@@ -2,6 +2,10 @@
 #include "jy_editor_widget.h"
 #include "jy_llm_dialog.h"
 #include "jy_main_window.h"
+#include "jy_title_bar.h"
+#include <QLabel>
+#include <QToolButton>
+#include <QMouseEvent>
 #include <QApplication>
 #include <QTemporaryDir>
 #include <QSettings>
@@ -22,6 +26,70 @@ void write(const QString &file, const QByteArray &text) {
 }
 class TestWindow : public JyMainWindow { public: using JyMainWindow::closeEvent; };
 }
+TEST(Window, CustomTitleBarTracksTitleAndWindowControls) {
+    QWidget window;
+    window.setWindowFlag(Qt::FramelessWindowHint);
+    auto *bar = new JyTitleBar(&window);
+    window.setWindowTitle("*model.lua - JellyCAD");
+    auto *title = bar->findChild<QLabel *>("windowTitleText");
+    ASSERT_NE(title, nullptr);
+    EXPECT_EQ(title->text(), window.windowTitle());
+    auto *maximize = bar->findChild<QToolButton *>("windowMaximize");
+    auto *minimize = bar->findChild<QToolButton *>("windowMinimize");
+    auto *close = bar->findChild<QToolButton *>("windowClose");
+    ASSERT_NE(maximize, nullptr);
+    ASSERT_NE(minimize, nullptr);
+    ASSERT_NE(close, nullptr);
+    maximize->click();
+    EXPECT_TRUE(window.isMaximized());
+    EXPECT_EQ(window.contentsMargins(), QMargins());
+    EXPECT_EQ(maximize->accessibleName(), "Restore");
+    maximize->click();
+    EXPECT_FALSE(window.isMaximized());
+    EXPECT_EQ(window.contentsMargins(), QMargins(5, 5, 5, 5));
+    QMouseEvent doubleClick(QEvent::MouseButtonDblClick, QPointF(20, 20),
+                           QPointF(20, 20), Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(bar, &doubleClick);
+    EXPECT_TRUE(window.isMaximized());
+    minimize->click();
+    EXPECT_TRUE(window.isMinimized());
+    window.showNormal();
+    close->click();
+    EXPECT_FALSE(window.isVisible());
+}
+
+TEST(Window, CustomTitleBarCloseHonorsCloseEvent) {
+    class RejectCloseWindow : public QWidget {
+        void closeEvent(QCloseEvent *event) override { event->ignore(); }
+    } window;
+    auto *bar = new JyTitleBar(&window);
+    window.show();
+    bar->findChild<QToolButton *>("windowClose")->click();
+    EXPECT_TRUE(window.isVisible());
+}
+
+TEST(Window, FramelessResizeFallbackHonorsMinimumSize) {
+    QWidget window;
+    window.setWindowFlag(Qt::FramelessWindowHint);
+    window.setMinimumSize(200, 120);
+    window.setGeometry(100, 100, 400, 240);
+    new JyTitleBar(&window);
+    window.show();
+    const QPoint edge(window.width() - 1, window.height() - 1);
+    const QPoint global = window.mapToGlobal(edge);
+    QMouseEvent press(QEvent::MouseButtonPress, edge, global,
+                      Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(&window, &press);
+    const QPoint delta(-350, -200);
+    QMouseEvent move(QEvent::MouseMove, edge + delta, global + delta,
+                     Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(&window, &move);
+    EXPECT_EQ(window.size(), QSize(200, 120));
+    QMouseEvent release(QEvent::MouseButtonRelease, edge + delta, global + delta,
+                        Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+    QApplication::sendEvent(&window, &release);
+}
+
 TEST(Editor, AtomicSaveAndFailedSavePreserveDirtyState) {
     QTemporaryDir temp;
     JyEditorWidget editor;
@@ -69,6 +137,8 @@ TEST(Window, F5SaveRunsExactlyOnce) {
     const auto path = temp.filePath("code.lua");
     write(path,"print('before')");
     TestWindow window;
+    EXPECT_TRUE(window.windowFlags().testFlag(Qt::FramelessWindowHint));
+    EXPECT_NE(qobject_cast<JyTitleBar *>(window.menuWidget()), nullptr);
     window.onFileOpenRequested(path);
     auto *editor=window.findChild<JyEditorWidget *>();
     auto *runner=window.findChild<JyLuaVirtualMachine *>();

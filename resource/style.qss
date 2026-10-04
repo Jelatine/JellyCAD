@@ -18,6 +18,28 @@ QWidget {
     font-size: 13px;
 }
 
+QWidget#windowTitleBar {
+    background: @bg-panel;
+    border-bottom: 1px solid @border;
+}
+
+QLabel#windowTitleText {
+    background: transparent;
+    color: @text-muted;
+    padding-right: 12px;
+}
+
+QToolButton[windowControl="true"] {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+}
+
+QToolButton[windowControl="true"]:hover { background: @bg-hover; }
+QToolButton[windowControl="true"]:pressed { background: @bg-active; }
+QToolButton#windowClose:hover { background: @danger; }
+
 QToolTip {
     color: @text;
     background-color: @bg-elevated;
