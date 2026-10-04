@@ -4,7 +4,7 @@
  */
 #include "jy_page_help.h"
 #include "jy_theme.h"
-#include "lua.hpp"
+#include "runtime/jy_runtime.h"
 #include <QDateTime>
 #include <QDesktopServices>
 #include <QJsonDocument>
@@ -79,9 +79,7 @@ JyPageHelp::JyPageHelp(QWidget *parent)
     dependencies_layout->addWidget(new QLabel(version_qt));
     dependencies_layout->addWidget(new QLabel(version_occt));
     dependencies_layout->addWidget(new QLabel(version_sol2));
-#ifdef LUA_VERSION
-    dependencies_layout->addWidget(new QLabel(QString::fromStdString(LUA_VERSION)));
-#endif
+    dependencies_layout->addWidget(new QLabel(QString::fromUtf8(jelly::luaVersion())));
 
     layout()->addWidget(dependencies_container);
 

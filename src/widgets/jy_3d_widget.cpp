@@ -73,8 +73,7 @@ void Jy3DWidget::onDisplayShape(const JyShape &theIObj) {
     ais_shape->SetTransparency(theIObj.transparency_);
     // 使用Plastic材质 - 具有良好的光泽度和反射特性，适合CAD应用
     ais_shape->SetMaterial(Graphic3d_NameOfMaterial_Stone);
-    m_context->Display(ais_shape, Standard_True);
-    m_view->FitAll();
+    m_context->Display(ais_shape, Standard_False);
 }
 
 
@@ -94,10 +93,11 @@ void Jy3DWidget::onDisplayAxes(const JyAxes &theAxes) {
     trihedron->SetLabel(Prs3d_DatumParts_YAxis, "");
     trihedron->SetLabel(Prs3d_DatumParts_ZAxis, "");
     trihedron->SetSize(theAxes.length());
-    m_context->Display(trihedron, Standard_True);
+    m_context->Display(trihedron, Standard_False);
 }
 
 void Jy3DWidget::remove_all() {
+    if (m_context.IsNull()) return;
     m_viewer->SetRectangularGridValues(0, 0, 1, 1, 0);
     m_viewer->SetRectangularGridGraphicValues(2.01, 2.01, 0);
 #if 1
@@ -387,4 +387,10 @@ void Jy3DWidget::setSelectionMode(TopAbs_ShapeEnum mode) {
         m_view->Redraw();
         qDebug() << "选择模式已切换到:" << static_cast<int>(mode);
     }
+}
+
+void Jy3DWidget::refresh(bool fit) {
+    if (m_view.IsNull() || m_context.IsNull()) return;
+    if (fit) m_view->FitAll();
+    m_context->UpdateCurrentViewer();
 }

@@ -1,57 +1,48 @@
-/*
- * Copyright (c) 2024. Li Jianbin. All rights reserved.
- * MIT License
- */
-#ifndef JY_LUA_VIRTUAL_MACHINE
-#define JY_LUA_VIRTUAL_MACHINE
-
-#define SOL_ALL_SAFETIES_ON 1
-
-#include "jy_axes.h"
-#include "jy_shape.h"
-#include <QAtomicInt>
-#include <QMutex>
+#pragma once
+#include "runtime/jy_runtime.h"
+#include <QObject>
 #include <QThread>
-#include <sol/sol.hpp>
+#include <QTimer>
+#include <condition_variable>
+#include <deque>
+#include <mutex>
 
-class JyLuaVirtualMachine : public QThread {
+// GUI-thread controller. The worker never waits on a GUI signal delivery.
+class JyLuaVirtualMachine : public QObject {
     Q_OBJECT
-    sol::state lua;
-
-    void registerBindings();
-
 public:
-    explicit JyLuaVirtualMachine() = default;
-
-    bool runScript(const QString &_file_path, const bool &is_file = true);
-
-    void exec_code(const QString &_code);
-
-    void executeScript(const QString &fileName);
+    enum class State { Idle, Running, Stopping };
+    explicit JyLuaVirtualMachine(QObject *parent = nullptr);
+    ~JyLuaVirtualMachine() override;
+    bool executeScript(const QString &fileName);
+    bool exec_code(const QString &code, const QString &directory = {});
+    bool submit(jelly::RunRequest request);
     void stopScript();
-
+    bool isRunning() const { return m_state != State::Idle; }
+    State state() const { return m_state; }
+    quint64 runId() const { return m_runId; }
+    size_t queuePeak() const { return m_peak.load(); }
+    static constexpr size_t QueueCapacity = 256;
 signals:
     void scriptStarted();
     void scriptFinished(const QString &message);
     void scriptError(const QString &error);
     void scriptOutput(const QString &output);
-
-
-protected:
-    void run() override;
-
+    void displayShape(const JyShape &shape);
+    void displayAxes(const JyAxes &axes);
+    void batchFinished();
+    void completed(const jelly::RunResult &result);
 private:
-    void lua_print(const sol::object &v);
-
-    QString m_fileName;
-    QAtomicInt script_mode;// 文件模式: 0 文件, 1 字符串
-    QMutex m_mutex;
-
-signals:
-
-    void displayShape(const JyShape &theIObj);
-
-    void displayAxes(const JyAxes &theAxes);
+    void drain();
+    State m_state = State::Idle;
+    QThread *m_worker = nullptr;
+    QTimer m_timer;
+    std::atomic<bool> m_cancel{false};
+    std::mutex m_mutex;
+    std::condition_variable m_capacity;
+    struct Event { quint64 id; jelly::RunEvent value; };
+    std::deque<Event> m_events;
+    jelly::RunResult m_result;
+    quint64 m_runId = 0;
+    std::atomic<size_t> m_peak{0};
 };
-
-#endif//JY_LUA_VIRTUAL_MACHINE

@@ -22,7 +22,7 @@ JyFileManager::JyFileManager(QWidget *parent) : QWidget(parent), m_newFileItem(n
     if (!dir_current.exists()) { QDir(QApplication::applicationDirPath()).mkdir("scripts"); }
     // 读取软件配置
     settings = new QSettings("Jelatine", "JellyCAD", this);
-    m_workingDirectory = settings->value("lastDirectory", default_dir).toString();
+    m_workingDirectory = QDir(settings->value("lastDirectory", default_dir).toString()).absolutePath();
     if (!QDir(m_workingDirectory).exists()) { m_workingDirectory = default_dir; }
 
     // Create layout
@@ -61,7 +61,7 @@ void JyFileManager::onOpenFolderClicked() {
         refreshFileList();
         updateWatcher();
     } else {
-        m_workingDirectory = dir;
+        m_workingDirectory = QDir(dir).absolutePath();
         m_openedFilePath.clear();
         settings->setValue("lastDirectory", m_workingDirectory);
         settings->sync();
@@ -549,6 +549,8 @@ void JyFileManager::setOpenedFile(const QString &filePath) {
 }
 
 void JyFileManager::onFileChanged(const QString &path) {
+    // Atomic saves replace the inode; QFileSystemWatcher drops that watch.
+    if (QFileInfo::exists(path) && !m_watcher->files().contains(path)) m_watcher->addPath(path);
     qDebug() << "File changed in JyFileManager:" << path;
 
     // Only emit when the changed file is the currently opened file,
@@ -559,6 +561,10 @@ void JyFileManager::onFileChanged(const QString &path) {
 }
 
 void JyFileManager::onDirectoryChanged(const QString &path) {
+    if (!m_openedFilePath.isEmpty() && QFileInfo::exists(m_openedFilePath)) {
+        if (!m_watcher->files().contains(m_openedFilePath)) m_watcher->addPath(m_openedFilePath);
+        emit openedFileChanged(m_openedFilePath);
+    }
     // Check if lua files in directory actually changed
     QDir dir(m_workingDirectory);
     if (!dir.exists()) {

@@ -5,9 +5,15 @@
 #ifndef JY_SHAPE_H
 #define JY_SHAPE_H
 
-#include <AIS_Shape.hxx>
+#include <TopoDS_Shape.hxx>
+#include <Quantity_Color.hxx>
+#include <array>
+#include <vector>
+#include <string>
+#include <optional>
+#include <stdexcept>
 #include <TopoDS_Edge.hxx>
-#include <sol/state.hpp>
+
 
 /**
  * @brief 三维形状基类
@@ -15,12 +21,25 @@
  * JyShape类是所有三维几何形状的基类，提供了形状的基本操作功能，
  * 包括布尔运算、几何变换、位置姿态调整、颜色透明度设置等。
  */
+struct EdgeFilter {
+    double tolerance = 1e-3;
+    std::optional<std::string> type;
+    std::optional<std::array<double, 3>> first, last, minimum, maximum;
+};
+
+struct StlOptions {
+    bool ascii = false;
+    double deflection = 0.01;
+};
+
 class JyShape {
 public:
     /**
      * @brief 获取形状数据
      * @return TopoDS_Shape 形状数据
      */
+    JyShape snapshot() const;
+
     [[nodiscard]] TopoDS_Shape data() const { return s_; }
 
     TopoDS_Shape s_;//!< OpenCASCADE形状对象
@@ -48,7 +67,6 @@ public:
      */
     ~JyShape() = default;
 
-    static sol::usertype<JyShape> configure_usertype(sol::state &lua);
 
     /**
      * @brief 获取形状类型
@@ -61,7 +79,7 @@ public:
     std::array<double, 6> get_pose() const;
 
 
-    JyShape get_edge(const sol::table &_cond) const;
+    JyShape get_edge(const EdgeFilter &_cond) const;
 
     JyShape get_face(std::string type, double area, std::array<double, 3> center, std::array<double, 4> uv) const;
 
@@ -94,8 +112,8 @@ public:
      * @param _cond 条件表，指定要倒圆角的边
      * @return JyShape& 当前形状引用
      */
-    JyShape &fillet(const double &_r, const sol::table &_cond);
-    JyShape &fillet(const double &_r) { return fillet(_r, sol::table{}); }
+    JyShape &fillet(const double &_r, const EdgeFilter &_cond);
+    JyShape &fillet(const double &_r) { return fillet(_r, EdgeFilter{}); }
     JyShape &fillet(const double &_r, const JyShape &edge_shape);
 
     /**
@@ -104,7 +122,7 @@ public:
      * @param _cond 条件表，指定要倒角的边
      * @return JyShape& 当前形状引用
      */
-    JyShape &chamfer(const double &_dis, const sol::table &_cond);
+    JyShape &chamfer(const double &_dis, const EdgeFilter &_cond);
     JyShape &chamfer(const double &_dis) { return chamfer(_dis, {}); }
 
     /**
@@ -210,7 +228,7 @@ public:
      * @param _filename 文件路径
      * @param _opt 导出选项表
      */
-    JyShape &export_stl(const std::string &_filename, const sol::table &_opt);
+    JyShape &export_stl(const std::string &_filename, const StlOptions &_opt);
     JyShape &export_stl(const std::string &_filename) { return export_stl_common(_filename); }
 
     JyShape &export_stl_common(const std::string &_filename, const bool is_ascii = false, const double &lin = 0.01);
@@ -260,14 +278,6 @@ public:
 
 private:
     /**
-     * @brief 从Lua表中获取双精度数组
-     * @param _t Lua表
-     * @param _v 输出的双精度数组
-     * @return bool 是否成功
-     */
-    static bool get_double_vector(const sol::table &_t, std::vector<double> &_v);
-
-    /**
      * @brief 通用算法模板函数
      * @tparam T 算法类型
      * @param _other 另一个形状
@@ -315,7 +325,7 @@ private:
      * @param _cond 条件表
      * @return bool 是否符合条件
      */
-    static bool edge_filter(const TopoDS_Edge &_edge, const sol::table &_cond);
+    static bool edge_filter(const TopoDS_Edge &_edge, const EdgeFilter &_cond);
 };
 
 #endif//JY_SHAPE_H

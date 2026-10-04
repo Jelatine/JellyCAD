@@ -20,7 +20,6 @@ class JyAxes {
     double length_{1};     // 坐标轴长度（用于可视化显示）
 
 public:
-    static sol::usertype<JyAxes> configure_usertype(sol::state &lua);
 
 public:
     /**

@@ -6,6 +6,7 @@
 #include "jy_llm_dialog.h"
 #include "jy_theme.h"
 #include <QFile>
+#include <QSaveFile>
 #include <memory>
 #include <QHBoxLayout>
 #include <QTextCursor>
@@ -80,22 +81,13 @@ void JyEditorWidget::clearEditor() {
 }
 
 bool JyEditorWidget::saveFile() {
-    QString filePath = m_codeEditor->getFilePath();
-    if (filePath.isEmpty()) {
-        return false;
-    }
-
-    QFile file(filePath);
-    if (!file.open(QIODevice::WriteOnly)) {
-        return false;
-    }
-
-    file.write(m_codeEditor->get_text().toUtf8());
-    file.close();
-
+    const auto path = m_codeEditor->getFilePath();
+    if (path.isEmpty()) return false;
+    QSaveFile file(path);
+    if (!file.open(QIODevice::WriteOnly)) return false;
+    const auto bytes = m_codeEditor->get_text().toUtf8();
+    if (file.write(bytes) != bytes.size() || !file.commit()) return false;
     m_codeEditor->document()->setModified(false);
-    m_codeEditor->setFilePath(filePath);
-
     return true;
 }
 
@@ -160,30 +152,13 @@ void JyEditorWidget::onLlmClicked() {
     QString currentCode = m_codeEditor->get_text();
     dialog->setCurrentCode(currentCode);
 
-    // Flag to track first stream update
-    // (shared_ptr而非按引用捕获局部变量，避免连接生命周期超出本函数时产生悬垂引用)
-    auto isFirstUpdate = std::make_shared<bool>(true);
-
-    // Connect stream updates to editor
-    connect(dialog, &JyLlmDialog::codeStreamUpdate, this, [this, isFirstUpdate](const QString &deltaText) {
-        // On first update, clear the editor to replace old code
-        if (*isFirstUpdate) {
-            m_codeEditor->clear();
-            *isFirstUpdate = false;
-        }
-
-        // Append delta text to editor in real-time
-        QTextCursor cursor = m_codeEditor->textCursor();
-        cursor.movePosition(QTextCursor::End);
-        cursor.insertText(deltaText);
-        m_codeEditor->setTextCursor(cursor);
-        m_codeEditor->ensureCursorVisible();
-    });
-
-    // Connect generation finished - no need to do anything since we've been streaming
     connect(dialog, &JyLlmDialog::codeGenerationFinished, this, [this](const QString &fullCode) {
-        Q_UNUSED(fullCode);
-        // Code has already been streamed to the editor
+        QTextCursor cursor(m_codeEditor->document());
+        cursor.beginEditBlock();
+        cursor.select(QTextCursor::Document);
+        cursor.insertText(fullCode);
+        cursor.endEditBlock();
+        m_codeEditor->setTextCursor(cursor);
     });
 
     dialog->exec();

@@ -1,154 +1,92 @@
-/*
- * Copyright (c) 2024. Li Jianbin. All rights reserved.
- * MIT License
- */
 #include "jy_lua_virtual_machine.h"
-#include "jy_make_shapes.h"
-#include "jy_urdf_generator.h"
 #include <QDebug>
-#include <QDir>
 #include <QElapsedTimer>
 #include <QFileInfo>
 
-std::atomic<bool> should_exit(false);
-// 调试钩子函数
-void debug_hook(lua_State *L, lua_Debug *ar) {
-    if (should_exit.load()) {
-        luaL_error(L, "Script interrupted by external command");
-    }
+JyLuaVirtualMachine::JyLuaVirtualMachine(QObject *parent) : QObject(parent) {
+    m_timer.setInterval(16);
+    connect(&m_timer, &QTimer::timeout, this, &JyLuaVirtualMachine::drain);
 }
-
-void JyLuaVirtualMachine::registerBindings() {
-    lua.open_libraries();
-    // 每执行100条VM指令检查一次停止标志：相比count=1大幅降低回调开销，
-    // 响应延迟仍在微秒级；阻塞在C++调用内的情况无论count多大都无法打断
-    lua_sethook(lua.lua_state(), debug_hook, LUA_MASKCOUNT, 100);
-    if(!lua_checkstack(lua.lua_state(), 1000)){
-        throw std::runtime_error("Lua stack overflow!");
-    }
-    lua["print"] = [=](const sol::object &v) { this->lua_print(v); };
-    auto shape_user = JyShape::configure_usertype(lua);
-    shape_user["show"] = [this](JyShape &self) -> JyShape & { emit this->displayShape(self);return self; };
-    JyEdge::configure_usertype(lua);
-    JyFace::configure_usertype(lua);
-    JyMakeShapes::configure_usertype(lua);
-    // ----- Axes -----
-    auto axes_user = JyAxes::configure_usertype(lua);
-    axes_user["show"] = [this](const JyAxes &self) { return emit this->displayAxes(self); };
-    // ----- URDF -----
-    Link::configure_usertype(lua);
-
-    // 全局函数
-    const auto show_one = [=](const JyShape &s) { emit displayShape(s); };
-    const auto show_multi = [=](const sol::table &_list) {
-        for (int i = 1; i <= _list.size(); ++i) {
-            if (_list[i].is<JyShape>()) {
-                const JyShape &s = _list[i];
-                emit displayShape(s);
-            } else if (_list[i].is<JyAxes>()) {
-                const JyAxes &a = _list[i];
-                emit displayAxes(a);
-            } else {
-                throw std::runtime_error("Wrong type!");
-            }
-        }
-    };
-    lua["show"] = sol::overload(show_one, show_multi);
+JyLuaVirtualMachine::~JyLuaVirtualMachine() {
+    // Window shutdown normally waits asynchronously for completed(). This fallback
+    // remains safe because the worker cannot block on the GUI event loop.
+    stopScript();
+    if (m_worker) { m_worker->wait(); delete m_worker; }
 }
-
-bool JyLuaVirtualMachine::runScript(const QString &_file_path, const bool &is_file) {
-    QElapsedTimer localTimer;
-    localTimer.start();
-    lua = sol::state();// 重新赋值会自动清理旧的
-    registerBindings();
-
-    // 设置 arg 表
-    sol::table arg = lua.create_table();
-    if (is_file) {
-        arg[0] = _file_path.toStdString();
-    } else {
-        arg[0] = "=(code)";
-    }
-    lua["arg"] = arg;
-
-    sol::protected_function_result result;
-    if (is_file) {
-        QFileInfo fileInfo(_file_path);
-        QString dirPath = fileInfo.absolutePath();
-        QDir::setCurrent(dirPath);
-        lua["package"]["path"] = lua["package"]["path"].get<std::string>() + ";" + dirPath.toStdString() + "/?.lua";
-        result = lua.script_file(_file_path.toStdString(), sol::script_pass_on_error);
-    } else {
-        result = lua.safe_script(_file_path.toStdString(), sol::script_pass_on_error);
-    }
-    if (!result.valid()) {
-        const QString message = result.get<sol::error>().what();
-        emit scriptError("❌" + message);
-        qDebug() << "\033[31m" << message << "\033[0m";
-        return false;
-    }
-    const auto message = QString("success, elapsed: %1 ms").arg(localTimer.elapsed());
-    emit scriptFinished("✅" + message);
-    qDebug() << "\033[32m" << message << "\033[0m";
+bool JyLuaVirtualMachine::executeScript(const QString &file) {
+    jelly::RunRequest request;
+    request.source = QFileInfo(file).absoluteFilePath().toStdString();
+    return submit(std::move(request));
+}
+bool JyLuaVirtualMachine::exec_code(const QString &code, const QString &directory) {
+    jelly::RunRequest request;
+    request.source = code.toStdString();
+    request.directory = directory.toStdString();
+    request.isFile = false;
+    return submit(std::move(request));
+}
+bool JyLuaVirtualMachine::submit(jelly::RunRequest request) {
+    Q_ASSERT(QThread::currentThread() == thread());
+    if (isRunning()) return false;
+    request.id = ++m_runId;
+    m_cancel = false;
+    m_peak = 0;
+    m_state = State::Running;
+    m_worker = QThread::create([this, request] {
+        m_result = jelly::execute(request, m_cancel, [this, id = request.id](jelly::RunEvent value) {
+            // Bound individual log entries as well as the number of events.
+            if (auto *text = std::get_if<std::string>(&value); text && text->size() > 16384) text->resize(16384);
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_capacity.wait(lock, [this] { return m_cancel.load() || m_events.size() < QueueCapacity; });
+            if (m_cancel.load()) return;
+            m_events.push_back({id, std::move(value)});
+            m_peak = std::max(m_peak.load(), m_events.size());
+        });
+    });
+    connect(m_worker, &QThread::finished, this, [this] {
+        m_worker->wait(); // finished has been delivered; this does not wait on UI work.
+        m_timer.stop();
+        while (!m_events.empty()) drain();
+        auto *finishedWorker = m_worker;
+        m_worker = nullptr;
+        finishedWorker->deleteLater();
+        const auto result = m_result;
+        m_state = State::Idle;
+        qDebug() << "Script" << result.id << "elapsed ms" << result.elapsedMs << "queue peak" << m_peak.load();
+        const auto message = QString::fromStdString(result.message) + QString(" (%1 ms)").arg(result.elapsedMs);
+        if (result.status == jelly::RunStatus::Failed) emit scriptError(message);
+        else emit scriptFinished(message);
+        emit completed(result);
+    });
+    emit scriptStarted();
+    m_worker->start();
+    m_timer.start();
     return true;
 }
-
-
-void JyLuaVirtualMachine::exec_code(const QString &_code) {
-    QMutexLocker locker(&m_mutex);
-    if (QThread::isRunning()) {
-        return;// 已经在运行
-    }
-    m_fileName = _code;
-    script_mode = 1;// 字符串模式
-    should_exit = false;
-    start();
-}
-
-
-void JyLuaVirtualMachine::lua_print(const sol::object &v) {
-    QString msg;
-    if (v.get_type() == sol::type::string) {
-        msg = QString::fromStdString(v.as<std::string>());
-    } else if (v.get_type() == sol::type::number) {
-        msg = v.is<int>() ? QString::number(v.as<int>()) : QString::number(v.as<double>());
-    } else if (v.get_type() == sol::type::table) {
-        msg = "table: " + QString::number((qulonglong) v.as<sol::table>().pointer(), 16).toUpper();
-    } else if (v.get_type() == sol::type::lua_nil) {
-        msg = "nil";
-    } else if (v.get_type() == sol::type::boolean) {
-        msg = v.as<bool>() ? "true" : "false";
-    } else if (v.get_type() == sol::type::userdata) {
-        msg = "userdata: " + QString::number((qulonglong) v.as<sol::userdata>().pointer(), 16).toUpper();
-    } else if (v.get_type() == sol::type::function) {
-        msg = "function: " + QString::number((qulonglong) v.as<sol::function>().pointer(), 16).toUpper();
-    } else if (v.get_type() == sol::type::thread) {
-        msg = "thread: " + QString::number((qulonglong) v.as<sol::thread>().pointer(), 16).toUpper();
-    }
-    if (!msg.isEmpty()) { emit scriptOutput(msg); }
-    qDebug() << msg;
-}
-
-
-void JyLuaVirtualMachine::executeScript(const QString &fileName) {
-    QMutexLocker locker(&m_mutex);
-    if (QThread::isRunning()) {
-        return;// 已经在运行
-    }
-    m_fileName = fileName;
-    script_mode = 0;// 文件模式
-    should_exit = false;
-    start();
-}
-
 void JyLuaVirtualMachine::stopScript() {
-    should_exit = true;
-    // if (!wait(3000)) { terminate(); }
+    if (!isRunning()) return;
+    m_state = State::Stopping;
+    m_cancel = true;
+    m_capacity.notify_all();
 }
-
-void JyLuaVirtualMachine::run() {
-    emit scriptStarted();
-    // 文件模式和字符串模式统一走runScript：
-    // 每次执行都重建Lua状态并注册绑定、安装中断钩子，保证字符串模式也能使用绑定和停止功能
-    runScript(m_fileName, script_mode.loadRelaxed() == 0);
+void JyLuaVirtualMachine::drain() {
+    std::deque<Event> batch;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        const auto count = std::min(size_t(64), m_events.size());
+        for (size_t i = 0; i < count; ++i) { batch.push_back(std::move(m_events.front())); m_events.pop_front(); }
+    }
+    m_capacity.notify_all();
+    QElapsedTimer timer;
+    timer.start();
+    for (const auto &event : batch) {
+        if (event.id != m_runId || m_cancel.load()) continue;
+        if (auto *text = std::get_if<std::string>(&event.value)) emit scriptOutput(QString::fromStdString(*text));
+        else if (auto *shape = std::get_if<JyShape>(&event.value)) emit displayShape(*shape);
+        else emit displayAxes(std::get<JyAxes>(event.value));
+    }
+    if (!batch.empty()) {
+        emit batchFinished();
+        if (timer.elapsed() > 50) qDebug() << "Display batch ms" << timer.elapsed() << "events" << batch.size();
+    }
 }

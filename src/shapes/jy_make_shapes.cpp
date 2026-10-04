@@ -16,58 +16,6 @@
 #include <Geom_Line.hxx>
 #include <TopoDS.hxx>
 
-void JyMakeShapes::configure_usertype(sol::state &lua) {
-    const auto box_ctor = sol::constructors<JyShapeBox(),
-                                            JyShapeBox(const JyShapeBox &),
-                                            JyShapeBox(const std::array<double, 3>, const std::array<double, 3>),
-                                            JyShapeBox(const double &, const double &, const double &)>();
-    const auto cylinder_ctor = sol::constructors<JyCylinder(),
-                                                 JyCylinder(const JyCylinder &),
-                                                 JyCylinder(const std::array<double, 3>, const std::array<double, 3>, const double &, const double &),
-                                                 JyCylinder(const double &, const double &)>();
-    const auto cone_ctor = sol::constructors<JyCone(),
-                                             JyCone(const JyCone &),
-                                             JyCone(const double &, const double &, const double &)>();
-    const auto sphere_ctor = sol::constructors<JySphere(),
-                                               JySphere(const JySphere &),
-                                               JySphere(const double &)>();
-    const auto torus_ctor = sol::constructors<JyTorus(),
-                                              JyTorus(const JyTorus &),
-                                              JyTorus(const double &, const double &),
-                                              JyTorus(const double &, const double &, const double &)>();
-    const auto wedge_ctor = sol::constructors<JyWedge(),
-                                              JyWedge(const JyWedge &),
-                                              JyWedge(const double &, const double &, const double &, const double &),
-                                              JyWedge(const double &, const double &, const double &, const double &, const double &, const double &, const double &)>();
-    lua.new_usertype<JyShapeBox>("box", box_ctor, sol::base_classes, sol::bases<JyShape>());
-    lua.new_usertype<JyCylinder>("cylinder", cylinder_ctor, sol::base_classes, sol::bases<JyShape>());
-    lua.new_usertype<JyCone>("cone", cone_ctor, sol::base_classes, sol::bases<JyShape>());
-    lua.new_usertype<JySphere>("sphere", sphere_ctor, sol::base_classes, sol::bases<JyShape>());
-    lua.new_usertype<JyTorus>("torus", torus_ctor, sol::base_classes, sol::bases<JyShape>());
-    lua.new_usertype<JyWedge>("wedge", wedge_ctor, sol::base_classes, sol::bases<JyShape>());
-
-    const auto vertex_ctor = sol::constructors<JyVertex(const JyVertex &),
-                                               JyVertex(const double &, const double &, const double &)>();
-    lua.new_usertype<JyVertex>("vertex", vertex_ctor, sol::base_classes, sol::bases<JyShape>());
-
-    const auto wire_ctor = sol::constructors<JyWire(),
-                                             JyWire(const JyWire &),
-                                             JyWire(const JyEdge &),
-                                             JyWire(const std::vector<JyShape>)>();
-    lua.new_usertype<JyWire>("wire", wire_ctor, sol::base_classes, sol::bases<JyShape>());
-    const auto polygon_ctor = sol::constructors<JyPolygon(),
-                                                JyPolygon(const JyPolygon &),
-                                                JyPolygon(const std::vector<std::array<double, 3>>)>();
-    lua.new_usertype<JyPolygon>("polygon", polygon_ctor, sol::base_classes, sol::bases<JyWire, JyShape>());
-
-    const auto text_ctor = sol::constructors<JyText(),
-                                             JyText(const std::string &),
-                                             JyText(const std::string &, const double &),
-                                             JyText(const std::string &, const double &, const std::string &),
-                                             JyText(const JyText &)>();
-    lua.new_usertype<JyText>("text", text_ctor, sol::base_classes, sol::bases<JyShape>());
-}
-
 JyShapeBox::JyShapeBox(const double &width, const double &depth, const double &height) {
     const gp_Pnt pnt1(-width / 2, -depth / 2, 0);
     const gp_Pnt pnt2(width / 2, depth / 2, height);

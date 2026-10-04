@@ -43,13 +43,13 @@ jobs:
       - name: Configure CMake
         env:
           GH_TOKEN: ${{ github.token }}
-        run: cmake --preset release -DTAG_VERSION="${{ steps.get_version.outputs.version }}" -DBUILD_TESTS=ON
+        run: cmake --preset release --fresh -DTAG_VERSION="${{ steps.get_version.outputs.version }}" -DBUILD_TESTS=ON
 
       - name: Build
         run: cmake --build --preset release
 
       - name: Run Unit Tests
-        run: ctest --test-dir build/release -C Release --output-on-failure --verbose
+        run: ctest --test-dir build/release -C Release --output-on-failure --no-tests=error --verbose
 
       - name: 试运行(windows)
         if: ${{ matrix.os=='windows-2025-vs2026' }}
@@ -83,10 +83,10 @@ jobs:
       - name: Configure CMake
         env:
           GH_TOKEN: ${{ github.token }}
-        run: cmake --preset release -DTAG_VERSION="${{ steps.get_version.outputs.version }}" -DBUILD_TESTS=ON
+        run: cmake --preset release --fresh -DTAG_VERSION="${{ steps.get_version.outputs.version }}" -DBUILD_TESTS=ON
 
       - name: Build
         run: cmake --build --preset release
 
       - name: Run Unit Tests
-        run: ctest --test-dir build/release -C Release --output-on-failure --verbose
+        run: ctest --test-dir build/release -C Release --output-on-failure --no-tests=error --verbose

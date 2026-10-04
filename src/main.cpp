@@ -5,6 +5,8 @@
 #include "jy_main_window.h"
 #include "jy_theme.h"
 #include <QApplication>
+#include <memory>
+#include <iostream>
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 
@@ -18,7 +20,17 @@
  */
 int main(int argc, char *argv[]) {
     // 创建Qt应用程序实例
-    QApplication a(argc, argv);
+    bool headless = false;
+    for (int i = 1; i < argc; ++i) {
+        const std::string arg = argv[i];
+        if (arg == "--") break;
+        if (arg == "-f" || arg == "--file" || arg == "-c" || arg == "--code" ||
+            arg.rfind("--file=", 0) == 0 || arg.rfind("--code=", 0) == 0 ||
+            arg == "--help" || arg == "-h" || arg == "--version" || arg == "-v") headless = true;
+    }
+    std::unique_ptr<QCoreApplication> app;
+    if (headless) app = std::make_unique<QCoreApplication>(argc, argv);
+    else app = std::make_unique<QApplication>(argc, argv);
 
     // 设置应用程序基本信息
     QCoreApplication::setApplicationName("JellyCAD");
@@ -38,27 +50,24 @@ int main(int argc, char *argv[]) {
     parser.addOption(code_option);
 
     // 解析命令行参数
-    parser.process(a);
+    parser.process(*app);
 
-    // 注册自定义Qt元类型，用于信号槽跨线程传递
-    qRegisterMetaType<JyShape>("JyShape");
-    qRegisterMetaType<JyAxes>("JyAxes");
-
-    // 根据命令行参数选择运行模式
-    if (parser.isSet(file_option)) {
-        // 模式1：执行脚本文件（无GUI），脚本失败时返回非零退出码
-        JyLuaVirtualMachine lvm;
-        return lvm.runScript(parser.value(file_option)) ? 0 : 1;
-    }
-    if (parser.isSet(code_option)) {
-        // 模式2：执行代码字符串（无GUI），脚本失败时返回非零退出码
-        JyLuaVirtualMachine lvm;
-        return lvm.runScript(parser.value(code_option), false) ? 0 : 1;
+    if (parser.isSet(file_option) || parser.isSet(code_option)) {
+        jelly::RunRequest request;
+        request.isFile = parser.isSet(file_option);
+        request.source = parser.value(request.isFile ? file_option : code_option).toStdString();
+        request.trigger = jelly::RunSource::CommandLine;
+        std::atomic<bool> cancel{false};
+        const auto result = jelly::execute(request, cancel, [](jelly::RunEvent event) {
+            if (auto *text = std::get_if<std::string>(&event)) std::cout << *text << '\n';
+        });
+        if (result.status != jelly::RunStatus::Success) std::cerr << result.message << '\n';
+        return result.status == jelly::RunStatus::Success ? 0 : 1;
     }
     // 模式3：启动GUI界面
 
     // 加载并应用QSS样式（替换其中的设计变量）
-    a.setStyleSheet(JyTheme::styleSheet());
+    static_cast<QApplication *>(app.get())->setStyleSheet(JyTheme::styleSheet());
 
     // 显示主窗口并进入事件循环
     JyMainWindow w;

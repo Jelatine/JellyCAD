@@ -93,7 +93,7 @@ JellyCAD integrates LLM dialogue functionality to help you write Lua scripts mor
    - Select model
 3. Enter your requirements (e.g., "Create a cube with side length 10")
 4. Press `Ctrl+Enter` to send, AI will generate corresponding Lua code
-5. Generated code will be automatically inserted into the editor
+5. Generated code appears in a draft; successful generation replaces the editor in one undo operation
 
 **Features:**
 - ✅ Support for multiple mainstream AI service providers
@@ -145,7 +145,7 @@ git clone https://github.com/Microsoft/vcpkg.git -b 2026.06.24
 
 **Option 2: Download prebuilt vcpkg**
 
-[JellyCAD-vcpkg](https://github.com/Jelatine/JellyCAD-vcpkg) publishes a prebuilt `vcpkg` directory (including gtest) to its Releases, which is also what CI uses. The CMake presets download it automatically (CMake >= 3.21), no manual install needed:
+[JellyCAD-vcpkg](https://github.com/Jelatine/JellyCAD-vcpkg) publishes a prebuilt `vcpkg` directory (including gtest) to its Releases, which is also what CI uses. The CMake presets download it automatically (CMake >= 3.24), no manual install needed:
 
 ```bash
 cmake --preset release            # or: debug
@@ -432,3 +432,20 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) file for
 - [Topological Edge Operations](https://blog.csdn.net/s634772208/article/details/130101544)
 - [Edge Type Detection](https://www.cnblogs.com/occi/p/14619592.html)
 - [Solid Creation Methods](https://developer.aliyun.com/article/235775)
+
+## Architecture and verification
+
+See [Architecture](doc/architecture.md) for module boundaries, execution lifecycle and compatibility notes.
+
+- `JellyCAD_cli -f file.lua` and `JellyCAD_cli -c "print('hello')"` run without a GUI application. Existing `JellyCAD -f/-c` invocations remain supported.
+- F5 saves and explicitly runs once. The status-bar **Auto preview** setting controls previews after saves and external edits, and defaults to enabled.
+- AI output streams into a draft; successful generation replaces the editor in one undo operation. Errors and cancellation preserve the original code.
+- Cancellation is cooperative; an active native geometry call must return before shutdown completes.
+
+```bash
+cmake --preset release --fresh -DBUILD_TESTS=ON
+cmake --build --preset release
+ctest --test-dir build/release -C Release --output-on-failure --no-tests=error
+```
+
+GTest is required when tests are enabled. Missing test dependencies fail configuration.

@@ -3,7 +3,8 @@
  * MIT License
  */
 #include "jy_shape.h"
-#include <AIS_InteractiveContext.hxx>
+#include <BRepBuilderAPI_Copy.hxx>
+#include <unordered_map>
 #include <BRepAdaptor_Curve.hxx>
 #include <BRepAlgoAPI_Common.hxx>
 #include <BRepAlgoAPI_Cut.hxx>
@@ -33,61 +34,6 @@
 #include <TopTools_IndexedDataMapOfShapeListOfShape.hxx>
 #include <TopoDS.hxx>
 #include <gp_Quaternion.hxx>
-
-sol::usertype<JyShape> JyShape::configure_usertype(sol::state &lua) {
-    auto shape_user = lua.new_usertype<JyShape>("shape", sol::constructors<JyShape(),
-                                                                           JyShape(const std::string &)>());
-    shape_user["copy"] = [](const JyShape &self) { return JyShape(self); };
-    shape_user["type"] = &JyShape::type;
-    shape_user["empty"] = &JyShape::empty;
-    shape_user["get_edge"] = &JyShape::get_edge;
-    shape_user["get_face"] = &JyShape::get_face;
-    // 布尔运算
-    shape_user["fuse"] = &JyShape::fuse;
-    shape_user["cut"] = &JyShape::cut;
-    shape_user["common"] = &JyShape::common;
-    // 几何变换
-    shape_user["fillet"] = sol::overload(
-            static_cast<JyShape &(JyShape::*) (const double &)>(&JyShape::fillet),
-            static_cast<JyShape &(JyShape::*) (const double &, const JyShape &)>(&JyShape::fillet),
-            static_cast<JyShape &(JyShape::*) (const double &, const sol::table &)>(&JyShape::fillet));
-    shape_user["chamfer"] = sol::overload(
-            static_cast<JyShape &(JyShape::*) (const double &)>(&JyShape::chamfer),
-            static_cast<JyShape &(JyShape::*) (const double &, const sol::table &)>(&JyShape::chamfer));
-    shape_user["prism"] = &JyShape::prism;
-    shape_user["revol"] = &JyShape::revol;
-    shape_user["pipe"] = &JyShape::pipe;
-    shape_user["thick"] = &JyShape::thick;
-    shape_user["scale"] = &JyShape::scale;
-    shape_user["mirror"] = &JyShape::mirror;
-    // 位置姿态调整
-    shape_user["x"] = &JyShape::x;
-    shape_user["y"] = &JyShape::y;
-    shape_user["z"] = &JyShape::z;
-    shape_user["rx"] = &JyShape::rx;
-    shape_user["ry"] = &JyShape::ry;
-    shape_user["rz"] = &JyShape::rz;
-    shape_user["pos"] = &JyShape::pos;
-    shape_user["rot"] = &JyShape::rot;
-    shape_user["move"] = sol::overload(
-            static_cast<JyShape &(JyShape::*) (const std::string &, const double &, const double &, const double &)>(&JyShape::move),
-            static_cast<JyShape &(JyShape::*) (const std::string &, const double &)>(&JyShape::move));
-    shape_user["zero"] = &JyShape::zero;
-    shape_user["locate"] = sol::overload(
-            static_cast<JyShape &(JyShape::*) (const JyShape &)>(&JyShape::locate),
-            static_cast<JyShape &(JyShape::*) (const double &, const double &, const double &, const double &, const double &, const double &)>(&JyShape::locate));
-    // 属性设置
-    shape_user["color"] = &JyShape::color;
-    shape_user["transparency"] = &JyShape::transparency;
-    shape_user["mass"] = &JyShape::mass;
-    shape_user["export_step"] = &JyShape::export_step;
-    shape_user["export_iges"] = &JyShape::export_iges;
-    const auto overload_export_stl = sol::overload(
-            static_cast<JyShape &(JyShape::*) (const std::string &_filename)>(&JyShape::export_stl),
-            static_cast<JyShape &(JyShape::*) (const std::string &_filename, const sol::table &_opt)>(&JyShape::export_stl));
-    shape_user["export_stl"] = overload_export_stl;
-    return shape_user;
-}
 
 static bool checkSuffix(const std::string &filename, const std::string &suffix) {
     // 查找最后一个点的位置
@@ -168,10 +114,10 @@ std::array<double, 6> JyShape::get_pose() const {
     return {translation.X(), translation.Y(), translation.Z(), roll, pitch, yaw};
 }
 
-JyShape JyShape::get_edge(const sol::table &_cond) const {
+JyShape JyShape::get_edge(const EdgeFilter &_cond) const {
     for (TopExp_Explorer ex(s_, TopAbs_EDGE); ex.More(); ex.Next()) {
         TopoDS_Edge edge = TopoDS::Edge(ex.Current());
-        if (!_cond || edge_filter(edge, _cond)) { return JyShape(edge); }
+        if (edge_filter(edge, _cond)) { return JyShape(edge); }
     }
     throw std::runtime_error("No edge found!");
 }
@@ -204,11 +150,11 @@ JyShape &JyShape::common(const JyShape &_other) {
     return algo<BRepAlgoAPI_Common>(_other);
 }
 
-JyShape &JyShape::fillet(const double &_r, const sol::table &_cond) {
+JyShape &JyShape::fillet(const double &_r, const EdgeFilter &_cond) {
     BRepFilletAPI_MakeFillet MF(s_);
     for (TopExp_Explorer ex(s_, TopAbs_EDGE); ex.More(); ex.Next()) {
         TopoDS_Edge edge = TopoDS::Edge(ex.Current());
-        if (!_cond || edge_filter(edge, _cond)) { MF.Add(_r, TopoDS::Edge(ex.Current())); }
+        if (edge_filter(edge, _cond)) { MF.Add(_r, TopoDS::Edge(ex.Current())); }
     }
     if (MF.NbContours() == 0) { return *this; }
     MF.Build();
@@ -234,14 +180,14 @@ JyShape &JyShape::fillet(const double &_r, const JyShape &edge_shape) {
     return *this;
 }
 
-JyShape &JyShape::chamfer(const double &_dis, const sol::table &_cond) {
+JyShape &JyShape::chamfer(const double &_dis, const EdgeFilter &_cond) {
     BRepFilletAPI_MakeChamfer MC(s_);
     TopTools_IndexedDataMapOfShapeListOfShape M;
     TopExp::MapShapesAndAncestors(s_, TopAbs_EDGE, TopAbs_FACE, M);
     for (Standard_Integer i = 1; i <= M.Extent(); i++) {
         TopoDS_Edge E = TopoDS::Edge(M.FindKey(i));
         TopoDS_Face F = TopoDS::Face(M.FindFromIndex(i).First());
-        if (!_cond || edge_filter(E, _cond)) { MC.Add(_dis, _dis, E, F); }
+        if (edge_filter(E, _cond)) { MC.Add(_dis, _dis, E, F); }
     }
     if (MC.NbContours() == 0) { return *this; }
     MC.Build();
@@ -251,10 +197,10 @@ JyShape &JyShape::chamfer(const double &_dis, const sol::table &_cond) {
 }
 
 
-bool JyShape::edge_filter(const TopoDS_Edge &_edge, const sol::table &_cond) {
-    const double tol = _cond["tol"].get_or(1e-3);
-    const std::array<double, 3> first = _cond["first"].get_or(std::array<double, 3>{0, 0, 0});
-    const std::array<double, 3> last = _cond["last"].get_or(std::array<double, 3>{0, 0, 0});
+bool JyShape::edge_filter(const TopoDS_Edge &_edge, const EdgeFilter &_cond) {
+    const double tol = _cond.tolerance;
+    const std::array<double, 3> first = _cond.first.value_or(std::array<double, 3>{0, 0, 0});
+    const std::array<double, 3> last = _cond.last.value_or(std::array<double, 3>{0, 0, 0});
     static const std::unordered_map<int, std::string> type_map = {
             {GeomAbs_Line, "line"},
             {GeomAbs_Circle, "circle"},
@@ -266,8 +212,8 @@ bool JyShape::edge_filter(const TopoDS_Edge &_edge, const sol::table &_cond) {
             {GeomAbs_OffsetCurve, "offset_curve"},
             {GeomAbs_OtherCurve, "other_curve"}};
     //!< 过滤曲线类型
-    if (_cond["type"].is<std::string>()) {
-        const std::string type_name = _cond["type"];
+    if (_cond.type.has_value()) {
+        const std::string type_name = *_cond.type;
         BRepAdaptor_Curve C(_edge);
         auto it = type_map.find(C.GetType());
         if (it == type_map.end() || it->second != type_name) { return false; }
@@ -275,37 +221,29 @@ bool JyShape::edge_filter(const TopoDS_Edge &_edge, const sol::table &_cond) {
     const gp_Pnt &sp = BRep_Tool::Pnt(TopExp::FirstVertex(_edge));
     const gp_Pnt &ep = BRep_Tool::Pnt(TopExp::LastVertex(_edge));
     // 起点坐标
-    if (_cond["first"].is<sol::table>()) {
+    if (_cond.first.has_value()) {
         if (std::abs(sp.X() - first[0]) > tol || std::abs(sp.Y() - first[1]) > tol || std::abs(sp.Z() - first[2]) > tol) { return false; }
     }
-    if (_cond["last"].is<sol::table>()) {
+    if (_cond.last.has_value()) {
         if (std::abs(ep.X() - last[0]) > tol || std::abs(ep.Y() - last[1]) > tol || std::abs(ep.Z() - last[2]) > tol) { return false; }
     }
     //!< 曲线顶点最小值
-    if (_cond["min"].is<sol::table>()) {
-        std::vector<double> min_data;
-        if (get_double_vector(_cond["min"], min_data) && min_data.size() == 3) {
+    if (_cond.minimum.has_value()) {
+        const auto &min_data = *_cond.minimum;
+        if (true) {
             if (sp.X() <= min_data[0] || ep.X() <= min_data[0]) { return false; }
             if (sp.Y() <= min_data[1] || ep.Y() <= min_data[1]) { return false; }
             if (sp.Z() <= min_data[2] || ep.Z() <= min_data[2]) { return false; }
         }
     }
     //!< 曲线顶点最大值
-    if (_cond["max"].is<sol::table>()) {
-        std::vector<double> max_data;
-        if (get_double_vector(_cond["max"], max_data) && max_data.size() == 3) {
+    if (_cond.maximum.has_value()) {
+        const auto &max_data = *_cond.maximum;
+        if (true) {
             if (sp.X() >= max_data[0] || ep.X() >= max_data[0]) { return false; }
             if (sp.Y() >= max_data[1] || ep.Y() >= max_data[1]) { return false; }
             if (sp.Z() >= max_data[2] || ep.Z() >= max_data[2]) { return false; }
         }
-    }
-    return true;
-}
-
-bool JyShape::get_double_vector(const sol::table &_t, std::vector<double> &_v) {
-    for (int i = 1; i <= _t.size(); ++i) {
-        if (!_t[i].is<double>()) { return false; }
-        _v.push_back(_t[i]);
     }
     return true;
 }
@@ -519,29 +457,6 @@ JyShape &JyShape::mass(const double &_mass) {
     return *this;
 }
 
-JyShape &JyShape::export_stl(const std::string &_filename, const sol::table &_opt) {
-    // 默认值与无选项版本 export_stl_common 保持一致：二进制格式，线性偏差0.01
-    Standard_Boolean theAsciiMode = Standard_False;
-    if (_opt && _opt["type"].is<std::string>()) {
-        const std::string type_name = _opt["type"];
-        if (type_name == "ascii") {
-            theAsciiMode = Standard_True;
-        } else if (type_name == "binary") {
-            theAsciiMode = Standard_False;
-        } else {
-            throw std::runtime_error("Invalid type!");
-        }
-    }
-    // 网格线性偏差，选项名为deflection（保留radian作为旧脚本的兼容别名）
-    double theLinDeflection = 0.01;
-    if (_opt && _opt["deflection"].is<double>()) {
-        theLinDeflection = _opt["deflection"];
-    } else if (_opt && _opt["radian"].is<double>()) {
-        theLinDeflection = _opt["radian"];
-    }
-    return export_stl_common(_filename, theAsciiMode, theLinDeflection);
-}
-
 JyShape &JyShape::export_stl_common(const std::string &_filename, const bool is_ascii, const double &lin) {
     BRepMesh_IncrementalMesh aMesh(s_, lin);
     if (!StlAPI::Write(s_, _filename.c_str(), is_ascii)) { throw std::runtime_error("Failed to export stl!"); }
@@ -550,8 +465,8 @@ JyShape &JyShape::export_stl_common(const std::string &_filename, const bool is_
 
 JyShape &JyShape::export_step(const std::string &_filename) {
     STEPControl_Writer writer;
-    writer.Transfer(s_, STEPControl_AsIs);
-    if (!writer.Write(_filename.c_str())) { throw std::runtime_error("Failed to export STEP!"); }
+    if (writer.Transfer(s_, STEPControl_AsIs) != IFSelect_RetDone) throw std::runtime_error("Failed to transfer STEP shape");
+    if (writer.Write(_filename.c_str()) != IFSelect_RetDone) { throw std::runtime_error("Failed to export STEP!"); }
     return *this;
 }
 
@@ -690,4 +605,14 @@ JyShape::FaceProperties JyShape::face_properties(const JyShape &_shape) {
         };
     }
     return FaceProperties{};
+}
+JyShape &JyShape::export_stl(const std::string &filename, const StlOptions &options) {
+    if (!std::isfinite(options.deflection) || options.deflection <= 0) throw std::runtime_error("Invalid STL deflection");
+    return export_stl_common(filename, options.ascii, options.deflection);
+}
+
+JyShape JyShape::snapshot() const {
+    JyShape result(*this);
+    if (!s_.IsNull()) result.s_ = BRepBuilderAPI_Copy(s_, true, true).Shape();
+    return result;
 }

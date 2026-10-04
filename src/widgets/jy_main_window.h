@@ -10,6 +10,7 @@
 #include "jy_editor_widget.h"
 #include "jy_lua_virtual_machine.h"
 #include "jy_shape.h"
+#include "application/jy_preview_scheduler.h"
 #include "jy_shape_info_widget.h"
 #include <QDebug>
 #include <QFileDialog>
@@ -33,6 +34,8 @@ class JyMainWindow : public QMainWindow {
     QTextBrowser *text_lua_message;
     QProgressDialog *m_progressDialog;
     bool m_isStoppingScript;
+    bool m_closePending = false;
+    JyPreviewScheduler *m_preview;
 
 public:
     explicit JyMainWindow(QWidget *parent = nullptr);
@@ -61,7 +64,7 @@ private slots:
 private:
     int ask_whether_to_save();//!< 询问是否保存已修改的文件 return 0 if save, 1 if not save, 2 if cancel
     bool saveFile();          //!< 保存文件 return true if saved successfully, false if cancelled or failed
-    void runScript(const QString &path);
+    void runScript(const QString &path, jelly::RunSource trigger = jelly::RunSource::Explicit);
 
 protected:
     void closeEvent(QCloseEvent *event) override;

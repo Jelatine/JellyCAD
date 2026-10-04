@@ -33,6 +33,7 @@ public:
     explicit Jy3DWidget(QWidget *parent = nullptr);
 
     void remove_all();
+    void refresh(bool fit);
 
     //!初始化交互环境
     void initialize_context();

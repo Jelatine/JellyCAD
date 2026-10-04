@@ -68,18 +68,13 @@ namespace {
 }// anonymous namespace
 
 JyGitManager::JyGitManager(QWidget *parent)
-    : QWidget(parent), m_isGitInstalled(false), m_isGitRepository(false), m_gitProcess(nullptr), m_isProcessing(false) {
+    : QWidget(parent), m_isGitInstalled(false), m_isGitRepository(false), m_service(new JyGitService(this)) {
     setupUi();
+    connect(m_service, &JyGitService::finished, this, &JyGitManager::onProcessFinished);
     checkGitInstallation();
 }
 
-JyGitManager::~JyGitManager() {
-    if (m_gitProcess) {
-        m_gitProcess->kill();
-        m_gitProcess->waitForFinished();
-        delete m_gitProcess;
-    }
-}
+
 
 void JyGitManager::setupUi() {
     auto mainLayout = new QVBoxLayout(this);
@@ -220,25 +215,16 @@ void JyGitManager::setupUi() {
 }
 
 void JyGitManager::checkGitInstallation() {
-    m_currentCommand = "check_git";
-
-    if (!m_gitProcess) {
-        m_gitProcess = new QProcess(this);
-        connect(m_gitProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-                this, &JyGitManager::onProcessFinished);
-        connect(m_gitProcess, &QProcess::errorOccurred,
-                this, &JyGitManager::onProcessError);
-    }
-
-    m_gitProcess->start("git", QStringList() << "--version");
+    enqueueCommand("git", {"--version"}, "check_git");
 }
+
 
 void JyGitManager::checkRepositoryStatus() {
     if (!m_isGitInstalled) {
         return;
     }
 
-    m_currentCommand = "check_repo";
+
 
     QDir dir(m_workingDirectory);
     if (!dir.exists()) {
@@ -246,16 +232,21 @@ void JyGitManager::checkRepositoryStatus() {
         return;
     }
 
-    m_gitProcess->setWorkingDirectory(m_workingDirectory);
-    m_gitProcess->start("git", QStringList() << "rev-parse" << "--is-inside-work-tree");
+    enqueueCommand("git", {"rev-parse", "--is-inside-work-tree"}, "check_repo");
 }
 
 void JyGitManager::setWorkingDirectory(const QString &path) {
-    m_workingDirectory = path;
+    m_workingDirectory = QDir(path).absolutePath();
+    m_service->setWorkingDirectory(m_workingDirectory);
+    m_isGitRepository = false;
+    m_currentBranch.clear();
+    m_fileChangesTree->clear();
+    m_commitHistoryList->clear();
+    m_diffViewer->clear();
+    updateStatusLabel();
     m_gitRepositoryRoot.clear();// 清空旧的仓库根目录
-    if (m_isGitInstalled) {
-        checkRepositoryStatus();
-    }
+    if (m_isGitInstalled) checkRepositoryStatus();
+    else checkGitInstallation();
 }
 
 void JyGitManager::refreshStatus() {
@@ -281,18 +272,7 @@ void JyGitManager::loadCommitHistory() {
     enqueueCommand("git", QStringList() << "log" << "--oneline" << "-20", "log");
 }
 
-void JyGitManager::executeGitCommand(const QString &command, const QStringList &args) {
-    if (!m_isGitInstalled) {
-        QMessageBox::warning(this, tr("Git Not Found"),
-                             tr("Git is not installed on your system."));
-        return;
-    }
 
-    // 使用Git仓库根目录（如果可用），否则使用工作目录
-    QString workDir = m_gitRepositoryRoot.isEmpty() ? m_workingDirectory : m_gitRepositoryRoot;
-    m_gitProcess->setWorkingDirectory(workDir);
-    m_gitProcess->start(command, args);
-}
 
 void JyGitManager::showDiffForFile(const QString &filePath) {
     qDebug() << "Showing diff for file:" << filePath;
@@ -577,11 +557,9 @@ void JyGitManager::onUnstageAllClicked() {
     }
 }
 
-void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus) {
-    QString output = QString::fromUtf8(m_gitProcess->readAllStandardOutput());
-    QString errorOutput = QString::fromUtf8(m_gitProcess->readAllStandardError());
+void JyGitManager::onProcessFinished(const QString &commandType, int exitCode, QProcess::ExitStatus exitStatus, const QString &output, const QString &errorOutput) {
 
-    if (m_currentCommand == "check_git") {
+    if (commandType == "check_git") {
         if (exitCode == 0) {
             m_isGitInstalled = true;
             m_statusLabel->setText(tr("Git installed: %1").arg(output.trimmed()));
@@ -593,7 +571,7 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
             m_isGitInstalled = false;
             updateStatusLabel();
         }
-    } else if (m_currentCommand == "check_repo") {
+    } else if (commandType == "check_repo") {
         if (exitCode == 0 && output.trimmed() == "true") {
             m_isGitRepository = true;
             // 获取Git仓库根目录
@@ -606,7 +584,7 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
             m_commitHistoryList->clear();
             m_diffViewer->clear();
         }
-    } else if (m_currentCommand == "list_branches") {
+    } else if (commandType == "list_branches") {
         // 阻塞信号，避免在重新填充时触发 currentIndexChanged
         m_branchComboBox->blockSignals(true);
         m_branchComboBox->clear();
@@ -652,7 +630,7 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
         }
         // 恢复信号
         m_branchComboBox->blockSignals(false);
-    } else if (m_currentCommand == "status") {
+    } else if (commandType == "status") {
         m_fileChangesTree->clear();
         QStringList lines = output.split('\n', Qt::SkipEmptyParts);
         for (const QString &line: lines) {
@@ -691,17 +669,17 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
             // 存储原始状态用于后续判断
             item->setData(0, Qt::UserRole, QString("%1%2").arg(stagedStatus).arg(workStatus));
         }
-    } else if (m_currentCommand == "log") {
+    } else if (commandType == "log") {
         m_commitHistoryList->clear();
         QStringList lines = output.split('\n', Qt::SkipEmptyParts);
         for (const QString &line: lines) {
             m_commitHistoryList->addItem(line);
         }
-    } else if (m_currentCommand.startsWith("diff:")) {
+    } else if (commandType.startsWith("diff:")) {
         // 格式化并高亮显示 diff 输出
         QString formattedDiff = formatDiffOutput(output);
         m_diffViewer->setHtml(formattedDiff);
-    } else if (m_currentCommand == "init") {
+    } else if (commandType == "init") {
         if (exitCode == 0) {
             QMessageBox::information(this, tr("Success"),
                                      tr("Git repository initialized successfully"));
@@ -712,7 +690,7 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
             QMessageBox::warning(this, tr("Error"),
                                  tr("Failed to initialize repository:\n%1").arg(errorOutput));
         }
-    } else if (m_currentCommand == "stage_file" || m_currentCommand == "stage_all") {
+    } else if (commandType == "stage_file" || commandType == "stage_all") {
         if (exitCode == 0) {
             // 暂存成功，刷新状态
             refreshStatus();
@@ -720,7 +698,7 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
             QMessageBox::warning(this, tr("Error"),
                                  tr("Failed to stage files:\n%1").arg(errorOutput));
         }
-    } else if (m_currentCommand == "unstage_file" || m_currentCommand == "unstage_all") {
+    } else if (commandType == "unstage_file" || commandType == "unstage_all") {
         if (exitCode == 0) {
             // 取消暂存成功，刷新状态
             refreshStatus();
@@ -728,10 +706,10 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
             QMessageBox::warning(this, tr("Error"),
                                  tr("Failed to unstage files:\n%1").arg(errorOutput));
         }
-    } else if (m_currentCommand.startsWith("discard_file:")) {
+    } else if (commandType.startsWith("discard_file:")) {
         if (exitCode == 0) {
             // 提取文件路径（格式为 "discard_file:<filePath>"）
-            QString filePath = m_currentCommand.mid(13);// 跳过 "discard_file:" 前缀
+            QString filePath = commandType.mid(13);// 跳过 "discard_file:" 前缀
 
             // 发送信号通知文件已被放弃修改，需要重新加载
             emit fileDiscarded(filePath);
@@ -742,7 +720,7 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
             QMessageBox::warning(this, tr("Error"),
                                  tr("Failed to discard changes:\n%1").arg(errorOutput));
         }
-    } else if (m_currentCommand == "commit") {
+    } else if (commandType == "commit") {
         if (exitCode == 0) {
             QMessageBox::information(this, tr("Success"),
                                      tr("Changes committed successfully"));
@@ -752,7 +730,7 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
             QMessageBox::warning(this, tr("Error"),
                                  tr("Failed to commit:\n%1").arg(errorOutput));
         }
-    } else if (m_currentCommand == "pull") {
+    } else if (commandType == "pull") {
         if (exitCode == 0) {
             QMessageBox::information(this, tr("Success"),
                                      tr("Changes pulled successfully:\n%1").arg(output));
@@ -761,7 +739,7 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
             QMessageBox::warning(this, tr("Error"),
                                  tr("Failed to pull:\n%1").arg(errorOutput));
         }
-    } else if (m_currentCommand == "push") {
+    } else if (commandType == "push") {
         if (exitCode == 0) {
             QMessageBox::information(this, tr("Success"),
                                      tr("Changes pushed successfully:\n%1").arg(output));
@@ -769,7 +747,7 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
             QMessageBox::warning(this, tr("Error"),
                                  tr("Failed to push:\n%1").arg(errorOutput));
         }
-    } else if (m_currentCommand == "checkout") {
+    } else if (commandType == "checkout") {
         if (exitCode == 0) {
             QMessageBox::information(this, tr("Success"),
                                      tr("Branch switched successfully"));
@@ -778,7 +756,7 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
             QMessageBox::warning(this, tr("Error"),
                                  tr("Failed to switch branch:\n%1").arg(errorOutput));
         }
-    } else if (m_currentCommand == "list_remotes") {
+    } else if (commandType == "list_remotes") {
         // 清空ComboBox（用于内部数据管理）
         m_remoteComboBox->clear();
 
@@ -817,7 +795,7 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
         // 添加操作菜单项
         m_remoteMenu->addAction(JyTheme::icon("plus"), tr("Add Remote..."), this, &JyGitManager::onAddRemoteClicked);
         m_remoteMenu->addAction(JyTheme::icon("minus"), tr("Remove Remote..."), this, &JyGitManager::onRemoveRemoteClicked);
-    } else if (m_currentCommand == "add_remote") {
+    } else if (commandType == "add_remote") {
         if (exitCode == 0) {
             QMessageBox::information(this, tr("Success"),
                                      tr("Remote added successfully"));
@@ -826,7 +804,7 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
             QMessageBox::warning(this, tr("Error"),
                                  tr("Failed to add remote:\n%1").arg(errorOutput));
         }
-    } else if (m_currentCommand == "remove_remote") {
+    } else if (commandType == "remove_remote") {
         if (exitCode == 0) {
             QMessageBox::information(this, tr("Success"),
                                      tr("Remote removed successfully"));
@@ -835,7 +813,7 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
             QMessageBox::warning(this, tr("Error"),
                                  tr("Failed to remove remote:\n%1").arg(errorOutput));
         }
-    } else if (m_currentCommand == "get_repo_root") {
+    } else if (commandType == "get_repo_root") {
         if (exitCode == 0) {
             // 保存Git仓库根目录（转换为本地路径分隔符）
             m_gitRepositoryRoot = QDir::fromNativeSeparators(output.trimmed());
@@ -850,74 +828,18 @@ void JyGitManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
         }
     }
 
-    // 命令执行完成，标记为不在处理中，并执行队列中的下一个命令
-    m_isProcessing = false;
-    executeNextCommand();
+
 }
 
-void JyGitManager::onProcessError(QProcess::ProcessError error) {
-    if (m_currentCommand == "check_git") {
-        m_isGitInstalled = false;
-        updateStatusLabel();
-    } else {
-        QString errorMsg;
-        switch (error) {
-            case QProcess::FailedToStart:
-                errorMsg = tr("Failed to start Git process. Make sure Git is installed.");
-                break;
-            case QProcess::Crashed:
-                errorMsg = tr("Git process crashed.");
-                break;
-            case QProcess::Timedout:
-                errorMsg = tr("Git process timed out.");
-                break;
-            default:
-                errorMsg = tr("Git process error: %1").arg(static_cast<int>(error));
-                break;
-        }
 
-        emit errorOccurred(errorMsg);
 
-        if (m_currentCommand != "check_git" && m_currentCommand != "check_repo") {
-            QMessageBox::warning(this, tr("Process Error"), errorMsg);
-        }
-    }
-
-    m_isProcessing = false;
-    executeNextCommand();
+void JyGitManager::enqueueCommand(const QString &command, const QStringList &args, const QString &type) {
+    const auto directory = m_gitRepositoryRoot.isEmpty() ? m_workingDirectory : m_gitRepositoryRoot;
+    m_service->enqueue(command, args, type, directory);
 }
 
-void JyGitManager::enqueueCommand(const QString &command, const QStringList &args, const QString &commandType) {
-    GitCommand cmd;
-    cmd.command = command;
-    cmd.args = args;
-    cmd.commandType = commandType;
-    m_commandQueue.enqueue(cmd);
 
-    // 如果当前没有正在执行的命令，立即执行
-    if (!m_isProcessing) {
-        executeNextCommand();
-    }
-}
 
-void JyGitManager::executeNextCommand() {
-    if (m_isProcessing || m_commandQueue.isEmpty()) {
-        return;
-    }
-
-    if (!m_gitProcess || m_gitProcess->state() == QProcess::Running) {
-        return;
-    }
-
-    GitCommand cmd = m_commandQueue.dequeue();
-    m_currentCommand = cmd.commandType;
-    m_isProcessing = true;
-
-    // 使用Git仓库根目录（如果可用），否则使用工作目录
-    QString workDir = m_gitRepositoryRoot.isEmpty() ? m_workingDirectory : m_gitRepositoryRoot;
-    m_gitProcess->setWorkingDirectory(workDir);
-    m_gitProcess->start(cmd.command, cmd.args);
-}
 
 void JyGitManager::loadRemotes() {
     enqueueCommand("git", QStringList() << "remote" << "-v", "list_remotes");
@@ -988,3 +910,5 @@ void JyGitManager::onRemoveRemoteClicked() {
         enqueueCommand("git", QStringList() << "remote" << "remove" << remoteName, "remove_remote");
     }
 }
+
+JyGitManager::~JyGitManager() = default;

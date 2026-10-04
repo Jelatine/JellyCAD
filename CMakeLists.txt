@@ -2,8 +2,8 @@
 # Copyright (c) 2024. Li Jianbin. All rights reserved.
 # MIT License
 #
-# 3.15+: WIN32_EXECUTABLE属性支持生成器表达式
-cmake_minimum_required(VERSION 3.15)
+# CMake 3.24 supports the clean --fresh configuration used by CI.
+cmake_minimum_required(VERSION 3.24)
 # 可选：下载预编译vcpkg依赖并设置工具链，须在project()之前
 include(${CMAKE_CURRENT_SOURCE_DIR}/fetch_vcpkg.cmake)
 project(JellyCAD)
@@ -41,7 +41,7 @@ if (Qt6_FOUND)
     set(QT_VERSION_MAJOR 6)
     set(QT_VERSION ${Qt6_VERSION})
 else()
-    find_package(Qt5 REQUIRED COMPONENTS Widgets Network)
+    find_package(Qt5 5.15 REQUIRED COMPONENTS Core Widgets Network)
     message(STATUS "using Qt5")
     set(QT_VERSION_MAJOR 5)
     set(QT_VERSION ${Qt5_VERSION})
@@ -72,21 +72,46 @@ else ()
 endif ()
 add_definitions(-DJELLY_CAD_VERSION=\"${TAG_VERSION}\")
 
-file(GLOB_RECURSE SRC_FILES src/*.cpp src/*.h resource/*.qrc)
+add_library(jelly_geometry
+    src/shapes/jy_shape.cpp src/shapes/jy_axes.cpp
+    src/shapes/jy_make_shapes.cpp src/shapes/jy_make_edge.cpp src/shapes/jy_make_face.cpp)
+target_include_directories(jelly_geometry PUBLIC src/shapes ${OpenCASCADE_INCLUDE_DIR})
+target_link_libraries(jelly_geometry PUBLIC ${OpenCASCADE_LIBRARIES})
+set_target_properties(jelly_geometry PROPERTIES AUTOMOC OFF)
 
-add_executable(JellyCAD ${SRC_FILES} ${WIN32_RESOURCES})
+add_library(jelly_robotics src/shapes/jy_urdf_generator.cpp src/robotics/jy_export_transaction.cpp src/robotics/jy_robot_writer.cpp)
+target_include_directories(jelly_robotics PUBLIC src)
+target_link_libraries(jelly_robotics PUBLIC jelly_geometry)
+set_target_properties(jelly_robotics PROPERTIES AUTOMOC OFF)
+
+add_library(jelly_lua_runtime src/runtime/jy_runtime.cpp src/runtime/jy_bindings.cpp)
+target_include_directories(jelly_lua_runtime PUBLIC src/runtime)
+target_compile_definitions(jelly_lua_runtime PRIVATE SOL_ALL_SAFETIES_ON=1)
+target_link_libraries(jelly_lua_runtime PUBLIC jelly_robotics PRIVATE ${LUA_LIBRARIES} sol2::sol2)
+set_target_properties(jelly_lua_runtime PROPERTIES AUTOMOC OFF)
+
+add_library(jelly_application src/jy_lua_virtual_machine.cpp src/application/jy_preview_scheduler.cpp)
+target_include_directories(jelly_application PUBLIC src)
+target_link_libraries(jelly_application PUBLIC jelly_lua_runtime Qt${QT_VERSION_MAJOR}::Core)
+
+add_library(jelly_services src/services/jy_git_service.cpp src/services/jy_llm_client.cpp)
+target_include_directories(jelly_services PUBLIC src)
+target_link_libraries(jelly_services PUBLIC Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Network)
+
+file(GLOB DESKTOP_FILES CONFIGURE_DEPENDS src/widgets/*.cpp src/widgets/*.h)
+add_library(jelly_desktop ${DESKTOP_FILES})
+target_include_directories(jelly_desktop PUBLIC src/widgets)
+target_link_libraries(jelly_desktop PUBLIC jelly_application jelly_services Qt${QT_VERSION_MAJOR}::Widgets)
+
+add_executable(JellyCAD src/main.cpp resource/res.qrc ${WIN32_RESOURCES})
+target_link_libraries(JellyCAD PRIVATE jelly_desktop)
+add_executable(JellyCAD_cli src/cli_main.cpp)
+target_link_libraries(JellyCAD_cli PRIVATE jelly_application)
 target_include_directories(JellyCAD PRIVATE ${OpenCASCADE_INCLUDE_DIR})
 target_include_directories(JellyCAD PRIVATE src src/widgets src/shapes)
 
-# Link Qt libraries based on version
+# Qt dependencies are inherited through jelly_desktop.
 if (QT_VERSION_MAJOR EQUAL 6)
-    target_link_libraries(JellyCAD PRIVATE
-            Qt6::Core
-            Qt6::Widgets
-            Qt6::Network
-            ${OpenCASCADE_LIBRARIES}
-            ${LUA_LIBRARIES}
-            sol2::sol2)
     if(WIN32)
         # 在构建时根据配置类型（Debug/Release）动态复制Qt插件
         # 使用 $<CONFIG> 生成器表达式确保多配置生成器（如Visual Studio）能正确工作
@@ -106,13 +131,7 @@ if (QT_VERSION_MAJOR EQUAL 6)
             COMMENT "Generating qt.conf for $<CONFIG>"
         )
     endif()
-else()
-    target_link_libraries(JellyCAD PRIVATE
-            Qt5::Widgets
-            Qt5::Network
-            ${OpenCASCADE_LIBRARIES}
-            ${LUA_LIBRARIES}
-            sol2::sol2)
+
 endif()
 
 # 使用生成器表达式，保证Visual Studio等多配置生成器下Release也是GUI程序（CMAKE_BUILD_TYPE对多配置生成器无效）
@@ -153,6 +172,7 @@ if (APPLE)
         target_sources(JellyCAD PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/resource/mac_icon.icns")
     endif()
     install(TARGETS JellyCAD BUNDLE DESTINATION .)
+    install(TARGETS JellyCAD_cli RUNTIME DESTINATION bin)
     install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/scripts
             DESTINATION JellyCAD.app/Contents/MacOS/
             USE_SOURCE_PERMISSIONS
@@ -161,37 +181,36 @@ if (APPLE)
     set(CPACK_DMG_FORMAT "UDBZ")  # 压缩格式
 else ()
     set(CPACK_GENERATOR "STGZ")
-    install(TARGETS JellyCAD RUNTIME DESTINATION .)
+    install(TARGETS JellyCAD JellyCAD_cli RUNTIME DESTINATION .)
     install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/scripts DESTINATION .)
 endif ()
 
 # Unit tests configuration
 option(BUILD_TESTS "Build unit tests" OFF)
-find_package(GTest CONFIG QUIET)
-if(BUILD_TESTS AND GTest_FOUND)
-    include(CTest)
+if(BUILD_TESTS)
+    find_package(GTest CONFIG REQUIRED)
     enable_testing()
-    file(GLOB_RECURSE TEST_FILES tests/*.cpp)
-    file(GLOB_RECURSE TEST_SRC_FILES
-        src/shapes/*.cpp
-        src/shapes/*.h
-    )
-    add_executable(JellyCAD_tests ${TEST_FILES} ${TEST_SRC_FILES})
-    target_include_directories(JellyCAD_tests PRIVATE
-        ${OpenCASCADE_INCLUDE_DIR}
-        src
-        src/widgets
-        src/shapes
-    )
-    target_link_libraries(JellyCAD_tests PRIVATE
-        GTest::gtest_main
-        ${OpenCASCADE_LIBRARIES}
-        ${LUA_LIBRARIES}
-        sol2::sol2
-    )
+    add_executable(JellyCAD_tests tests/test_basic_shapes.cpp tests/test_transformations.cpp
+        tests/test_runtime.cpp tests/test_application.cpp tests/test_services.cpp tests/test_robotics.cpp)
+    target_link_libraries(JellyCAD_tests PRIVATE GTest::gtest_main jelly_application jelly_services)
+    target_compile_definitions(JellyCAD_tests PRIVATE JELLYCAD_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
     include(GoogleTest)
-    gtest_discover_tests(JellyCAD_tests)
-    message(STATUS "Unit tests enabled")
+    gtest_discover_tests(JellyCAD_tests DISCOVERY_MODE PRE_TEST)
+    add_executable(JellyCAD_ui_tests tests/test_ui.cpp resource/res.qrc)
+    target_link_libraries(JellyCAD_ui_tests PRIVATE GTest::gtest jelly_desktop)
+    if(TARGET Qt6::QOffscreenIntegrationPlugin)
+        qt6_import_plugins(JellyCAD_ui_tests INCLUDE Qt6::QOffscreenIntegrationPlugin)
+    elseif(TARGET Qt5::QOffscreenIntegrationPlugin AND COMMAND qt5_import_plugins)
+        qt5_import_plugins(JellyCAD_ui_tests INCLUDE Qt5::QOffscreenIntegrationPlugin)
+    endif()
+    add_test(NAME desktop_workflows COMMAND JellyCAD_ui_tests)
+    set_tests_properties(desktop_workflows PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 30)
+    add_test(NAME cli_success COMMAND JellyCAD_cli -c "assert(box.new():type() == 'solid')")
+    add_test(NAME cli_failure COMMAND JellyCAD_cli -c "error('expected failure')")
+    set_tests_properties(cli_failure PROPERTIES WILL_FAIL TRUE)
+    add_test(NAME desktop_cli_headless COMMAND JellyCAD -c "assert(box.new():type() == 'solid')")
+    set_tests_properties(cli_success cli_failure desktop_cli_headless PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=not-a-real-platform;DISPLAY=;WAYLAND_DISPLAY=")
 endif()
 
 include(CPack)

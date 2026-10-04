@@ -8,11 +8,6 @@
 #include "jy_make_face.h"
 #include "jy_shape.h"
 
-class JyMakeShapes {
-public:
-    static void configure_usertype(sol::state &lua);
-};
-
 // ==================== 三维基本形状 ====================
 /**
  * @brief 长方体类

@@ -93,7 +93,7 @@ JellyCAD 集成了大模型对话功能，帮助您更高效地编写 Lua 脚本
    - 选择模型
 3. 输入您的需求（如"创建一个边长为 10 的立方体"）
 4. 按 `Ctrl+Enter` 发送，AI 将生成相应的 Lua 代码
-5. 生成的代码会自动插入到编辑器中
+5. 生成过程显示在草稿区；成功后替换编辑器内容，可一次撤销
 
 **功能特点：**
 - ✅ 支持多家主流 AI 服务商
@@ -145,7 +145,7 @@ git clone https://github.com/Microsoft/vcpkg.git -b 2026.06.24
 
 **方式二：下载预编译的 vcpkg**
 
-[JellyCAD-vcpkg](https://github.com/Jelatine/JellyCAD-vcpkg) 将预编译好的 `vcpkg` 目录（含 gtest）发布在 Release 中，CI 也使用这份产物。通过 CMake 预设可自动下载（需 CMake >= 3.21），无需手动安装：
+[JellyCAD-vcpkg](https://github.com/Jelatine/JellyCAD-vcpkg) 将预编译好的 `vcpkg` 目录（含 gtest）发布在 Release 中，CI 也使用这份产物。通过 CMake 预设可自动下载（需 CMake >= 3.24），无需手动安装：
 
 ```bash
 cmake --preset release            # 或 debug
@@ -432,3 +432,20 @@ cone.new(10, 5, 20):color('green4'):export_iges('cone.iges')
 - [拓扑边操作](https://blog.csdn.net/s634772208/article/details/130101544)
 - [边缘类型判断](https://www.cnblogs.com/occi/p/14619592.html)
 - [实体创建方法](https://developer.aliyun.com/article/235775)
+
+## 架构与开发验证
+
+模块职责、执行生命周期和兼容性说明见 [架构说明](doc/architecture.md)。
+
+- `JellyCAD_cli -f file.lua` 或 `JellyCAD_cli -c "print('hello')"` 提供独立的无界面入口；原有 `JellyCAD -f/-c` 仍可使用。
+- F5 保存成功后显式运行一次。状态栏的 **Auto preview** 控制保存及外部修改后的自动预览，默认开启。
+- AI 生成内容先显示在草稿区，成功后替换编辑器内容，可一次撤销；失败或取消保留原文。
+- 脚本停止为协作式取消，原生几何计算需返回后才能结束。
+
+```bash
+cmake --preset release --fresh -DBUILD_TESTS=ON
+cmake --build --preset release
+ctest --test-dir build/release -C Release --output-on-failure --no-tests=error
+```
+
+启用测试时必须安装 GTest；缺少依赖会在配置阶段报错。

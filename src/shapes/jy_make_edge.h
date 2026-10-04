@@ -10,7 +10,6 @@
  */
 class JyEdge : public JyShape {
 public:
-    static void configure_usertype(sol::state &lua);
 
     JyEdge() = default;
     /**

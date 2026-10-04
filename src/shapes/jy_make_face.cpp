@@ -3,6 +3,7 @@
  * MIT License
  */
 #include "jy_make_face.h"
+#include <gp_Pln.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <GC_MakeTrimmedCylinder.hxx>
@@ -10,23 +11,6 @@
 #include <TopoDS_Wire.hxx>
 #include <gp_Cone.hxx>
 #include <gp_Cylinder.hxx>
-
-void JyFace::configure_usertype(sol::state &lua) {
-    const auto face_ctor = sol::constructors<JyFace(),
-                                             JyFace(const JyFace &),
-                                             JyFace(const JyShape &)>();
-    lua.new_usertype<JyFace>("face", face_ctor, sol::base_classes, sol::bases<JyShape>());
-    const auto plane_ctor = sol::constructors<JyPlane(const JyPlane &),
-                                              JyPlane(const std::array<double, 3>, const std::array<double, 3>, const std::array<double, 4>)>();
-    lua.new_usertype<JyPlane>("plane", plane_ctor, sol::base_classes, sol::bases<JyFace, JyShape>());
-    const auto cylindrical_ctor = sol::constructors<JyCylindrical(const JyCylindrical &),
-                                                    JyCylindrical(const std::array<double, 3>, const std::array<double, 3>, const double &, const std::array<double, 4>),
-                                                    JyCylindrical(const std::array<double, 3>, const std::array<double, 3>, const double &, const double &)>();
-    lua.new_usertype<JyCylindrical>("cylindrical", cylindrical_ctor, sol::base_classes, sol::bases<JyFace, JyShape>());
-    const auto conical_ctor = sol::constructors<JyConical(const JyConical &),
-                                                JyConical(const std::array<double, 3>, const std::array<double, 3>, const double &, const double &, const std::array<double, 4>)>();
-    lua.new_usertype<JyConical>("conical", conical_ctor, sol::base_classes, sol::bases<JyFace, JyShape>());
-}
 
 JyFace::JyFace(const JyShape &_shape) {
     const auto shape_type = _shape.s_.ShapeType();

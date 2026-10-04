@@ -19,8 +19,7 @@
 
 JyLlmDialog::JyLlmDialog(QWidget *parent)
     : QDialog(parent),
-      m_networkManager(new QNetworkAccessManager(this)),
-      m_currentReply(nullptr),
+      m_client(new JyLlmClient(this)),
       m_isStreaming(false),
       m_currentProviderIndex(0) {
 
@@ -42,10 +41,7 @@ JyLlmDialog::JyLlmDialog(QWidget *parent)
 }
 
 JyLlmDialog::~JyLlmDialog() {
-    if (m_currentReply) {
-        m_currentReply->abort();
-        m_currentReply->deleteLater();
-    }
+    m_client->cancel();
 }
 
 void JyLlmDialog::setupUi() {
@@ -110,13 +106,42 @@ void JyLlmDialog::setupUi() {
     m_progressBar->setVisible(false);
     mainLayout->addWidget(m_progressBar);
 
-    mainLayout->addStretch();
+    m_draft = new QTextEdit(this);
+    m_draft->setReadOnly(true);
+    m_draft->setPlaceholderText(tr("Generated code preview"));
+    mainLayout->addWidget(m_draft);
+    m_cancelButton = new QPushButton(tr("Cancel generation"), this);
+    mainLayout->addWidget(m_cancelButton);
+    m_cancelButton->setEnabled(false);
 
     // Update model list
     onProviderChanged(0);
 }
 
 void JyLlmDialog::setupConnections() {
+    const auto reset = [this] {
+        m_isStreaming = false;
+        m_progressBar->hide();
+        m_sendButton->setEnabled(true);
+        m_promptInput->setEnabled(true);
+        m_cancelButton->setEnabled(false);
+        m_settingsPanel->setEnabled(true);
+    };
+    connect(this, &QDialog::finished, m_client, &JyLlmClient::cancel);
+    connect(m_cancelButton, &QPushButton::clicked, this, [this, reset] {
+        m_client->cancel(); reset(); updateProgress(tr("Generation cancelled"));
+    });
+    connect(m_client, &JyLlmClient::chunk, this, [this](const QString &text) {
+        auto cursor = m_draft->textCursor();
+        cursor.movePosition(QTextCursor::End); cursor.insertText(text); m_draft->setTextCursor(cursor);
+        emit codeStreamUpdate(text);
+    });
+    connect(m_client, &JyLlmClient::succeeded, this, [this, reset](const QString &code) {
+        reset(); emit codeGenerationFinished(code); accept();
+    });
+    connect(m_client, &JyLlmClient::failed, this, [this, reset](const QString &error) {
+        reset(); updateProgress(error);
+    });
     connect(m_settingsToggleButton, &QPushButton::toggled,
             this, &JyLlmDialog::onToggleSettings);
     connect(m_sendButton, &QPushButton::clicked,
@@ -159,6 +184,7 @@ void JyLlmDialog::onProviderChanged(int index) {
 }
 
 void JyLlmDialog::onSendClicked() {
+    if (m_isStreaming) return;
     QString prompt = m_promptInput->toPlainText().trimmed();
     if (prompt.isEmpty()) {
         QMessageBox::warning(this, tr("Input Required"),
@@ -339,121 +365,14 @@ face.new(profile):revol({0,0,0}, {0,0,1}, 360):show()
         request.setRawHeader("Authorization", QString("Bearer %1").arg(apiKey).toUtf8());
     }
 
-    // Send request
-    QJsonDocument doc(requestBody);
-    if (m_currentReply) {
-        m_currentReply->abort();
-        m_currentReply->deleteLater();
-    }
-
-    m_currentReply = m_networkManager->post(request, doc.toJson());
     m_isStreaming = true;
-    m_streamBuffer.clear();
-    m_generatedCode.clear();
-
-    // Show progress
+    m_draft->clear();
     updateProgress(tr("Generating code..."));
     m_sendButton->setEnabled(false);
     m_promptInput->setEnabled(false);
-
-    connect(m_currentReply, &QNetworkReply::readyRead,
-            this, &JyLlmDialog::onNetworkReplyReceived);
-    connect(m_currentReply, &QNetworkReply::finished,
-            this, [this]() {
-                m_isStreaming = false;
-                m_progressBar->setVisible(false);
-                m_sendButton->setEnabled(true);
-                m_promptInput->setEnabled(true);
-
-                if (m_currentReply->error() == QNetworkReply::NoError) {
-                    updateProgress(tr("Code generation completed!"));
-                    emit codeGenerationFinished(m_generatedCode);
-
-                    // Auto close dialog after success
-                    QTimer::singleShot(1000, this, &QDialog::accept);
-                } else {
-                    updateProgress(tr("Error occurred"));
-                }
-            });
-    connect(m_currentReply, QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply::errorOccurred),
-            this, &JyLlmDialog::onNetworkError);
-}
-
-void JyLlmDialog::onNetworkReplyReceived() {
-    if (!m_currentReply) return;
-
-    QByteArray data = m_currentReply->readAll();
-    processStreamData(data);
-}
-
-void JyLlmDialog::processStreamData(const QByteArray &data) {
-    m_streamBuffer += QString::fromUtf8(data);
-
-    // Process SSE (Server-Sent Events) format
-    QStringList lines = m_streamBuffer.split("\n");
-    m_streamBuffer = lines.takeLast();// Keep incomplete line in buffer
-
-    for (const QString &line: lines) {
-        if (line.startsWith("data: ")) {
-            QString jsonData = line.mid(6).trimmed();
-
-            if (jsonData == "[DONE]") {
-                continue;
-            }
-
-            QJsonDocument doc = QJsonDocument::fromJson(jsonData.toUtf8());
-            if (doc.isNull() || !doc.isObject()) {
-                continue;
-            }
-
-            QJsonObject obj = doc.object();
-            QString deltaContent;
-
-            // Parse based on provider format
-            if (m_currentProviderIndex >= 0 && m_currentProviderIndex < m_providers.size()) {
-                const auto &provider = m_providers[m_currentProviderIndex];
-
-                if (provider.name == "Anthropic (Claude)") {
-                    // Anthropic streaming format
-                    QString type = obj["type"].toString();
-                    if (type == "content_block_delta") {
-                        QJsonObject delta = obj["delta"].toObject();
-                        deltaContent = delta["text"].toString();
-                    }
-                } else {
-                    // OpenAI/DeepSeek/ModelScope/Aliyun format
-                    QJsonArray choices = obj["choices"].toArray();
-                    if (!choices.isEmpty()) {
-                        QJsonObject choice = choices[0].toObject();
-                        QJsonObject delta = choice["delta"].toObject();
-                        deltaContent = delta["content"].toString();
-                    }
-                }
-            }
-
-            if (!deltaContent.isEmpty()) {
-                m_generatedCode += deltaContent;
-                emit codeStreamUpdate(deltaContent);
-            }
-        }
-    }
-}
-
-void JyLlmDialog::onNetworkError(QNetworkReply::NetworkError error) {
-    Q_UNUSED(error);
-
-    if (m_currentReply) {
-        QString errorString = m_currentReply->errorString();
-        QByteArray response = m_currentReply->readAll();
-
-        QString errorMsg = QString("Network Error: %1").arg(errorString);
-        if (!response.isEmpty()) {
-            errorMsg += QString("\nResponse: %1").arg(QString::fromUtf8(response));
-        }
-
-        QMessageBox::critical(this, tr("Error"), errorMsg);
-        updateProgress(tr("Error: %1").arg(errorString));
-    }
+    m_cancelButton->setEnabled(true);
+    m_settingsPanel->setEnabled(false);
+    m_client->start(request, QJsonDocument(requestBody).toJson(), provider.name == "Anthropic (Claude)");
 }
 
 void JyLlmDialog::updateProgress(const QString &status) {

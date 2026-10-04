@@ -6,20 +6,6 @@
 #include <Geom_Axis2Placement.hxx>
 #include <gp_Quaternion.hxx>
 
-
-sol::usertype<JyAxes> JyAxes::configure_usertype(sol::state &lua) {
-    auto axes_user = lua.new_usertype<JyAxes>("axes", sol::constructors<JyAxes(),
-                                                                        JyAxes(const double &),
-                                                                        JyAxes(const std::array<double, 6>),
-                                                                        JyAxes(const std::array<double, 6>, const double &),
-                                                                        JyAxes(const JyAxes &)>());
-    axes_user["copy"] = [](const JyAxes &self) { return JyAxes(self); };
-    axes_user["move"] = &JyAxes::move;
-    axes_user["sdh"] = &JyAxes::sdh;
-    axes_user["mdh"] = &JyAxes::mdh;
-    return axes_user;
-}
-
 /**
  * @brief 通过位姿数组构造坐标轴对象
  *

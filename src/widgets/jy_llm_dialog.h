@@ -9,7 +9,7 @@
 #include <QDialog>
 #include <QLabel>
 #include <QLineEdit>
-#include <QNetworkAccessManager>
+#include "services/jy_llm_client.h"
 #include <QNetworkReply>
 #include <QProgressBar>
 #include <QPushButton>
@@ -34,8 +34,7 @@ private slots:
     void onSendClicked();
     void onToggleSettings();
     void onProviderChanged(int index);
-    void onNetworkReplyReceived();
-    void onNetworkError(QNetworkReply::NetworkError error);
+
 
 private:
     void setupUi();
@@ -43,7 +42,7 @@ private:
     void loadSettings();
     void saveSettings();
     void sendRequest(const QString &userMessage);
-    void processStreamData(const QByteArray &data);
+
     void updateProgress(const QString &status);
 
     // UI Components
@@ -59,13 +58,13 @@ private:
     QLabel *m_statusLabel;
 
     // Network
-    QNetworkAccessManager *m_networkManager;
-    QNetworkReply *m_currentReply;
+    JyLlmClient *m_client;
+    QTextEdit *m_draft;
+    QPushButton *m_cancelButton;
 
     // State
     QString m_currentCode;
-    QString m_streamBuffer;
-    QString m_generatedCode;
+
     bool m_isStreaming;
 
     // Configuration

@@ -10,7 +10,6 @@
  */
 class JyFace : public JyShape {
 public:
-    static void configure_usertype(sol::state &lua);
     /**
      * @brief 默认构造函数
      */

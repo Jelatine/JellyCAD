@@ -16,43 +16,6 @@
 #include <gp_Hypr.hxx>
 #include <gp_Parab.hxx>
 
-void JyEdge::configure_usertype(sol::state &lua) {
-    const auto edge_ctor = sol::constructors<JyEdge(const JyEdge &),
-                                             JyEdge(const std::string &, const std::array<double, 3>, const std::array<double, 3>),
-                                             JyEdge(const std::string &, const std::array<double, 3>, const std::array<double, 3>, const double &),
-                                             JyEdge(const std::string &, const std::array<double, 3>, const std::array<double, 3>, const double &, const double &)>();
-    lua.new_usertype<JyEdge>("edge", edge_ctor, sol::base_classes, sol::bases<JyShape>());
-    const auto line_ctor = sol::constructors<JyLine(const JyLine &),
-                                             JyLine(const std::array<double, 3>, const std::array<double, 3>)>();
-    lua.new_usertype<JyLine>("line", line_ctor, sol::base_classes, sol::bases<JyEdge, JyShape>());
-    const auto circle_ctor = sol::constructors<JyCircle(const JyCircle &),
-                                               JyCircle(const std::array<double, 3>, const std::array<double, 3>, const double &)>();
-    lua.new_usertype<JyCircle>("circle", circle_ctor, sol::base_classes, sol::bases<JyEdge, JyShape>());
-    const auto ellipse_ctor = sol::constructors<JyEllipse(const JyEllipse &),
-                                                JyEllipse(const std::array<double, 3>, const std::array<double, 3>, const double &, const double &)>();
-    lua.new_usertype<JyEllipse>("ellipse", ellipse_ctor, sol::base_classes, sol::bases<JyEdge, JyShape>());
-    const auto hyperbola_ctor = sol::constructors<JyHyperbola(const JyHyperbola &),
-                                                  JyHyperbola(const std::array<double, 3>, const std::array<double, 3>, const double &, const double &, const double &, const double &)>();
-    lua.new_usertype<JyHyperbola>("hyperbola", hyperbola_ctor, sol::base_classes, sol::bases<JyEdge, JyShape>());
-    const auto parabola_ctor = sol::constructors<JyParabola(const JyParabola &),
-                                                 JyParabola(const std::array<double, 3>, const std::array<double, 3>, const double &, const double &, const double &)>();
-    lua.new_usertype<JyParabola>("parabola", parabola_ctor, sol::base_classes, sol::bases<JyEdge, JyShape>());
-    const auto bezier_ctor = sol::constructors<JyBezier(const JyBezier &),
-                                               JyBezier(const std::vector<std::array<double, 3>>),
-                                               JyBezier(const std::vector<std::array<double, 3>>, const std::vector<double>)>();
-    lua.new_usertype<JyBezier>("bezier", bezier_ctor, sol::base_classes, sol::bases<JyEdge, JyShape>());
-    const auto bspline_ctor = sol::constructors<JyBSpline(const JyBSpline &),
-                                                JyBSpline(const std::vector<std::array<double, 3>>),
-                                                JyBSpline(const std::vector<std::array<double, 3>>,
-                                                          const std::vector<double>,
-                                                          const std::vector<int>,
-                                                          const int &)>();
-    lua.new_usertype<JyBSpline>("bspline", bspline_ctor, sol::base_classes, sol::bases<JyEdge, JyShape>());
-    const auto arc_ctor = sol::constructors<JyArc(const JyArc &),
-                                            JyArc(const std::array<double, 3>, const std::array<double, 3>, const std::array<double, 3>)>();
-    lua.new_usertype<JyArc>("arc", arc_ctor, sol::base_classes, sol::bases<JyEdge, JyShape>());
-}
-
 JyEdge::JyEdge(const std::string &_type, const std::array<double, 3> _vec1, const std::array<double, 3> _vec2,
                const double &_r1, const double &_r2) {
     const auto pos = gp_Pnt(_vec1[0], _vec1[1], _vec1[2]);

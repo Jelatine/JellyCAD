@@ -11,19 +11,12 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMenu>
-#include <QProcess>
+#include "services/jy_git_service.h"
 #include <QPushButton>
 #include <QQueue>
 #include <QTextEdit>
 #include <QTreeWidget>
 #include <QWidget>
-
-// Git命令结构体
-struct GitCommand {
-    QString command;
-    QStringList args;
-    QString commandType;// 用于识别命令类型
-};
 
 class JyGitManager : public QWidget {
     Q_OBJECT
@@ -54,8 +47,7 @@ private slots:
     void onFileTreeContextMenu(const QPoint &pos);
     void onStageAllClicked();
     void onUnstageAllClicked();
-    void onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
-    void onProcessError(QProcess::ProcessError error);
+    void onProcessFinished(const QString &command, int exitCode, QProcess::ExitStatus exitStatus, const QString &output, const QString &errorOutput);
 
 private:
     void setupUi();
@@ -66,8 +58,6 @@ private:
     void loadCommitHistory();
     void loadRemotes();
     void enqueueCommand(const QString &command, const QStringList &args, const QString &commandType);
-    void executeNextCommand();
-    void executeGitCommand(const QString &command, const QStringList &args);
     void showDiffForFile(const QString &filePath);
     void updateStatusLabel();
 
@@ -105,9 +95,6 @@ private:
     QString m_currentBranch;
     bool m_isGitInstalled;
     bool m_isGitRepository;
-    QProcess *m_gitProcess;
-    QString m_currentCommand;         // 记录当前执行的命令类型
-    QQueue<GitCommand> m_commandQueue;// 命令队列
-    bool m_isProcessing;              // 是否正在处理命令
+    JyGitService *m_service;
 };
-#endif// JY_GIT_MANAGER_H
+#endif

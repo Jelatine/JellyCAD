@@ -9,6 +9,7 @@
 #include "shapes/jy_shape.h"
 #include <memory>
 #include <map>
+#include <unordered_map>
 
 class Link;
 
@@ -28,7 +29,7 @@ public:
 
     Joint() : axes_(JyAxes()) {}
 
-    Joint(const std::string &name, const JyAxes &axes, const std::string &type, std::unordered_map<std::string, double> limits) : name_(name), axes_(axes), type_(type) {
+    Joint(const std::string &name, const JyAxes &axes, const std::string &type, std::unordered_map<std::string, double> limits = {}) : name_(name), axes_(axes), type_(type) {
         if (limits.empty()) return;
         if (limits.count("lower")) { limits_.lower = limits.at("lower"); }
         if (limits.count("upper")) { limits_.upper = limits.at("upper"); }
@@ -38,7 +39,7 @@ public:
 
     /**
      * @brief 设置子连杆并返回其引用
-     * @note link会被深拷贝，调用后再修改原link对象不会反映到关节树上；
+     * @note link的值会被复制，已有子树使用共享所有权；
      *       如需继续构建子树，请使用本函数的返回值
      */
     Link &next(const Link &link) {
@@ -49,15 +50,12 @@ public:
 
 class Link {
 public:
-    static void configure_usertype(sol::state &lua);
-
-public:
     std::string name_;
     std::vector<std::shared_ptr<Joint>> joints_;
     std::vector<JyShape> shapes_;
 
     Link(const std::string &name, const JyShape &shape);
-    Link(const std::string &name, const sol::table &shape_list);
+    Link(const std::string &name, const std::vector<JyShape> &shape_list);
 
     Joint &add(const Joint &joint) {
         joints_.push_back(std::make_shared<Joint>(joint));
@@ -66,43 +64,10 @@ public:
 
     void export_urdf(const std::string &robot_name) const;
 
-    void export_urdf(const sol::table &params) const;
+    enum class Format { URDF, ROS1, ROS2, MUJOCO };
+    struct ExportOptions { std::string name; std::string path; Format format = Format::URDF; };
+    void export_urdf(const ExportOptions &options) const;
 
-private:
-    enum class ExtendedFile {
-        URDF, // 普通URDF文件
-        ROS1, // ROS1的额外文件
-        ROS2, // ROS2的额外文件
-        MUJOCO// MuJoCo XML文件
-    };
-    struct CommomData {
-        std::string robot_name; // 机器人名称
-        std::string path_meshes;// 网格文件路径
-    };
-    void export_urdf_impl(const std::string &robot_name, const std::string &root_path, const ExtendedFile &file_type = ExtendedFile::URDF) const;
-
-    // 深度优先遍历（DFS）
-    std::string traverseDFS(const Link &link, const JyAxes &parent_axes, const CommomData &data) const;
-
-    /*
-     * 处理关节（Joint）
-     * @param joint 关节对象
-     * @param parent_link 父连杆对象
-     * @param parent_axes 父连杆的轴坐标(前一个关节的轴坐标)
-     * @return 生成的URDF字符串
-     */
-    std::string handleJoint(const Joint &joint, const Link &parent_link, const JyAxes &parent_axes) const;
-
-    /*
-     * 处理连杆（Link）
-     * @param link 连杆对象
-     * @param parent_axes 父连杆的轴坐标(前一个关节的轴坐标)
-     * @return 生成的URDF字符串
-     */
-    std::string handleLink(const Link &link, const JyAxes &parent_axes, const CommomData &data) const;
-
-    // MuJoCo specific handlers
-    std::string handleBody_MuJoCo(const Link &link, const Joint &parent_joint, const Joint &grand_joint, const CommomData &data, const int &space = 0) const;
 };
 
 #endif

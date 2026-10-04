@@ -19,11 +19,13 @@
 #include <QShortcut>
 #include <QStackedWidget>
 #include <QStatusBar>
+#include <QSettings>
+#include <QCheckBox>
 #include <QTextBrowser>
 
 JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
                                               jy_3d_widget(new Jy3DWidget),
-                                              lvm(new JyLuaVirtualMachine),
+                                              lvm(new JyLuaVirtualMachine(this)),
                                               m_editorWidget(new JyEditorWidget),
                                               shape_info_widget(new JyShapeInfoWidget),
                                               file_manager(new JyFileManager),
@@ -31,6 +33,23 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
                                               m_activity_bar(new JyActivityBar()),
                                               m_progressDialog(nullptr),
                                               m_isStoppingScript(false) {
+    m_preview = new JyPreviewScheduler(this);
+    auto autoPreview = new QCheckBox(tr("Auto preview"), this);
+    QSettings settings("Jelatine", "JellyCAD");
+    autoPreview->setChecked(settings.value("autoPreview", true).toBool());
+    m_preview->setEnabled(autoPreview->isChecked());
+    statusBar()->addPermanentWidget(autoPreview);
+    connect(autoPreview, &QCheckBox::toggled, this, [this](bool enabled) {
+        m_preview->setEnabled(enabled);
+        QSettings("Jelatine", "JellyCAD").setValue("autoPreview", enabled);
+    });
+    connect(m_preview, &JyPreviewScheduler::requested, this, [this](const QString &path) { runScript(path, jelly::RunSource::Preview); });
+    connect(lvm, &JyLuaVirtualMachine::completed, this, [this](const jelly::RunResult &) {
+        jy_3d_widget->refresh(true);
+        m_preview->setBusy(false);
+        if (m_closePending) QTimer::singleShot(0, this, &QWidget::close);
+    });
+    connect(lvm, &JyLuaVirtualMachine::batchFinished, this, [this] { jy_3d_widget->refresh(false); });
     setWindowTitle('[' + file_manager->getWorkingDirectory() + ']' + " - JellyCAD");
 
     // Connect editor widget signals
@@ -55,6 +74,7 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     command_completer->popup()->setFocusPolicy(Qt::NoFocus);
     edit_lua_cmd->setCompleter(command_completer);
     text_lua_message = new QTextBrowser;
+    text_lua_message->document()->setMaximumBlockCount(5000);
     edit_lua_cmd->setPlaceholderText("Enter Lua command here");
     widget_terminal->layout()->addWidget(edit_lua_cmd);
     widget_terminal->layout()->addWidget(text_lua_message);
@@ -65,7 +85,7 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
         qDebug() << "run lua cmd: " << script_text;
         text_lua_message->setTextColor(Qt::cyan);
         text_lua_message->append(script_text);
-        lvm->exec_code(script_text);
+        if (!m_closePending && !lvm->exec_code(script_text, file_manager->getWorkingDirectory())) statusBar()->showMessage(tr("A script is already running"));
         edit_lua_cmd->clear();
     });
     //!< 文件管理器
@@ -112,12 +132,12 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
     //!< 信号槽连接
     connect(m_activity_bar, &JyActivityBar::sig_set_side_bar_visible, stack_widget, &QStackedWidget::setVisible);
     connect(m_activity_bar, &JyActivityBar::sig_set_side_bar_index, stack_widget, &QStackedWidget::setCurrentIndex);
-    connect(lvm, &JyLuaVirtualMachine::displayShape, jy_3d_widget, &Jy3DWidget::onDisplayShape, Qt::BlockingQueuedConnection);
-    connect(lvm, &JyLuaVirtualMachine::displayAxes, jy_3d_widget, &Jy3DWidget::onDisplayAxes, Qt::BlockingQueuedConnection);
+    connect(lvm, &JyLuaVirtualMachine::displayShape, jy_3d_widget, &Jy3DWidget::onDisplayShape);
+    connect(lvm, &JyLuaVirtualMachine::displayAxes, jy_3d_widget, &Jy3DWidget::onDisplayAxes);
     connect(lvm, &JyLuaVirtualMachine::scriptStarted, this, &JyMainWindow::onScriptStarted);
     connect(lvm, &JyLuaVirtualMachine::scriptFinished, this, &JyMainWindow::onScriptFinished);
     connect(lvm, &JyLuaVirtualMachine::scriptError, this, &JyMainWindow::onScriptError);
-    connect(lvm, &JyLuaVirtualMachine::scriptOutput, this, &JyMainWindow::onScriptOutput, Qt::BlockingQueuedConnection);
+    connect(lvm, &JyLuaVirtualMachine::scriptOutput, this, &JyMainWindow::onScriptOutput);
 
     // 创建快捷键 ref:https://doc.qt.io/archives/qt-5.15/qkeysequence.html
     QShortcut *findNextShortcut = new QShortcut(QKeySequence::FindNext, this);
@@ -135,30 +155,19 @@ JyMainWindow::JyMainWindow(QWidget *parent) : QMainWindow(parent),
 }
 
 void JyMainWindow::slot_file_changed(const QString &path) {
-    qDebug() << "file changed: " << path;
-    if (path == file_manager->getOpenedFile()) {
-        bool should_update = true;
-        if (m_editorWidget->isModified()) {
-            // 用户编辑过该文件，则弹出保存对话框，是否同步到编辑器
-#if QT_VERSION >= QT_VERSION_CHECK(6, 2, 0)
-            auto reply = QMessageBox::question(this, tr("File Updated"), tr("Do you want sync to editor?"),
-                                               QMessageBox::Yes | QMessageBox::No);
-            should_update = (reply == QMessageBox::Yes);
-#else
-            int how_to_handle = QMessageBox::question(this, tr("File Updated"), tr("Do you want sync to editor?"), tr("Yes"), tr("No"));
-            should_update = (how_to_handle == 0);
-#endif
-        }
-        // 用户无编辑过该文件，则更新文件内容到编辑器
-        if (should_update) {
-            m_editorWidget->loadFile(path);
-        }
-    }
-    runScript(file_manager->getOpenedFile());
+    if (m_closePending || !m_preview->changed(path)) return;
+    if (m_editorWidget->isModified() && QMessageBox::question(this, tr("File Updated"),
+        tr("Reload external changes?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes) return;
+    m_editorWidget->loadFile(path);
+    m_preview->schedule();
 }
 
+
 void JyMainWindow::onFileOpenRequested(const QString &filePath) {
+    if (m_closePending) return;
+    lvm->stopScript();
     // Load file into editor
+    m_preview->setDocument(filePath);
     m_editorWidget->loadFile(filePath);
 
     // Clear 3D widget instead of running script
@@ -180,33 +189,36 @@ void JyMainWindow::onFileOpenRequested(const QString &filePath) {
     m_activity_bar->slot_navigation_buttons_clicked(1);
 }
 
-void JyMainWindow::runScript(const QString &path) {
+void JyMainWindow::runScript(const QString &path, jelly::RunSource trigger) {
+    if (m_closePending || path.isEmpty()) return;
+    jelly::RunRequest request;
+    request.source = QFileInfo(path).absoluteFilePath().toStdString();
+    request.trigger = trigger;
+    if (!lvm->submit(std::move(request))) {
+        statusBar()->showMessage(tr("A script is already running"));
+        return;
+    }
     jy_3d_widget->remove_all();
     statusBar()->clearMessage();
     const auto &str_prefix = QDateTime::currentDateTime().toString("[yyyy-MM-dd hh:mm:ss] ") + path;
     text_lua_message->setTextColor(Qt::white);
     text_lua_message->append(str_prefix);
-    lvm->executeScript(path);// 执行脚本
+
 }
 
 void JyMainWindow::slot_button_save_clicked() {
     qDebug() << "[BUTTON]save" << m_editorWidget->getFilePath();
-    saveFile();
+    if (saveFile()) m_preview->schedule();
 }
 
 void JyMainWindow::slot_button_run_clicked() {
-    qDebug() << "[BUTTON]run";
-    if (m_editorWidget->isModified()) {
-        // 如果文件被修改，先保存
-        saveFile();
-    } else {
-        // Run the script
-        QString run_filename = m_editorWidget->getFilePath();
-        if (!run_filename.isEmpty()) {
-            runScript(run_filename);
-        }
-    }
+    if (m_closePending) return;
+    if (lvm->isRunning()) { statusBar()->showMessage(tr("A script is already running")); return; }
+    if (m_editorWidget->isModified() && !saveFile()) return;
+    m_preview->cancelPending();
+    runScript(m_editorWidget->getFilePath());
 }
+
 
 void JyMainWindow::onInsertEdgeInfo(const QString &edgeInfo) {
     QTextCursor cursor = m_editorWidget->codeEditor()->textCursor();// 获取光标
@@ -223,24 +235,21 @@ void JyMainWindow::onInsertEdgeInfo(const QString &edgeInfo) {
 }
 
 void JyMainWindow::closeEvent(QCloseEvent *event) {
-    const auto res = ask_whether_to_save();
-    if (res == 0) {
-        if (saveFile()) {
-            event->accept();// [是]保存成功后退出
-        } else {
-            event->ignore();// 保存失败或取消，不退出
-        }
-    } else if (res == 1) {
-        event->accept();// [否]直接退出
-    } else {
-        event->ignore();// [取消]忽略关闭事件
+    if (!m_closePending) {
+        const auto answer = ask_whether_to_save();
+        if (answer == 2 || (answer == 0 && !saveFile())) { event->ignore(); return; }
+        m_closePending = true;
+        m_preview->cancelPending();
     }
-    // 退出前停止正在运行的脚本线程，避免析构运行中的QThread导致崩溃
-    if (event->isAccepted() && lvm && lvm->isRunning()) {
-        lvm->stopScript();
-        lvm->wait(3000);// 最多等待3秒（脚本可能阻塞在与主线程的交互上）
+    if (lvm->isRunning()) {
+        event->ignore();
+        centralWidget()->setEnabled(false);
+        onStopScript();
+        return;
     }
+    event->accept();
 }
+
 
 int JyMainWindow::ask_whether_to_save() {
     if (m_editorWidget->isModified()) {
@@ -263,10 +272,16 @@ int JyMainWindow::ask_whether_to_save() {
 
 bool JyMainWindow::saveFile() {
     qDebug() << "[FUNCTION]saveFile";
-    return m_editorWidget->saveFile();
+    if (!m_editorWidget->saveFile()) {
+        QMessageBox::warning(this, tr("Save failed"), tr("The file could not be saved. Your changes are still in the editor."));
+        return false;
+    }
+    m_preview->remember();
+    return true;
 }
 
 void JyMainWindow::onScriptStarted() {
+    m_preview->setBusy(true);
     // 重置停止标志
     m_isStoppingScript = false;
 
@@ -357,6 +372,8 @@ void JyMainWindow::onStopScript() {
 }
 
 void JyMainWindow::onResetWorkspace() {
+    m_preview->setDocument({});
+    lvm->stopScript();
     // 清除编辑器内容
     m_editorWidget->clearEditor();
 
