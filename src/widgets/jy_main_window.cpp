@@ -254,18 +254,12 @@ void JyMainWindow::closeEvent(QCloseEvent *event) {
 int JyMainWindow::ask_whether_to_save() {
     if (m_editorWidget->isModified()) {
         // 文件未保存，询问是否保存
-#if QT_VERSION >= QT_VERSION_CHECK(6, 2, 0)
         auto reply = QMessageBox::question(this, tr("File not saved"),
                                            tr("Do you want to save the file?"),
                                            QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
         if (reply == QMessageBox::Yes) return 0;
         if (reply == QMessageBox::No) return 1;
         return 2; // Cancel
-#else
-        return QMessageBox::question(this, tr("File not saved"),
-                                     tr("Do you want to save the file?"),
-                                     tr("Yes"), tr("No"), tr("Cancel"));
-#endif
     }
     return 1;// 文件未修改
 }

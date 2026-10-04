@@ -128,8 +128,7 @@ sudo apt install -y libglu1-mesa libgl1-mesa-glx
 ::: tip 提示
 如果遇到其他库文件缺失错误，可以尝试安装完整的 Qt 依赖：
 ```bash
-sudo apt install qt5-default  # Ubuntu 20.04
-sudo apt install qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools  # Ubuntu 22.04+
+sudo apt install qt6-base-dev  # Ubuntu 22.04+
 ```
 :::
 

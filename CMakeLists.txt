@@ -30,27 +30,8 @@ find_package(OpenCASCADE CONFIG REQUIRED)
 add_compile_definitions(OCCT_NO_DEPRECATED)
 
 
-# 添加编译选项：强制使用Qt5
-option(FORCE_QT5 "Force use Qt5 instead of Qt6" OFF)
-# Qt版本检测：优先Qt6，可通过FORCE_QT5选项强制使用Qt5
-if(NOT FORCE_QT5)
-    find_package(Qt6 QUIET COMPONENTS Core Widgets Network)
-endif()
-if (Qt6_FOUND)
-    message(STATUS "Found Qt6, using Qt6")
-    set(QT_VERSION_MAJOR 6)
-    set(QT_VERSION ${Qt6_VERSION})
-else()
-    find_package(Qt5 5.15 REQUIRED COMPONENTS Core Widgets Network)
-    message(STATUS "using Qt5")
-    set(QT_VERSION_MAJOR 5)
-    set(QT_VERSION ${Qt5_VERSION})
-    if (MSVC)
-        # 解决UTF-8存在中文时，MSVC编译失败
-        add_compile_options("/source-charset:utf-8")
-        add_compile_options("/execution-charset:utf-8")
-    endif ()
-endif()
+find_package(Qt6 6.2 REQUIRED COMPONENTS Core Widgets Network)
+set(QT_VERSION ${Qt6_VERSION})
 
 find_package(Lua CONFIG REQUIRED)
 find_package(sol2 CONFIG REQUIRED)
@@ -92,16 +73,16 @@ set_target_properties(jelly_lua_runtime PROPERTIES AUTOMOC OFF)
 
 add_library(jelly_application src/jy_lua_virtual_machine.cpp src/application/jy_preview_scheduler.cpp)
 target_include_directories(jelly_application PUBLIC src)
-target_link_libraries(jelly_application PUBLIC jelly_lua_runtime Qt${QT_VERSION_MAJOR}::Core)
+target_link_libraries(jelly_application PUBLIC jelly_lua_runtime Qt6::Core)
 
 add_library(jelly_services src/services/jy_git_service.cpp src/services/jy_llm_client.cpp)
 target_include_directories(jelly_services PUBLIC src)
-target_link_libraries(jelly_services PUBLIC Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Network)
+target_link_libraries(jelly_services PUBLIC Qt6::Core Qt6::Network)
 
 file(GLOB DESKTOP_FILES CONFIGURE_DEPENDS src/widgets/*.cpp src/widgets/*.h)
 add_library(jelly_desktop ${DESKTOP_FILES})
 target_include_directories(jelly_desktop PUBLIC src/widgets)
-target_link_libraries(jelly_desktop PUBLIC jelly_application jelly_services Qt${QT_VERSION_MAJOR}::Widgets)
+target_link_libraries(jelly_desktop PUBLIC jelly_application jelly_services Qt6::Widgets)
 
 add_executable(JellyCAD src/main.cpp resource/res.qrc ${WIN32_RESOURCES})
 target_link_libraries(JellyCAD PRIVATE jelly_desktop)
@@ -111,27 +92,24 @@ target_include_directories(JellyCAD PRIVATE ${OpenCASCADE_INCLUDE_DIR})
 target_include_directories(JellyCAD PRIVATE src src/widgets src/shapes)
 
 # Qt dependencies are inherited through jelly_desktop.
-if (QT_VERSION_MAJOR EQUAL 6)
-    if(WIN32)
-        # 在构建时根据配置类型（Debug/Release）动态复制Qt插件
-        # 使用 $<CONFIG> 生成器表达式确保多配置生成器（如Visual Studio）能正确工作
-        add_custom_command(TARGET JellyCAD POST_BUILD
-            COMMAND ${CMAKE_COMMAND}
-                -DCONFIG_TYPE=$<CONFIG>
-                -DQt6_DIR=${Qt6_DIR}
-                -DTARGET_DIR=$<TARGET_FILE_DIR:JellyCAD>
-                -P ${CMAKE_CURRENT_SOURCE_DIR}/copy_qt_plugins.cmake
-            COMMENT "Copying Qt6 plugins for $<CONFIG> configuration..."
-        )
+if(WIN32)
+    # 在构建时根据配置类型（Debug/Release）动态复制Qt插件
+    # 使用 $<CONFIG> 生成器表达式确保多配置生成器（如Visual Studio）能正确工作
+    add_custom_command(TARGET JellyCAD POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+            -DCONFIG_TYPE=$<CONFIG>
+            -DQt6_DIR=${Qt6_DIR}
+            -DTARGET_DIR=$<TARGET_FILE_DIR:JellyCAD>
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/copy_qt_plugins.cmake
+        COMMENT "Copying Qt6 plugins for $<CONFIG> configuration..."
+    )
 
-        # 生成 qt.conf 配置文件
-        add_custom_command(TARGET JellyCAD POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E echo "[Paths]" > "$<TARGET_FILE_DIR:JellyCAD>/qt.conf"
-            COMMAND ${CMAKE_COMMAND} -E echo "Plugins=plugins" >> "$<TARGET_FILE_DIR:JellyCAD>/qt.conf"
-            COMMENT "Generating qt.conf for $<CONFIG>"
-        )
-    endif()
-
+    # 生成 qt.conf 配置文件
+    add_custom_command(TARGET JellyCAD POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E echo "[Paths]" > "$<TARGET_FILE_DIR:JellyCAD>/qt.conf"
+        COMMAND ${CMAKE_COMMAND} -E echo "Plugins=plugins" >> "$<TARGET_FILE_DIR:JellyCAD>/qt.conf"
+        COMMENT "Generating qt.conf for $<CONFIG>"
+    )
 endif()
 
 # 使用生成器表达式，保证Visual Studio等多配置生成器下Release也是GUI程序（CMAKE_BUILD_TYPE对多配置生成器无效）
@@ -200,8 +178,6 @@ if(BUILD_TESTS)
     target_link_libraries(JellyCAD_ui_tests PRIVATE GTest::gtest jelly_desktop)
     if(TARGET Qt6::QOffscreenIntegrationPlugin)
         qt6_import_plugins(JellyCAD_ui_tests INCLUDE Qt6::QOffscreenIntegrationPlugin)
-    elseif(TARGET Qt5::QOffscreenIntegrationPlugin AND COMMAND qt5_import_plugins)
-        qt5_import_plugins(JellyCAD_ui_tests INCLUDE Qt5::QOffscreenIntegrationPlugin)
     endif()
     add_test(NAME desktop_workflows COMMAND JellyCAD_ui_tests)
     set_tests_properties(desktop_workflows PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 30)
