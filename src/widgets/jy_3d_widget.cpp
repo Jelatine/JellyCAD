@@ -16,6 +16,11 @@
 #include <QMouseEvent>
 #include <StdSelect_BRepOwner.hxx>
 #include <V3d_View.hxx>
+#include <Standard_Version.hxx>
+#if OCC_VERSION_HEX >= 0x080000
+#include <BRepMesh_DiscretAlgoFactory.hxx>
+#include <BRepMesh_IncrementalMeshFactory.hxx>
+#endif
 
 #ifdef _WIN32
 
@@ -111,6 +116,13 @@ void Jy3DWidget::remove_all() {
 }
 
 void Jy3DWidget::initialize_context() {
+#if OCC_VERSION_HEX >= 0x080000
+    // OCCT 8 的网格算法通过静态对象自动注册，静态链接时该对象会被链接器丢弃，
+    // 导致 AIS_Shape 无法自动三角化、着色模式只显示线框，因此显式注册
+    if (BRepMesh_DiscretAlgoFactory::FindFactory("FastDiscret").IsNull()) {
+        BRepMesh_DiscretAlgoFactory::RegisterFactory(new BRepMesh_IncrementalMeshFactory(), true);
+    }
+#endif
     //此对象提供与X server的连接，在Windows和Mac OS中不起作用
     Handle(Aspect_DisplayConnection) display_connection = new Aspect_DisplayConnection();
     //获取QWidget的窗口系统标识符
