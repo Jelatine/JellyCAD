@@ -120,9 +120,9 @@ JellyCAD 集成了大模型对话功能，帮助您更高效地编写 Lua 脚本
 
 ### 测试平台
 
-- ✅ Windows 11 23H2 + Visual Studio 2022
-- ✅ Ubuntu 22.04.5 LTS + GCC 11.4.0
-- ✅ macOS 15.5
+- ✅ Windows Server 2025 + Visual Studio 2026 (MSVC 19.51)
+- ✅ Ubuntu 24.04 LTS + GCC 13.3.0
+- ✅ macOS 26 (Apple Silicon) + Apple Clang 21.0.0
 
 ## 🚀 快速开始
 
