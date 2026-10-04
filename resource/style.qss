@@ -569,3 +569,132 @@ QDialog,
 QMessageBox {
     background: @bg-panel;
 }
+
+/* =============================================================================
+   Lua 编辑器：代码菜单、结果面板、状态与补全
+   ============================================================================= */
+QToolButton#luaCodeButton {
+    min-height: 20px;
+    padding: 4px 24px 4px 8px;
+    color: @text;
+    background: @bg-hover;
+    border: 1px solid transparent;
+    border-radius: 4px;
+}
+
+QToolButton#luaCodeButton:hover {
+    background: @bg-active;
+}
+
+QToolButton#luaCodeButton:pressed,
+QToolButton#luaCodeButton:open {
+    background: @border-strong;
+}
+
+QToolButton#luaCodeButton:focus {
+    border-color: @accent;
+}
+
+QToolButton#luaCodeButton::menu-indicator {
+    image: url(:/icons/chevron-down-muted.png);
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+    right: 4px;
+    width: 14px;
+    height: 14px;
+}
+
+QTabWidget#luaResults::pane {
+    border: 1px solid @border;
+    border-top: none;
+    background: @bg-base;
+}
+
+QTabWidget#luaResults QTabBar {
+    background: @bg-panel;
+}
+
+QTabWidget#luaResults QTabBar::tab {
+    color: @text-muted;
+    background: @bg-panel;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 6px 12px;
+    margin: 0;
+}
+
+QTabWidget#luaResults QTabBar::tab:hover {
+    color: @text;
+    background: @bg-hover;
+}
+
+QTabWidget#luaResults QTabBar::tab:selected {
+    color: @text;
+    border-bottom-color: @accent;
+}
+
+QToolButton#luaResultsClose {
+    width: 20px;
+    height: 20px;
+    margin: 2px 4px;
+    padding: 2px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+}
+
+QToolButton#luaResultsClose:hover {
+    background: @bg-hover;
+}
+
+QToolButton#luaResultsClose:pressed {
+    background: @bg-active;
+}
+
+QToolButton#luaResultsClose:focus {
+    border: 1px solid @accent;
+}
+
+QListWidget#luaProblems,
+QListWidget#luaReferences {
+    background: @bg-base;
+    padding: 4px;
+}
+
+QListWidget#luaProblems::item,
+QListWidget#luaReferences::item {
+    min-height: 24px;
+    padding: 2px 8px;
+}
+
+QLabel#luaLanguageStatus {
+    color: @text-muted;
+    padding: 2px 4px;
+    min-height: 16px;
+}
+
+QAbstractItemView#luaCompletion {
+    color: @text;
+    background: @bg-elevated;
+    border: 1px solid @border-strong;
+    border-radius: 6px;
+    padding: 4px;
+    outline: none;
+    font-family: "JetBrains Mono", "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 13px;
+}
+
+QAbstractItemView#luaCompletion::item {
+    min-height: 24px;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+QAbstractItemView#luaCompletion::item:hover {
+    background: @bg-hover;
+}
+
+QAbstractItemView#luaCompletion::item:selected {
+    color: @text-on-accent;
+    background: @accent;
+}

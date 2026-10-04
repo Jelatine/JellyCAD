@@ -13,6 +13,7 @@
 #include <QVBoxLayout>
 #include <QToolButton>
 #include <QMenu>
+#include <QTabBar>
 
 JyEditorWidget::JyEditorWidget(QWidget *parent)
     : QWidget(parent),
@@ -41,7 +42,11 @@ void JyEditorWidget::setupUi() {
     buttonLayout->addWidget(m_runButton);
     buttonLayout->addWidget(m_saveButton);
     auto *codeButton = new QToolButton(this);
+    codeButton->setObjectName("luaCodeButton");
     codeButton->setText(tr("Code"));
+    codeButton->setIcon(JyTheme::icon("file-code"));
+    codeButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    codeButton->setIconSize(QSize(16, 16));
     codeButton->setPopupMode(QToolButton::InstantPopup);
     auto *codeMenu = new QMenu(codeButton);
     codeMenu->addActions(m_codeEditor->codeActions());
@@ -57,6 +62,9 @@ void JyEditorWidget::setupUi() {
     m_results = new QTabWidget(this);
     m_results->setObjectName("luaResults");
     m_results->setMaximumHeight(160);
+    m_results->setDocumentMode(true);
+    m_results->tabBar()->setDrawBase(false);
+    m_results->setElideMode(Qt::ElideRight);
     m_problems = new QListWidget(m_results);
     m_problems->setObjectName("luaProblems");
     m_references = new QListWidget(m_results);
@@ -64,19 +72,28 @@ void JyEditorWidget::setupUi() {
     m_results->addTab(m_problems, tr("Problems"));
     m_results->addTab(m_references, tr("References"));
     auto *closeResults = new QToolButton(m_results);
-    closeResults->setText(QStringLiteral("×"));
+    closeResults->setObjectName("luaResultsClose");
+    closeResults->setIcon(JyTheme::icon("x"));
+    closeResults->setIconSize(QSize(16, 16));
+    closeResults->setAutoRaise(true);
     closeResults->setToolTip(tr("Hide results"));
     m_results->setCornerWidget(closeResults);
     connect(closeResults, &QToolButton::clicked, m_results, &QWidget::hide);
     mainLayout->addWidget(m_results);
     m_results->hide();
     m_languageStatus = new QLabel(this);
+    m_languageStatus->setObjectName("luaLanguageStatus");
+    m_languageStatus->setProperty("class", "caption");
     m_languageStatus->setTextFormat(Qt::RichText);
     mainLayout->addWidget(m_languageStatus);
     connect(m_languageStatus, &QLabel::linkActivated, this, [this] {
         m_results->setCurrentWidget(m_problems); m_results->setVisible(!m_results->isVisible());
     });
     for (auto *list : {m_problems, m_references}) {
+        list->setIconSize(QSize(14, 14));
+        list->setUniformItemSizes(true);
+        list->setTextElideMode(Qt::ElideRight);
+        list->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         connect(list, &QListWidget::itemActivated, this, [this](QListWidgetItem *item) {
             m_codeEditor->goToPosition(item->data(Qt::UserRole).toInt());
         });
@@ -91,12 +108,16 @@ void JyEditorWidget::setupUi() {
             const auto block = m_codeEditor->document()->findBlock(diagnostic.start);
             auto *item = new QListWidgetItem(tr("%1 · Line %2: %3")
                 .arg(diagnostic.warning ? tr("Warning") : tr("Error")).arg(block.blockNumber() + 1).arg(diagnostic.message), m_problems);
+            item->setIcon(JyTheme::icon("info", JyTheme::color(diagnostic.warning ? "warning" : "danger")));
             item->setData(Qt::UserRole, diagnostic.start);
             item->setToolTip(diagnostic.message);
             if (diagnostic.warning) ++warnings; else ++errors;
         }
         m_results->setTabText(0, tr("Problems (%1)").arg(errors + warnings));
-        m_languageStatus->setText(tr("<a href=\"problems\">Lua: %1 errors, %2 warnings</a> · UTF-8 · 4 spaces").arg(errors).arg(warnings));
+        m_languageStatus->setText(
+            QStringLiteral("<a href=\"problems\" style=\"color:%1; text-decoration:none;\">%2</a> · UTF-8 · 4 spaces")
+                .arg(JyTheme::color(errors ? "danger" : warnings ? "warning" : "text-muted").name(),
+                     tr("Lua: %1 errors, %2 warnings").arg(errors).arg(warnings).toHtmlEscaped()));
     });
     connect(m_codeEditor, &QPlainTextEdit::textChanged, this, [this] {
         m_references->clear(); // Stored offsets are invalid as soon as the document changes.
@@ -108,6 +129,8 @@ void JyEditorWidget::setupUi() {
         for (int position : positions) {
             const auto block = m_codeEditor->document()->findBlock(position);
             auto *item = new QListWidgetItem(tr("Line %1: %2").arg(block.blockNumber() + 1).arg(block.text().trimmed()), m_references);
+            item->setIcon(JyTheme::icon("file-code"));
+            item->setToolTip(block.text().trimmed());
             item->setData(Qt::UserRole, position);
         }
         m_results->setTabText(1, tr("References (%1)").arg(positions.size()));

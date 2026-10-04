@@ -36,6 +36,7 @@ namespace {
                 {"accent-subtle", "rgba(53, 116, 240, 0.22)"},
                 // 状态色
                 {"danger", "#E55765"},
+                {"warning", "#D6A240"},
                 {"success", "#5FB865"},
         };
         return map;

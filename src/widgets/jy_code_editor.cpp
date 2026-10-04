@@ -54,6 +54,8 @@ JyCodeEditor::JyCodeEditor(QWidget *parent) : QPlainTextEdit(parent), number_are
     completer_->setModel(new QStringListModel(this));
     completer_->setCaseSensitivity(Qt::CaseSensitive);
     completer_->setCompletionMode(QCompleter::PopupCompletion);
+    completer_->popup()->setObjectName("luaCompletion");
+    completer_->popup()->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     connect(completer_, qOverload<const QString &>(&QCompleter::activated), this, &JyCodeEditor::insertCompletion);
     analysis_timer_.setSingleShot(true);
     analysis_timer_.setInterval(250);
@@ -93,7 +95,8 @@ JyCodeEditor::JyCodeEditor(QWidget *parent) : QPlainTextEdit(parent), number_are
     connect(this, &JyCodeEditor::blockCountChanged, this, &JyCodeEditor::slot_update_number_width);
     connect(this, &JyCodeEditor::updateRequest, this, &JyCodeEditor::slot_update_number_area);
     slot_update_number_width(0);
-    viewport()->setStyleSheet(QString("border-left: 1px solid %1;").arg(JyTheme::color("border").name()));
+    viewport()->setStyleSheet(QString("background-color: %1; border-left: 1px solid %2;")
+                                 .arg(JyTheme::color("bg-base").name(), JyTheme::color("border").name()));
 }
 void JyCodeEditor::init_highlighter() {
     highlighter_ = new Highlighter(this->document());
@@ -170,6 +173,7 @@ int JyCodeEditor::number_area_width() {
 void JyCodeEditor::paint_line_number(QPaintEvent *event) {
     if (!number_area_) { return; }
     QPainter painter(number_area_);
+    painter.fillRect(event->rect(), JyTheme::color("bg-base"));
     QStyleOption opt;
     opt.initFrom(this);                                      //读取qss设置的样式
     QTextBlock t_first_visible_block = firstVisibleBlock();  // 第一个可看到的区间
@@ -187,8 +191,8 @@ void JyCodeEditor::paint_line_number(QPaintEvent *event) {
             if (analysis_ && !analysis_dirty_) {
                 for (const auto &fold : analysis_->folds) {
                     if (fold.first == t_block_number) {
-                        painter.drawText(QRect(number_area_->width() - 14, t_top, 14, fontMetrics().height()),
-                                         Qt::AlignCenter, folded_lines_.contains(fold.first) ? QStringLiteral("▸") : QStringLiteral("▾"));
+                        const auto icon = JyTheme::icon(folded_lines_.contains(fold.first) ? "chevron-right-muted" : "chevron-down-muted");
+                        icon.paint(&painter, QRect(number_area_->width() - 14, t_top, 14, fontMetrics().height()));
                         break;
                     }
                 }
@@ -511,7 +515,7 @@ void JyCodeEditor::updateSelections() {
     for (const auto &diagnostic : analysis_->diagnostics) {
         QTextCharFormat format;
         format.setUnderlineStyle(QTextCharFormat::WaveUnderline);
-        format.setUnderlineColor(diagnostic.warning ? QColor("#d6a240") : QColor("#ed6262"));
+        format.setUnderlineColor(JyTheme::color(diagnostic.warning ? "warning" : "danger"));
         format.setToolTip(diagnostic.message);
         add(diagnostic.start, diagnostic.length, format);
     }
@@ -521,7 +525,10 @@ void JyCodeEditor::updateSelections() {
     if (t >= 0) {
         const auto &token = analysis_->tokens[t];
         QTextCharFormat match;
-        match.setBackground(QColor(80, 150, 180, 100));
+        auto matchColor = JyTheme::color("accent");
+        matchColor.setAlpha(56);
+        match.setBackground(matchColor);
+        match.setForeground(JyTheme::color("text"));
         if (token.pair >= 0 && (position == token.start || position == token.end)) {
             add(token.start, token.end - token.start, match);
             const auto &other = analysis_->tokens[token.pair];
