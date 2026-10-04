@@ -4,6 +4,7 @@
 #include <QTemporaryDir>
 #include <filesystem>
 #include <future>
+#include <thread>
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
 
