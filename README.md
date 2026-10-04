@@ -109,7 +109,7 @@ JellyCAD integrates LLM dialogue functionality to help you write Lua scripts mor
 
 - **CMake** >= 3.24.0
 - **C++ Compiler** (supports C++17 or higher)
-- **vcpkg** (version 2025.06.13 or newer)
+- **vcpkg** (version 2026.06.24 or newer)
 
 ### Third-Party Libraries
 
@@ -130,11 +130,31 @@ JellyCAD integrates LLM dialogue functionality to help you write Lua scripts mor
 
 ### Install Dependencies
 
-Use vcpkg to install required third-party libraries:
+Choose one of the following two ways:
+
+**Option 1: Build with vcpkg**
 
 ```bash
-vcpkg install qtbase lua sol2 opencascade
+git clone https://github.com/Microsoft/vcpkg.git -b 2026.06.24
+./vcpkg/bootstrap-vcpkg.sh        # Windows: .\vcpkg\bootstrap-vcpkg.bat
+./vcpkg/vcpkg install qtbase lua sol2 opencascade
+./vcpkg/vcpkg install gtest       # optional, only needed for unit tests
 ```
+
+> On Ubuntu, building qtbase requires some system packages first; see the "安装依赖" (install dependencies) step in [ci.yml](.github/workflows/ci.yml).
+
+**Option 2: Download prebuilt vcpkg**
+
+[JellyCAD-vcpkg](https://github.com/Jelatine/JellyCAD-vcpkg) publishes a prebuilt `vcpkg` directory (including gtest) to its Releases, which is also what CI uses. Run in the JellyCAD source directory (on Windows, use Git Bash):
+
+```bash
+# PLATFORM: Windows / Linux / macOS
+gh release download vcpkg-2026.06.24 -R Jelatine/JellyCAD-vcpkg -p "vcpkg-PLATFORM.tar.gz.part-*" -D vcpkg_dl
+cat vcpkg_dl/* | tar -xzf -
+rm -rf vcpkg_dl
+```
+
+The prebuilt packages are built on GitHub Actions runners `windows-2025-vs2026` (Visual Studio 2026), `ubuntu-24.04` and `macos-26` (arm64). Use them only with a matching OS and compiler; otherwise use Option 1.
 
 ### Build Project
 
@@ -148,10 +168,11 @@ mkdir build
 cd build
 
 # Configure CMake (replace your_vcpkg_dir with actual path)
-cmake .. -DCMAKE_TOOLCHAIN_FILE=(your_vcpkg_dir)/scripts/buildsystems/vcpkg.cmake
+# Add -DBUILD_TESTS=ON to build unit tests (requires gtest)
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=(your_vcpkg_dir)/scripts/buildsystems/vcpkg.cmake
 
 # Build project
-cmake --build .
+cmake --build . --config Release
 ```
 
 ### Common Issues

@@ -109,7 +109,7 @@ JellyCAD 集成了大模型对话功能，帮助您更高效地编写 Lua 脚本
 
 - **CMake** >= 3.24.0
 - **C++ 编译器** (支持 C++17 或更高版本)
-- **vcpkg** (2025.06.13 或更新版本)
+- **vcpkg** (2026.06.24 或更新版本)
 
 ### 第三方库
 
@@ -130,11 +130,31 @@ JellyCAD 集成了大模型对话功能，帮助您更高效地编写 Lua 脚本
 
 ### 安装依赖
 
-使用 vcpkg 安装所需的第三方库：
+以下两种方式任选其一：
+
+**方式一：使用 vcpkg 编译**
 
 ```bash
-vcpkg install qtbase lua sol2 opencascade
+git clone https://github.com/Microsoft/vcpkg.git -b 2026.06.24
+./vcpkg/bootstrap-vcpkg.sh        # Windows: .\vcpkg\bootstrap-vcpkg.bat
+./vcpkg/vcpkg install qtbase lua sol2 opencascade
+./vcpkg/vcpkg install gtest       # 可选，仅单元测试需要
 ```
+
+> Ubuntu 下编译 qtbase 需要先安装系统依赖，参考 [ci.yml](.github/workflows/ci.yml) 中的「安装依赖」步骤。
+
+**方式二：下载预编译的 vcpkg**
+
+[JellyCAD-vcpkg](https://github.com/Jelatine/JellyCAD-vcpkg) 将预编译好的 `vcpkg` 目录（含 gtest）发布在 Release 中，CI 也使用这份产物。在 JellyCAD 源码目录下执行（Windows 请使用 Git Bash）：
+
+```bash
+# PLATFORM: Windows / Linux / macOS
+gh release download vcpkg-2026.06.24 -R Jelatine/JellyCAD-vcpkg -p "vcpkg-PLATFORM.tar.gz.part-*" -D vcpkg_dl
+cat vcpkg_dl/* | tar -xzf -
+rm -rf vcpkg_dl
+```
+
+预编译产物构建于 GitHub Actions 的 `windows-2025-vs2026`（Visual Studio 2026）、`ubuntu-24.04`、`macos-26`（arm64）环境，仅适用于相同系统和编译器，其他环境请使用方式一。
 
 ### 编译项目
 
@@ -148,10 +168,11 @@ mkdir build
 cd build
 
 # 配置 CMake（替换 your_vcpkg_dir 为实际路径）
-cmake .. -DCMAKE_TOOLCHAIN_FILE=(your_vcpkg_dir)/scripts/buildsystems/vcpkg.cmake
+# 添加 -DBUILD_TESTS=ON 可编译单元测试（需要 gtest）
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=(your_vcpkg_dir)/scripts/buildsystems/vcpkg.cmake
 
 # 构建项目
-cmake --build .
+cmake --build . --config Release
 ```
 
 ### 常见问题
