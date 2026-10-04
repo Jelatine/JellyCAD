@@ -13,9 +13,6 @@ on:
         required: true
         default: 'v1.0.0'
 
-env:
-  VCPKG_VERSION: "2026.06.24"  # 对应 Jelatine/JellyCAD-vcpkg 的 Release tag: vcpkg-<版本>
-
 jobs:
   build:
     strategy:
@@ -70,25 +67,19 @@ jobs:
           sudo apt-get install -y libfontconfig1-dev
           sudo apt-get install -y libgles2-mesa-dev libdrm-dev libgbm-dev libsm-dev libcups2-dev libmtdev-dev libts-dev
 
-      - name: 下载vcpkg产物
-        shell: bash
+      # 预设会自动下载 Jelatine/JellyCAD-vcpkg 的预编译依赖（版本见 fetch_vcpkg.cmake）
+      - name: Configure CMake
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release download "vcpkg-${VCPKG_VERSION}" -R Jelatine/JellyCAD-vcpkg -p "vcpkg-${RUNNER_OS}.tar.gz.part-*" -D vcpkg_dl
-          cat vcpkg_dl/* | tar -xzf -
-          rm -rf vcpkg_dl
-
-      - name: Configure CMake
-        run: cmake -B ${{github.workspace}}/build -DTAG_VERSION="${{ steps.get_version.outputs.version }}" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake
+        run: cmake --preset release -DTAG_VERSION="${{ steps.get_version.outputs.version }}"
 
       - name: Build
-        run: cmake --build ${{github.workspace}}/build --config Release
+        run: cmake --build --preset release
 
       - name: 创建安装包(ubuntu)
         if: ${{ matrix.os=='ubuntu-24.04' }}
         run: |
-          cd ${{github.workspace}}/build
+          cd ${{github.workspace}}/build/release
           cpack
 
       - name: 上传构建产物(ubuntu)
@@ -96,35 +87,35 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: app-ubuntu-x64
-          path: build/JellyCAD_Setup_${{ steps.get_version.outputs.version }}.sh
+          path: build/release/JellyCAD_Setup_${{ steps.get_version.outputs.version }}.sh
           retention-days: 1
 
       - name: 创建安装包(windows)
         if: ${{ matrix.os=='windows-2025-vs2026' }}
         shell: pwsh
         run: |
-          cp ${{github.workspace}}/resource/installer.nsi ${{github.workspace}}/build
-          makensis /DPRODUCT_VERSION="${{ steps.get_version.outputs.version }}" ${{github.workspace}}/build/installer.nsi
+          cp ${{github.workspace}}/resource/installer.nsi ${{github.workspace}}/build/release
+          makensis /DPRODUCT_VERSION="${{ steps.get_version.outputs.version }}" ${{github.workspace}}/build/release/installer.nsi
 
       - name: 上传构建产物(windows)
         if: ${{ matrix.os=='windows-2025-vs2026' }}
         uses: actions/upload-artifact@v7
         with:
           name: app-windows-x64
-          path: build/JellyCAD_Setup_${{ steps.get_version.outputs.version }}.exe
+          path: build/release/JellyCAD_Setup_${{ steps.get_version.outputs.version }}.exe
           retention-days: 1
 
       - name: 创建安装包(macos)
         if: ${{ matrix.os=='macos-26' }}
         run: |
-          cd ${{github.workspace}}/build
+          cd ${{github.workspace}}/build/release
           cpack
       - name: 上传构建产物(macos)
         if: ${{ matrix.os=='macos-26' }}
         uses: actions/upload-artifact@v7
         with:
           name: app-macos-x64
-          path: build/JellyCAD_Setup_${{ steps.get_version.outputs.version }}.dmg
+          path: build/release/JellyCAD_Setup_${{ steps.get_version.outputs.version }}.dmg
           retention-days: 1
   release:
     needs: build

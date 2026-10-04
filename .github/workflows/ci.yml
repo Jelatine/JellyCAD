@@ -6,9 +6,6 @@ on:
   pull_request:
     branches: [ "main" ]
 
-env:
-  VCPKG_VERSION: "2026.06.24"  # 对应 Jelatine/JellyCAD-vcpkg 的 Release tag: vcpkg-<版本>
-
 jobs:
   build:
     strategy:
@@ -42,37 +39,29 @@ jobs:
           sudo apt-get install -y libgles2-mesa-dev libdrm-dev libgbm-dev libsm-dev libcups2-dev libmtdev-dev libts-dev
           sudo apt-get install -y libxcb-xinerama0 libxkbcommon-x11-0
 
-      - name: 下载vcpkg产物
-        shell: bash
+      # 预设会自动下载 Jelatine/JellyCAD-vcpkg 的预编译依赖（版本见 fetch_vcpkg.cmake）
+      - name: Configure CMake
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release download "vcpkg-${VCPKG_VERSION}" -R Jelatine/JellyCAD-vcpkg -p "vcpkg-${RUNNER_OS}.tar.gz.part-*" -D vcpkg_dl
-          cat vcpkg_dl/* | tar -xzf -
-          rm -rf vcpkg_dl
-
-      - name: Configure CMake
-        run: cmake -B ${{github.workspace}}/build -DTAG_VERSION="${{ steps.get_version.outputs.version }}" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake -DBUILD_TESTS=ON
+        run: cmake --preset release -DTAG_VERSION="${{ steps.get_version.outputs.version }}" -DBUILD_TESTS=ON
 
       - name: Build
-        run: cmake --build ${{github.workspace}}/build --config Release
+        run: cmake --build --preset release
 
       - name: Run Unit Tests
-        run: |
-          cd ${{github.workspace}}/build
-          ctest -C Release --output-on-failure --verbose
+        run: ctest --test-dir build/release -C Release --output-on-failure --verbose
 
       - name: 试运行(windows)
         if: ${{ matrix.os=='windows-2025-vs2026' }}
         run: |
-          cd ${{github.workspace}}/build/bin
+          cd ${{github.workspace}}/build/release/bin
           ./JellyCAD --version
 
 #      - name: 试运行(ubuntu)
 #        if: ${{ matrix.os=='ubuntu-24.04' }}
 #        run: |
 #          export QT_DEBUG_PLUGINS=1
-#          cd ${{github.workspace}}/build/bin
+#          cd ${{github.workspace}}/build/release/bin
 #          ./JellyCAD --version
 
 
@@ -91,21 +80,13 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
-      - name: 下载vcpkg产物
-        shell: bash
+      - name: Configure CMake
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release download "vcpkg-${VCPKG_VERSION}" -R Jelatine/JellyCAD-vcpkg -p "vcpkg-${RUNNER_OS}.tar.gz.part-*" -D vcpkg_dl
-          cat vcpkg_dl/* | tar -xzf -
-          rm -rf vcpkg_dl
+        run: cmake --preset release -DTAG_VERSION="${{ steps.get_version.outputs.version }}" -DBUILD_TESTS=ON
 
-      - name: Configure CMake
-        run: |
-          cmake -B ${{github.workspace}}/build -DTAG_VERSION="${{ steps.get_version.outputs.version }}" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake -DBUILD_TESTS=ON
-          cmake --build ${{github.workspace}}/build --config Release
+      - name: Build
+        run: cmake --build --preset release
 
       - name: Run Unit Tests
-        run: |
-          cd ${{github.workspace}}/build
-          ctest -C Release --output-on-failure --verbose
+        run: ctest --test-dir build/release -C Release --output-on-failure --verbose

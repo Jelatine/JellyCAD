@@ -2,7 +2,11 @@ Unicode true
 
 !define PRODUCT_NAME "JellyCAD"
 !define PRODUCT_SHORTCUT_NAME "JellyCAD_${PRODUCT_VERSION}"
-!define INSTALL_ICON "..\resource\favicon.ico"
+; Source root, relative to the build directory build/<preset>
+!ifndef SOURCE_ROOT
+!define SOURCE_ROOT "..\.."
+!endif
+!define INSTALL_ICON "${SOURCE_ROOT}\resource\favicon.ico"
 !define UNINSTALL_ICON "uninstall_logo.ico"
 !define SOURCE_DIR "bin"
 !define PRODUCT_PUBLISHER "lijianbin"
@@ -28,7 +32,7 @@ SetCompressorDictSize 32
 !insertmacro MUI_PAGE_WELCOME
 
 ; LICENSE Page
-!insertmacro MUI_PAGE_LICENSE "..\LICENSE"
+!insertmacro MUI_PAGE_LICENSE "${SOURCE_ROOT}\LICENSE"
 
 ; Install Selection Page
 !insertmacro MUI_PAGE_DIRECTORY
