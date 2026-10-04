@@ -175,7 +175,7 @@ jobs:
           merge-multiple: true
 
       - name: 创建Release并上传文件
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.get_version.outputs.version }}
           name: Release ${{ steps.get_version.outputs.version }}
