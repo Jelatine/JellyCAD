@@ -69,10 +69,13 @@ RunResult execute(const RunRequest &request, std::atomic<bool> &cancel, const Ev
         lua["arg"] = arg;
         lua["package"]["path"] = lua["package"]["path"].get<std::string>() + ";" + workDir.generic_string() + "/?.lua";
         if (!cancel.load()) {
-            const auto evaluated = request.isFile
+            auto evaluated = request.isFile
                 ? lua.safe_script_file(source, sol::script_pass_on_error)
                 : lua.safe_script(source, sol::script_pass_on_error);
-            if (!evaluated.valid()) throw sol::error(evaluated);
+            if (!evaluated.valid()) {
+                sol::error error = evaluated;
+                throw error;
+            }
         }
         result.status = RunStatus::Success;
         result.message = "Script completed";
