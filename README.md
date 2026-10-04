@@ -145,14 +145,14 @@ git clone https://github.com/Microsoft/vcpkg.git -b 2026.06.24
 
 **Option 2: Download prebuilt vcpkg**
 
-[JellyCAD-vcpkg](https://github.com/Jelatine/JellyCAD-vcpkg) publishes a prebuilt `vcpkg` directory (including gtest) to its Releases, which is also what CI uses. Run in the JellyCAD source directory (on Windows, use Git Bash):
+[JellyCAD-vcpkg](https://github.com/Jelatine/JellyCAD-vcpkg) publishes a prebuilt `vcpkg` directory (including gtest) to its Releases, which is also what CI uses. The CMake presets download it automatically (CMake >= 3.21), no manual install needed:
 
 ```bash
-# PLATFORM: Windows / Linux / macOS
-gh release download vcpkg-2026.06.24 -R Jelatine/JellyCAD-vcpkg -p "vcpkg-PLATFORM.tar.gz.part-*" -D vcpkg_dl
-cat vcpkg_dl/* | tar -xzf -
-rm -rf vcpkg_dl
+cmake --preset release            # or: debug
+cmake --build --preset release
 ```
+
+On first configure the package for the current OS is downloaded and extracted to `.vcpkg/<version>/` in the source directory, and shared by all presets. Build output goes to `build/<preset>/`. To use another release, add `-DJELLYCAD_VCPKG_VERSION=<version> --fresh`.
 
 The prebuilt packages are built on GitHub Actions runners `windows-2025-vs2026` (Visual Studio 2026), `ubuntu-24.04` and `macos-26` (arm64). Use them only with a matching OS and compiler; otherwise use Option 1.
 

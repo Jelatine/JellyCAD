@@ -145,14 +145,14 @@ git clone https://github.com/Microsoft/vcpkg.git -b 2026.06.24
 
 **方式二：下载预编译的 vcpkg**
 
-[JellyCAD-vcpkg](https://github.com/Jelatine/JellyCAD-vcpkg) 将预编译好的 `vcpkg` 目录（含 gtest）发布在 Release 中，CI 也使用这份产物。在 JellyCAD 源码目录下执行（Windows 请使用 Git Bash）：
+[JellyCAD-vcpkg](https://github.com/Jelatine/JellyCAD-vcpkg) 将预编译好的 `vcpkg` 目录（含 gtest）发布在 Release 中，CI 也使用这份产物。通过 CMake 预设可自动下载（需 CMake >= 3.21），无需手动安装：
 
 ```bash
-# PLATFORM: Windows / Linux / macOS
-gh release download vcpkg-2026.06.24 -R Jelatine/JellyCAD-vcpkg -p "vcpkg-PLATFORM.tar.gz.part-*" -D vcpkg_dl
-cat vcpkg_dl/* | tar -xzf -
-rm -rf vcpkg_dl
+cmake --preset release            # 或 debug
+cmake --build --preset release
 ```
+
+首次配置时会下载当前系统对应的产物并解压到源码目录下的 `.vcpkg/<版本>/`，各预设共享；构建输出位于 `build/<预设名>/`。如需其他版本，追加 `-DJELLYCAD_VCPKG_VERSION=<版本> --fresh`。
 
 预编译产物构建于 GitHub Actions 的 `windows-2025-vs2026`（Visual Studio 2026）、`ubuntu-24.04`、`macos-26`（arm64）环境，仅适用于相同系统和编译器，其他环境请使用方式一。
 

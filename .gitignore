@@ -1,4 +1,6 @@
 build/
+.vcpkg/
+CMakeUserPresets.json
 cmake-build-*
 .idea/
 win/

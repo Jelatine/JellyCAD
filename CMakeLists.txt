@@ -4,6 +4,8 @@
 #
 # 3.15+: WIN32_EXECUTABLE属性支持生成器表达式
 cmake_minimum_required(VERSION 3.15)
+# 可选：下载预编译vcpkg依赖并设置工具链，须在project()之前
+include(${CMAKE_CURRENT_SOURCE_DIR}/fetch_vcpkg.cmake)
 project(JellyCAD)
 set(CMAKE_CXX_STANDARD 17)
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
