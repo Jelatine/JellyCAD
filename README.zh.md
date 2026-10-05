@@ -7,7 +7,7 @@
 
   现代开源可编程 CAD 软件专为程序员、机器人开发者和参数化建模爱好者设计
 
-  ![cover](doc/cover.png)
+  ![JellyCAD 自定义标题栏、Lua 编辑器与 3D 模型预览](doc/cover.png)
 
   [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
   [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)](https://github.com/Jelatine/JellyCAD)
@@ -32,6 +32,7 @@
 ## ✨ 特点
 
 - 🌐 **跨平台支持** - 兼容 Windows、Linux 和 macOS 系统
+- 🪟 **自定义标题栏** - 深色窗口控制按钮，支持标题栏拖动和边缘缩放
 - 📝 **Lua 脚本编程** - 使用简洁的 Lua 语言构造三维模型
 - 🤖 **机器人开发** - 支持导出URDF和MJCF，方便ROS/ROS2和mujoco开发
 - 💾 **多格式导出** - 支持导出 STL、STEP、IGES 格式文件
@@ -202,7 +203,18 @@ sudo apt install fonts-noto-color-emoji
 
 ### 图形界面模式
 
-#### 🖱️ 鼠标操作
+#### 窗口操作
+
+JellyCAD 使用自定义深色标题栏替代系统默认标题栏，显示当前文件名、工作目录和应用名称；标题开头的 `*` 表示文件尚未保存。
+
+- 拖动标题栏移动窗口，双击标题栏最大化或还原。
+- 右上角按钮依次用于最小化、最大化／还原和关闭。
+- 非最大化状态下，拖动窗口边缘或四角调整大小。
+- 关闭已修改的文档时会提示保存；若脚本正在运行，窗口会等待脚本停止后关闭。
+
+完整布局和编辑器操作见[界面交互指南](https://jelatine.github.io/JellyCAD/guide/interaction)。上方封面是在 macOS 上运行内置 `scripts/0composite.lua` 示例的真实界面截图。
+
+#### 🖱️ 3D 视图鼠标操作
 
 | 操作 | 功能 |
 |------|------|

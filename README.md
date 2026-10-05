@@ -7,7 +7,7 @@
 
   Modern open-source programmable CAD software designed for programmers, robotics developers, and parametric modeling enthusiasts
 
-  ![cover](doc/cover.png)
+  ![JellyCAD custom title bar, Lua editor, and 3D model preview](doc/cover.png)
 
   [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
   [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)](https://github.com/Jelatine/JellyCAD)
@@ -32,6 +32,7 @@ In the [mockway_robotics](https://github.com/Jelatine/mockway_robotics) robotic 
 ## ✨ Features
 
 - 🌐 **Cross-Platform Support** - Compatible with Windows, Linux, and macOS
+- 🪟 **Custom Title Bar** - Dark window controls, draggable title bar, and edge resizing
 - 📝 **Lua Script Programming** - Build 3D models using concise Lua language
 - 🤖 **Robotics Development** - Export to URDF and MJCF for ROS/ROS2 and MuJoCo development
 - 💾 **Multiple Export Formats** - Support for STL, STEP, and IGES file exports
@@ -202,7 +203,18 @@ Execute Lua script string:
 
 ### GUI Mode
 
-#### 🖱️ Mouse Operations
+#### Window Controls
+
+JellyCAD uses a custom dark title bar in place of the system title bar. It shows the current file, working directory, and application name; a leading `*` indicates unsaved changes.
+
+- Drag the title bar to move the window; double-click it to maximize or restore.
+- Use the buttons on the right to minimize, maximize/restore, or close the window.
+- Drag an edge or corner to resize a window that is not maximized.
+- Closing a modified document prompts you to save; if a script is running, the window waits for it to stop before closing.
+
+See the [interface guide](https://jelatine.github.io/JellyCAD/guide/interaction) for the current layout and editor controls. The cover above is a screenshot of the application running the bundled `scripts/0composite.lua` example on macOS.
+
+#### 🖱️ 3D View Mouse Operations
 
 | Operation | Function |
 |------|------|
